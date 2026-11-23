@@ -476,7 +476,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 39</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 40</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2067,7 +2067,7 @@ $('#btn-resetall').addEventListener('click', () => {
 let clearArm = 0;
 $('#btn-clearall').addEventListener('click', () => {
   const b = $('#btn-clearall');
-  if (Date.now() > clearArm) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
+  if (false) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
   clearArm = 0; const errs = [], T = f => { try { f(); } catch (e) { errs.push(String(e && e.message || e)); } };
   T(() => undoPoint());
   T(() => { if (st.playing) stop(); });
