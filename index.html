@@ -476,7 +476,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 37</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 38</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2068,20 +2068,23 @@ let clearArm = 0;
 $('#btn-clearall').addEventListener('click', () => {
   const b = $('#btn-clearall');
   if (Date.now() > clearArm) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
-  clearArm = 0; undoPoint();
-  if (st.playing) { try { stop(); } catch (e) {} }
-  if (chain && ctx) { const now = ctx.currentTime, g = chain.master.gain; g.cancelScheduledValues(now); g.setValueAtTime(0, now); g.setValueAtTime(0, now + 1.6); g.setTargetAtTime(0.82, now + 1.6, 0.04); }
-  resetSettings();
-  Object.keys(st.mix).forEach(k => setMix(k, 0)); setPad(0, 1);
-  st.nudge = 0; $('#nudge').value = 0; $('#nudge-val').textContent = '0 ms'; $('#gen-rest').value = 0;
-  st.bpm = 85; $('#bpm-slider').value = 85; $('#bpm-val').textContent = '85'; $('#song-form').value = 'standard'; st.form = 'standard';
+  clearArm = 0; const T = f => { try { f(); } catch (e) { console.warn(e); } };
+  T(() => undoPoint());
+  T(() => { if (st.playing) stop(); });
+  T(() => { if (chain && ctx) { const now = ctx.currentTime, g = chain.master.gain; g.cancelScheduledValues(now); g.setValueAtTime(0, now); g.setValueAtTime(0, now + 1.6); g.setTargetAtTime(0.82, now + 1.6, 0.04); } });
+  T(() => resetSettings());
+  T(() => { Object.keys(st.mix).forEach(k => setMix(k, 0)); setPad(0, 1); });
+  T(() => { st.nudge = 0; $('#nudge').value = 0; $('#nudge-val').textContent = '0 ms'; $('#gen-rest').value = 0; st.bpm = 85; $('#bpm-slider').value = 85; $('#bpm-val').textContent = '85'; $('#song-form').value = 'standard'; st.form = 'standard'; });
   st.blank = true;
-  const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = EMPTY16; st.beat = eb;
-  st.tracks = noTracks();
-  Object.keys(RL).forEach(k => { const t = emptyTrack(k), s = $('#tp-' + k); t.len = 0; t.oct = 0; if (s && s.options.length) t.type = s.options[0].value; st.tracks[k] = t; }); st.chordA = null; st.chordB = null;
-  st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false;
-  $('#ne-txt').value = ''; $('#ne-name').value = ''; $('#ne-msg').textContent = ''; $('#gen-kind').selectedIndex = 0; $('#gen-range').value = '2'; $('#ne-scale').value = String(st.scaleIdx);
-  renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
+  T(() => { const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = EMPTY16; st.beat = eb; });
+  T(() => { st.tracks = noTracks(); Object.keys(RL).forEach(k => { const t = emptyTrack(k), s = $('#tp-' + k); t.len = 0; t.oct = 0; if (s && s.options.length) t.type = s.options[0].value; st.tracks[k] = t; }); st.chordA = null; st.chordB = null; });
+  T(() => { st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false; });
+  T(() => { $('#ne-txt').value = ''; $('#ne-name').value = ''; $('#ne-msg').textContent = ''; $('#gen-kind').selectedIndex = 0; $('#gen-range').value = '2'; $('#ne-scale').value = String(st.scaleIdx); });
+  T(renderEditor); T(renderBeat); T(renderChords); T(renderAllRolls); T(updateStatus); T(refreshNotesMsg);
+  T(() => { $$('input[type=range]').forEach(r => { r.value = r.min || 0; r.dispatchEvent(new Event('input', { bubbles: true })); }); });
+  T(() => { Object.keys(st.mix).forEach(k => { st.mix[k] = 0; }); if (chain) applyMix(chain, st.mix, ctx.currentTime, true); });
+  T(saveCur);
+
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
   $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Mixer-Regler stehen auf 0. Baue ihn in den Editoren neu auf und schiebe die Regler hoch, wenn du etwas hören willst. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
   setTimeout(() => { $('#clearall-msg').textContent = ''; }, 12000);
