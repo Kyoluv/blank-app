@@ -564,7 +564,7 @@ const STYLES = {
   techno: { name:'Techno', bpm:134, scales:[0,3,4], progs:[0,2,3], swing:0,
     kick:'x...x...x...x...', snare:'................', clap:false, hat:'x.x.x.x.x.x.x.x.', open:'..x...x...x...x.',
     bass:'.x.x.x.x.x.x.x.x', bassType:'saw', lead:'x.x..x..x.x..x..', leadType:'square', stab:'................' },
-  berlin: { name:'Berlin Club', bpm:132, scales:[3,0,4], progs:[5,0,3], swing:0,
+  berlin: { name:'Berlin Club', bpm:132, scales:[3,0,4], progs:[5,0,3], swing:0, sub:0.8, bassMul:1.15, quiet:0.5, dark:0.55,
     kick:'x...x...x...x...', snare:'................', clap:true, hat:'.x.x.x.x.x.x.x.x', open:'..x...x...x...x.',
     bass:'.xxx.xxx.xxx.xxx', bassType:'saw', lead:'x.....x..x......', leadType:'square', stab:'..x.......x...x.' },
   western:{ name:'Western-Techno', bpm:128, scales:[3,4], progs:[2,3], swing:0,
@@ -740,7 +740,8 @@ const V = {
     const n = noiseSrc(ctx, t, 0.3), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000;
     const g = envGain(ctx, t, 0.001, v, open ? 0.2 : 0.045); n.connect(f).connect(g).connect(out);
   },
-  bass(ctx, out, t, freq, dur, type, v = 0.5) {
+  bass(ctx, out, t, freq, dur, type, v = 0.5, sub = 0) {
+    if (sub) { const so = ctx.createOscillator(), sg = envGain(ctx, t, 0.006, v * sub, dur * 1.15); so.type = 'sine'; so.frequency.value = freq; so.connect(sg).connect(out); so.start(t); so.stop(t + dur * 1.15 + 0.05); }
     if (type === '808') {
       const o = ctx.createOscillator(), g = envGain(ctx, t, 0.004, v * 1.1, Math.max(dur, 0.35)), ws = ctx.createWaveShaper();
       ws.curve = DIST; o.frequency.setValueAtTime(freq * 2, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.05);
@@ -989,7 +990,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat || sty;
   const s = n % 16, bar = Math.floor(n / 16);
   const tt = t + ((s % 2 === 1 && !S.fx.straight) ? sty.swing * dur : 0);
-  const cut = leadCut(S), vary = S.mix.vary == null ? 0.6 : S.mix.vary, seed = S.seed || 1, rr = (a, b) => H(seed, a, b);
+  const cut = leadCut(S) * ((STYLES[S.style] || {}).dark || 1), vary = S.mix.vary == null ? 0.6 : S.mix.vary, seed = S.seed || 1, rr = (a, b) => H(seed, a, b);
   const song = !!S.songMode, sec = song ? sectionAt(bar) : null, K = song ? sec.kind : '';
   const tr = song && sec.final && vary > 0.25 ? Math.pow(2, 2 / 12) : 1;
   const nf = (d, o) => noteFreq(sc, d, o) * tr;
@@ -1064,7 +1065,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const inv = rr(bar, 5) < vary * 0.45;
   const triad = (inv ? [2, 4, 7] : [0, 2, 4]).map(k => nf(chordDeg + k, 0));
   if (s === 0) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
-  if (stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut);
+  if (stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.11 * (sty.quiet || 1));
 
   // Schlagzeug
   if (kickOn) {
@@ -1112,7 +1113,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
     let bdeg = chordDeg, boct = -1; const q = rr(n, 71);
     if (q < vary * 0.18) boct = 0; else if (q < vary * 0.32) bdeg += 4; else if (s >= 14 && q < vary * 0.5) bdeg = nextDeg;
     if (sty.bassType === 'walk') bdeg += [0, 2, 4, 2][(s >> 2) % 4];
-    V.bass(ctx, ch.bass, tt, nf(bdeg, boct), sty.bassType === '808' ? dur * 3 : dur * 1.6, sty.bassType, 0.5);
+    V.bass(ctx, ch.bass, tt, nf(bdeg, boct), sty.bassType === '808' ? dur * 3 : dur * 1.6, sty.bassType, 0.5 * (sty.bassMul || 1), sty.sub || 0);
   }
   const acidOn = song ? (K === 'verse' || K === 'chorus') : (!chill && !inBuild && e > 0.3);
   if (S.fx.acid && acidOn) {
@@ -1128,17 +1129,17 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
     if (song && K === 'verse') { if (S.melodyLock) { d0 = S.melody[idx % M.length]; if (d0 !== REST) d0 += [0, 2, -1, 1][idx % 4]; } else { M = S.melodyB && S.melodyB.length ? S.melodyB : S.melody; d0 = M[idx % M.length]; } }
     else d0 = M[idx % M.length];
     const deg = S.melodyLock ? d0 : mutDeg(S, d0, idx, bar);
-    if (deg !== REST) V.lead(ctx, ch.lead, tt, nf(deg, 1 + octFor(S, s, bar, n)), dur, leadT, chill ? cut * 0.4 : cut, chill ? 0.1 : leadSoft ? 0.11 : 0.17);
+    if (deg !== REST) V.lead(ctx, ch.lead, tt, nf(deg, 1 + octFor(S, s, bar, n)), dur, leadT, chill ? cut * 0.4 : cut, (chill ? 0.1 : leadSoft ? 0.11 : 0.17) * (sty.quiet || 1));
   }
   // Gegenmelodie
   if (vary > 0.2 && (song ? K === 'chorus' : (e > 0.65 && !chill && !inBuild)) && !hit(pat.lead, s) && s % 4 === 2 && rr(n, 21) < vary * 0.55)
-    V.lead(ctx, ch.lead, tt, nf(chordDeg + [2, 4, 7][Math.floor(rr(n, 22) * 3)], 2), dur, 'pluck', cut, 0.06);
+    V.lead(ctx, ch.lead, tt, nf(chordDeg + [2, 4, 7][Math.floor(rr(n, 22) * 3)], 2), dur, 'pluck', cut, 0.06 * (sty.quiet || 1));
   if (S.fx.stutter && !chill && e > 0.3) {
     const deg0 = S.melody[Math.floor(n / 4) % S.melody.length], deg = deg0 === REST ? 0 : deg0, f = nf(deg, 1 + octFor(S, s, bar, n));
     V.lead(ctx, ch.lead, tt, f, dur * 0.4, 'square', cut, 0.12); V.lead(ctx, ch.lead, tt + dur / 2, f, dur * 0.4, 'square', cut, 0.1);
     V.hat(ctx, ch.drums, tt + dur / 2, 0.15, false);
   }
-  if (arpOn && !chill) V.arp(ctx, ch.lead, tt, nf(chordDeg + [0, 2, 4, 7][s % 4], 2), 0.09);
+  if (arpOn && !chill) V.arp(ctx, ch.lead, tt, nf(chordDeg + [0, 2, 4, 7][s % 4], 2), 0.09 * (sty.quiet || 1));
   if (S.fx.vocal && !chill && e > 0.35 && S.vox[s]) V.vocal(ctx, ch.lead, tt, nf(chordDeg + [0, 2, 4][(s >> 2) % 3], 1), 0.15);
 
   // Auto-DJ (nur live)
