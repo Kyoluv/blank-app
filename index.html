@@ -476,6 +476,8 @@
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
+  <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 33</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2269,6 +2271,13 @@ if (!lsGet('musify-tour')) showTour(0);
 
 if (lsGet('musify-fmt') === 'mp3') $('#fmt').value = 'mp3';
 refreshUndoUI(); renderProjects(); renderBeat(); renderChords(); initRolls(); renderAllRolls();
+
+$('#btn-reload').addEventListener('click', async () => {
+  const b = $('#btn-reload'); b.textContent = '⏳ Lade neu …';
+  try { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.unregister(); } catch (e) {}
+  try { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } catch (e) {}
+  location.reload();
+});
 
 </script>
 </body>
