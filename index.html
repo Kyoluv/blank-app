@@ -224,6 +224,12 @@
     <label>⏱ Tempo <b id="bpm-val">122</b> BPM</label><input type="range" id="bpm-slider" min="85" max="160" value="122">
     <label>🎭 Abwechslung</label><input type="range" id="mix-vary" min="0" max="100" value="60">
     <label>🥁 Drums</label><input type="range" id="mix-drums" min="0" max="100" value="85">
+    <label>　🔹 Bassdrum (Kick)</label><input type="range" id="mix-kick" min="0" max="100" value="100">
+    <label>　🔹 Snare</label><input type="range" id="mix-snare" min="0" max="100" value="100">
+    <label>　🔹 Clap</label><input type="range" id="mix-cl" min="0" max="100" value="100">
+    <label>　🔹 Hi-Hat</label><input type="range" id="mix-hat" min="0" max="100" value="100">
+    <label>　🔹 Offenes Hi-Hat</label><input type="range" id="mix-open" min="0" max="100" value="100">
+    <label>　🔹 Tom</label><input type="range" id="mix-tom" min="0" max="100" value="100">
     <label>🎸 Bass</label><input type="range" id="mix-bass" min="0" max="100" value="72">
     <label>🎸 Gitarre</label><input type="range" id="mix-gtr" min="0" max="100" value="75">
     <label>🎺 Bläser</label><input type="range" id="mix-horn" min="0" max="100" value="75">
@@ -482,7 +488,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 42</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 43</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -676,7 +682,7 @@ const st = {
   chill: false, seed: 20261120, playing: false, build: null,
   scaleIdx: 0, prog: [0,5,3,4], prog2: [0,3,4,3], melody: [], acidLine: [], vox: [], autoOff: {},
   songMode: false, songDone: false, melodyLock: false, scaleLock: false, form: 'standard', formPick: null, beat: null, chordA: null, chordB: null, leadType: null, padWave: 'sawtooth', melodyB: [], voiceRaw: null, voiceWet: null, voiceFx: 'hall', nudge: 40,
-  mix: { drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.55, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75, tuba: 0.8, bone: 0.8 },
+  mix: { kick: 1, snare: 1, cl: 1, hat: 1, open: 1, tom: 1, drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.55, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75, tuba: 0.8, bone: 0.8 },
   tracks: noTracks(), blank: false
 };
 const ST0 = { style: st.style, bpm: st.bpm, px: st.px, py: st.py, oct: st.oct, mix: { ...st.mix } };
@@ -994,17 +1000,19 @@ function buildChain(ctx) {
   lim.curve = LIMIT; try { lim.oversample = '2x'; } catch (e) {}
   master.gain.value = 0.82;
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
+  const dk = {}; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); dk[k].connect(drums); });
   drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.45); pad.connect(dP); widen(dP, 19, 0.4); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.4); horn.connect(dH); widen(dH, 15, 0.35);
   mixBus.connect(gate); gate.connect(crush); crush.connect(filt); filt.connect(dry); dry.connect(comp);
   filt.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
   filt.connect(rvSend); rvSend.connect(rv); rv.connect(comp);
   vox.connect(comp); comp.connect(eqHP); eqHP.connect(eqMud); eqMud.connect(eqPres); eqPres.connect(eqAir); eqAir.connect(drive); drive.connect(lim); lim.connect(fade); fade.connect(master);
-  const c = { vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
+  const c = { dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
   applyMix(c, st.mix, 0, false);
   return c;
 }
 function applyMix(ch, mix, now, ramp) {
   const set = (p, v) => { if (ramp) p.setTargetAtTime(v, now, 0.05); else p.value = v; };
+  ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => set(ch.dk[k].gain, mix[k] == null ? 1 : mix[k]));
   set(ch.drums.gain, mix.drums); set(ch.bass.gain, mix.bass * 1.1); set(ch.lead.gain, mix.lead); set(ch.pad.gain, mix.pad * 1.2);
   set(ch.gtr.gain, (mix.gtr == null ? 0.75 : mix.gtr) * 1.1); set(ch.horn.gain, (mix.horn == null ? 0.75 : mix.horn) * 1.1); set(ch.tuba.gain, (mix.tuba == null ? 0.8 : mix.tuba) * 1.1); set(ch.bone.gain, (mix.bone == null ? 0.8 : mix.bone) * 1.1);
   set(ch.rvSend.gain, mix.hall * 0.9); set(ch.vox.gain, (mix.vox == null ? 0.8 : mix.vox) * 1.3); set(ch.drive.gain, 0.8 + mix.loud * 1.6);
@@ -1068,7 +1076,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
       if (vary > 0.2 && sec.barIn === sec.bars - 1 && s === 0) V.swell(ctx, ch.fx, tt, dur * 14);
       if (vary > 0.3 && sec.barIn === sec.bars - 1 && s === 15) ch.fade.gain.setTargetAtTime(0.0001, tt, 0.01);
     }
-    if (K === 'chorus' && sec.barIn === 0 && s === 0 && !B) { V.crash(ctx, ch.fx, tt); V.kick(ctx, ch.drums, tt, 1.1); }
+    if (K === 'chorus' && sec.barIn === 0 && s === 0 && !B) { V.crash(ctx, ch.fx, tt); V.kick(ctx, ch.dk.kick, tt, 1.1); }
     if (n === 0) { ch.fade.gain.cancelScheduledValues(0); ch.fade.gain.setValueAtTime(1, Math.max(0, tt - 0.01)); }
     if (s === 0 && sec.barIn === 0) {
       if (K !== 'build' || vary <= 0.2) ch.filt.frequency.setTargetAtTime(K === 'brk' ? 900 : baseCut(S), tt, 0.25);
@@ -1079,7 +1087,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   } else if (live && S.build) {
     const k = n - S.build.start;
     if (k === 0) V.riser(ctx, ch.fx, tt, dur * S.build.len);
-    if (k >= S.build.len) { V.crash(ctx, ch.fx, tt); V.kick(ctx, ch.drums, tt, 1.1); duckAt(ch, tt, S, dur); S.build = null; setUIBuild(false); }
+    if (k >= S.build.len) { V.crash(ctx, ch.fx, tt); V.kick(ctx, ch.dk.kick, tt, 1.1); duckAt(ch, tt, S, dur); S.build = null; setUIBuild(false); }
     else bi = k / S.build.len;
   }
   const inBuild = bi !== null;
@@ -1126,34 +1134,34 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   if (kickOn) {
     let kickHit = S.fx.straight ? s % 4 === 0 : S.fx.half ? (s === 0 || s === 10) : (hit(pat.kick, s) || s === extraKick);
     if (inFill && s >= 14 && fillType < 2) kickHit = false;
-    if (kickHit) { V.kick(ctx, ch.drums, tt, s === extraKick && !hit(pat.kick, s) ? 0.8 : 1); if (S.fx.sub) V.sub(ctx, ch.drums, tt); duckAt(ch, tt, S, dur); }
+    if (kickHit) { V.kick(ctx, ch.dk.kick, tt, s === extraKick && !hit(pat.kick, s) ? 0.8 : 1); if (S.fx.sub) V.sub(ctx, ch.dk.kick, tt); duckAt(ch, tt, S, dur); }
   }
   if (snareOn && !inBuild) {
     const sn = S.fx.half ? s === 8 : hit(pat.snare, s);
-    if (sn && !(inFill && fillType === 0 && s >= 12)) V.snare(ctx, ch.drums, tt, 0.9, sty.clap);
-    if (sty.clap && !B && !S.fx.half && !hit(pat.snare, s) && pat.snare === '................' && (s === 4 || s === 12) && !inFill) V.snare(ctx, ch.drums, tt, 0.8, true);
-    if (vary > 0.2 && (s === 7 || s === 15) && !hit(pat.snare, s) && !inFill && rr(n, 51) < vary * 0.25) V.snare(ctx, ch.drums, tt, 0.25, false);
+    if (sn && !(inFill && fillType === 0 && s >= 12)) V.snare(ctx, ch.dk.snare, tt, 0.9, sty.clap);
+    if (sty.clap && !B && !S.fx.half && !hit(pat.snare, s) && pat.snare === '................' && (s === 4 || s === 12) && !inFill) V.snare(ctx, ch.dk.cl, tt, 0.8, true);
+    if (vary > 0.2 && (s === 7 || s === 15) && !hit(pat.snare, s) && !inFill && rr(n, 51) < vary * 0.25) V.snare(ctx, ch.dk.snare, tt, 0.25, false);
     if (inFill) {
-      if (fillType === 0) V.snare(ctx, ch.drums, tt, 0.4 + 0.18 * (s - 12), false);
-      else if (fillType === 1 && (s === 13 || s === 15)) V.snare(ctx, ch.drums, tt, 0.8, false);
-      else if (fillType === 2 && s === 15) V.snare(ctx, ch.drums, tt, 1, false);
+      if (fillType === 0) V.snare(ctx, ch.dk.snare, tt, 0.4 + 0.18 * (s - 12), false);
+      else if (fillType === 1 && (s === 13 || s === 15)) V.snare(ctx, ch.dk.snare, tt, 0.8, false);
+      else if (fillType === 2 && s === 15) V.snare(ctx, ch.dk.snare, tt, 1, false);
     }
   }
-  if (inBuild && !B && bi > 0.25 && (bi > 0.5 || s % 2 === 0)) V.snare(ctx, ch.drums, tt, 0.4 + bi * 0.7, false);
+  if (inBuild && !B && bi > 0.25 && (bi > 0.5 || s % 2 === 0)) V.snare(ctx, ch.dk.snare, tt, 0.4 + bi * 0.7, false);
   if (hatOn && !(song && inBuild && bi > 0.75)) {
-    if (chill) { if (s % 4 === 2) V.hat(ctx, ch.drums, tt, 0.12, false); }
+    if (chill) { if (s % 4 === 2) V.hat(ctx, ch.dk.hat, tt, 0.12, false); }
     else {
       const hv = 1 - vary * 0.35 + vary * 0.7 * rr(n, 61);
-      if (hit(pat.hat, s)) V.hat(ctx, ch.drums, tt, (s % 4 === 2 ? 0.26 : 0.16) * 1.25 * hv, false);
-      if (hit(pat.open, s) && !(song && (K === 'intro' || K === 'outro')) || (inFill && fillType === 2 && (s === 12 || s === 14))) V.hat(ctx, ch.drums, tt, 0.28, true);
-      if (vary > 0.25 && s % 4 === 3 && rr(n, 62) < vary * 0.18) V.hat(ctx, ch.drums, tt + dur / 2, 0.14, false);
+      if (hit(pat.hat, s)) V.hat(ctx, ch.dk.hat, tt, (s % 4 === 2 ? 0.26 : 0.16) * 1.25 * hv, false);
+      if (hit(pat.open, s) && !(song && (K === 'intro' || K === 'outro')) || (inFill && fillType === 2 && (s === 12 || s === 14))) V.hat(ctx, ch.dk.open, tt, 0.28, true);
+      if (vary > 0.25 && s % 4 === 3 && rr(n, 62) < vary * 0.18) V.hat(ctx, ch.dk.hat, tt + dur / 2, 0.14, false);
     }
   }
 
   // Eigene Zusatz-Schlagzeugspuren (Clap, Tom)
   const pk = k => pat[k] || '................';
-  if (snareOn && !inBuild && hit(pk('cl'), s)) V.snare(ctx, ch.drums, tt, 0.85, true);
-  if (kickOn && !inBuild && hit(pk('tom'), s)) V.tom(ctx, ch.drums, tt, s < 8 ? 1 : 0.75);
+  if (snareOn && !inBuild && hit(pk('cl'), s)) V.snare(ctx, ch.dk.cl, tt, 0.85, true);
+  if (kickOn && !inBuild && hit(pk('tom'), s)) V.tom(ctx, ch.dk.tom, tt, s < 8 ? 1 : 0.75);
 
   // Eigene Spuren: Bass, Gitarre, Bläser (Töne relativ zum Akkord)
   const T = S.tracks || {};
@@ -1194,7 +1202,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   if (S.fx.stutter && !chill && e > 0.3) {
     const deg0 = S.melody[Math.floor(n / 4) % S.melody.length], deg = deg0 === REST ? 0 : deg0, f = nf(deg, 1 + octFor(S, s, bar, n));
     V.lead(ctx, ch.lead, tt, f, dur * 0.4, 'square', cut, 0.12); V.lead(ctx, ch.lead, tt + dur / 2, f, dur * 0.4, 'square', cut, 0.1);
-    V.hat(ctx, ch.drums, tt + dur / 2, 0.15, false);
+    V.hat(ctx, ch.dk.hat, tt + dur / 2, 0.15, false);
   }
   if (arpOn && !chill) V.arp(ctx, ch.lead, tt, nf(chordDeg + [0, 2, 4, 7][s % 4], 2), 0.09 * (sty.quiet || 1));
   if (S.fx.vocal && !chill && e > 0.35 && S.vox[s]) V.vocal(ctx, ch.lead, tt, nf(chordDeg + [0, 2, 4][(s >> 2) % 3], 1), 0.15);
@@ -1907,9 +1915,9 @@ function renderBeat() {
 }
 function previewBeat(k) {
   initAudio(); const t = ctx.currentTime + 0.02, sc = SCALES[st.scaleIdx], dur = 60 / st.bpm / 4;
-  if (k === 'kick') V.kick(ctx, chain.drums, t, 1); else if (k === 'snare') V.snare(ctx, chain.drums, t, 0.9, STYLES[st.style].clap);
-  else if (k === 'cl') V.snare(ctx, chain.drums, t, 0.85, true); else if (k === 'tom') V.tom(ctx, chain.drums, t, 1);
-  else if (k === 'hat') V.hat(ctx, chain.drums, t, 0.3, false); else if (k === 'open') V.hat(ctx, chain.drums, t, 0.3, true);
+  if (k === 'kick') V.kick(ctx, chain.dk.kick, t, 1); else if (k === 'snare') V.snare(ctx, chain.dk.snare, t, 0.9, STYLES[st.style].clap);
+  else if (k === 'cl') V.snare(ctx, chain.dk.cl, t, 0.85, true); else if (k === 'tom') V.tom(ctx, chain.dk.tom, t, 1);
+  else if (k === 'hat') V.hat(ctx, chain.dk.hat, t, 0.3, false); else if (k === 'open') V.hat(ctx, chain.dk.open, t, 0.3, true);
   else if (k === 'lead') V.lead(ctx, chain.lead, t, noteFreq(sc, 4, 1), dur, st.leadType || STYLES[st.style].leadType, leadCut(st), 0.2);
   else V.stab(ctx, chain.lead, t, [0, 2, 4].map(x => noteFreq(sc, x, 1)), leadCut(st));
 }
@@ -1977,7 +1985,7 @@ function previewTrack(k) {
   const nf = (d, o) => noteFreq(sc, d, o);
   for (let s = 0; s < 32; s++) {
     const t = t0 + s * dur, bar = Math.floor(s / 16), cd = prog[bar % prog.length];
-    if (s % 4 === 0) V.kick(ctx, chain.drums, t, 0.8);
+    if (s % 4 === 0) V.kick(ctx, chain.dk.kick, t, 0.8);
     if (s % 16 === 0) V.pad(ctx, chain.pad, t, [0, 2, 4].map(q => nf(cd + q, 0)), dur * 15, 0.06, leadCut(st), st.padWave || 'sawtooth');
     playTrack(ctx, chain, k, tr, s % 16, t, dur, nf, cd);
   }
@@ -2096,7 +2104,7 @@ $('#btn-clearall').addEventListener('click', () => {
 
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
   $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Mixer-Regler stehen auf 0. Baue ihn in den Editoren neu auf und schiebe die Regler hoch, wenn du etwas hören willst. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
-  { const bad = $$('input[type=range]').filter(r => +r.value > +r.min).map(r => r.id + '=' + r.value); $('#clearall-msg').textContent += ' [Prüfung: ' + (bad.length ? 'NICHT auf 0: ' + bad.join(', ') : 'alle 16 Regler auf 0') + (errs.length ? '; Fehler: ' + errs.join(' | ') : '') + ']'; }
+  { const bad = $$('input[type=range]').filter(r => +r.value > +r.min).map(r => r.id + '=' + r.value); $('#clearall-msg').textContent += ' [Prüfung: ' + (bad.length ? 'NICHT auf 0: ' + bad.join(', ') : 'alle Regler auf 0') + (errs.length ? '; Fehler: ' + errs.join(' | ') : '') + ']'; }
   setTimeout(() => { $('#clearall-msg').textContent = ''; }, 12000);
 });
 $('#ne-lock').addEventListener('click', () => { undoPoint(); st.melodyLock = !st.melodyLock; if (!st.melodyLock) { regen(); } renderEditor(); });
@@ -2142,7 +2150,7 @@ $('#fmt').addEventListener('change', ev => lsSet('musify-fmt', ev.target.value))
 $('#btn-proj-save').addEventListener('click', saveProject);
 $('#nudge').addEventListener('input', ev => { st.nudge = +ev.target.value; $('#nudge-val').textContent = st.nudge + ' ms'; });
 $('#btn-wav-song').addEventListener('click', () => exportWav(true));
-['drums', 'bass', 'gtr', 'horn', 'tuba', 'bone', 'lead', 'pad', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
+['kick', 'snare', 'cl', 'hat', 'open', 'tom', 'drums', 'bass', 'gtr', 'horn', 'tuba', 'bone', 'lead', 'pad', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
 $('#btn-newhit').addEventListener('click', newHit);
 $('#btn-chillbreak').addEventListener('click', () => { initAudio(); setChill(!st.chill); });
 $('#btn-notes').addEventListener('click', () => { notesShown = !notesShown; refreshNotesMsg(); });
