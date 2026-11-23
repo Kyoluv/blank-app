@@ -2073,13 +2073,14 @@ $('#btn-clearall').addEventListener('click', () => {
   if (Date.now() > clearArm) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
   clearArm = 0; undoPoint();
   resetSettings();
+  Object.keys(st.mix).forEach(k => setMix(k, 0)); setPad(0, 1);
   st.blank = true;
   const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = STYLES[st.style].lead; st.beat = eb;
   st.tracks = Object.assign(noTracks(), { bass: emptyTrack('bass') }); st.chordA = null; st.chordB = null;
   st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false;
   renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
-  $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Einstellungen stehen wieder wie beim ersten Start. Baue ihn in den Editoren neu auf. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
+  $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Mixer-Regler stehen auf 0. Baue ihn in den Editoren neu auf und schiebe die Regler hoch, wenn du etwas hören willst. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
   setTimeout(() => { $('#clearall-msg').textContent = ''; }, 12000);
 });
 $('#ne-lock').addEventListener('click', () => { undoPoint(); st.melodyLock = !st.melodyLock; if (!st.melodyLock) { regen(); } renderEditor(); });
