@@ -477,7 +477,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 35</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 36</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1561,7 +1561,7 @@ function setChill(on) {
   applyChainSettings();
 }
 function setUIBuild(on) { $('#btn-build').classList.toggle('active-pink', on); }
-function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.melodyLock = false; renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
+function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.melodyLock = false; Object.keys(ST0.mix).forEach(k => setMix(k, ST0.mix[k])); setPad(ST0.px, ST0.py); st.nudge = 40; $('#nudge').value = 40; $('#nudge-val').textContent = '40 ms'; renderEditor(); renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
 
 /* Auto-DJ: verändert alle paar Takte Energie, Oktave und Effekte */
 function autoDJ(bar) {
