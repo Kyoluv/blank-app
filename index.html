@@ -323,6 +323,8 @@
     <label>🎸 Bass</label><input type="range" id="mix-bass" min="0" max="100" value="72">
     <label>🎸 Gitarre</label><input type="range" id="mix-gtr" min="0" max="100" value="75">
     <label>🎺 Bläser</label><input type="range" id="mix-horn" min="0" max="100" value="75">
+    <label>🎺 Tuba</label><input type="range" id="mix-tuba" min="0" max="100" value="80">
+    <label>🎷 Bassposaune</label><input type="range" id="mix-bone" min="0" max="100" value="80">
     <label>🎹 Melodie</label><input type="range" id="mix-lead" min="0" max="100" value="100">
     <label>☁️ Flächen</label><input type="range" id="mix-pad" min="0" max="100" value="55">
     <label>💨 Pump</label><input type="range" id="mix-pump" min="0" max="100" value="50">
@@ -423,6 +425,38 @@
     <button id="rc-horn">🧹 Leeren</button><button id="rs-horn">⏻ Bläser aus</button>
   </div>
   <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Die Bläser sind aus, bis du ein Feld setzt. Lautstärke im Mixer unter „Bläser“.</div>
+</div>
+
+<div class="card pro" id="c-tuba" data-tab="mel">
+  <div class="label"><span>🎺 Tuba-Editor</span><span id="st-tuba" style="color:var(--gold);"></span></div>
+  <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
+  <div class="rl-ctl">
+    <label>Klang</label><select id="tp-tuba" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="tuba">Tuba</option><option value="sousa">Sousaphon</option></select>
+    <label>Länge</label><select id="ln-tuba" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="1">kurz</option><option value="2">mittel</option><option value="4">lang</option></select>
+    <label>Oktave</label><button id="om-tuba">−</button><b id="ov-tuba" style="min-width:20px;text-align:center;">0</b><button id="op-tuba">+</button>
+  </div>
+  <div id="rl-tuba" class="be-grid rl"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+    <button id="rp-tuba">▶ Anhören</button><button id="rr-tuba">🎲 Zufall</button>
+    <button id="rc-tuba">🧹 Leeren</button><button id="rs-tuba">⏻ Tuba aus</button>
+  </div>
+  <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Die Tuba ist aus, bis du ein Feld setzt. Lautstärke im Mixer unter „Tuba“.</div>
+</div>
+
+<div class="card pro" id="c-bone" data-tab="mel">
+  <div class="label"><span>🎷 Bassposaune-Editor</span><span id="st-bone" style="color:var(--gold);"></span></div>
+  <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
+  <div class="rl-ctl">
+    <label>Klang</label><select id="tp-bone" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="bone">Bassposaune</option><option value="bclar">Bassklarinette</option></select>
+    <label>Länge</label><select id="ln-bone" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="1">kurz</option><option value="2">mittel</option><option value="4">lang</option></select>
+    <label>Oktave</label><button id="om-bone">−</button><b id="ov-bone" style="min-width:20px;text-align:center;">0</b><button id="op-bone">+</button>
+  </div>
+  <div id="rl-bone" class="be-grid rl"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+    <button id="rp-bone">▶ Anhören</button><button id="rr-bone">🎲 Zufall</button>
+    <button id="rc-bone">🧹 Leeren</button><button id="rs-bone">⏻ Aus</button>
+  </div>
+  <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Sie ist aus, bis du ein Feld setzt. Lautstärke im Mixer unter „Bassposaune“.</div>
 </div>
 
 <div class="card pro" id="c-chords" data-tab="mel">
@@ -638,8 +672,8 @@ const st = {
   chill: false, seed: 20261120, playing: false, build: null,
   scaleIdx: 0, prog: [0,5,3,4], prog2: [0,3,4,3], melody: [], acidLine: [], vox: [], autoOff: {},
   songMode: false, songDone: false, melodyLock: false, scaleLock: false, form: 'standard', formPick: null, beat: null, chordA: null, chordB: null, leadType: null, padWave: 'sawtooth', melodyB: [], voiceRaw: null, voiceWet: null, voiceFx: 'hall', nudge: 40,
-  mix: { drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.55, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75 },
-  tracks: { bass: null, gtr: null, horn: null }, blank: false
+  mix: { drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.55, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75, tuba: 0.8, bone: 0.8 },
+  tracks: noTracks(), blank: false
 };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function regen() {
@@ -777,7 +811,22 @@ const V = {
     g.gain.setValueAtTime(0.0001, t); lfo.frequency.value = type === 'flute' ? 5.2 : 5.6; lg.gain.value = 0; lfo.connect(lg);
     lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(type === 'sax' ? 9 : type === 'flute' ? 7 : 5, t + 0.25);
     let pk = v;
-    if (type === 'flute') {
+    if (type === 'tuba' || type === 'sousa') {
+      const br = type === 'sousa'; f.type = 'lowpass'; f.Q.value = 0.9;
+      f.frequency.setValueAtTime(br ? 380 : 260, t); f.frequency.linearRampToValueAtTime(br ? 1500 : 700, t + 0.08); f.frequency.linearRampToValueAtTime(br ? 900 : 480, t + len);
+      pk = v * 1.25; g.gain.linearRampToValueAtTime(pk, t + 0.05);
+      [-4, 4].forEach(det => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = det; o.connect(f); o.start(t); o.stop(end + rel + 0.05); });
+      const so = ctx.createOscillator(), sg = ctx.createGain(); so.type = 'sine'; so.frequency.value = freq; sg.gain.value = 1.1; so.connect(sg).connect(f); so.start(t); so.stop(end + rel + 0.05);
+    } else if (type === 'bone') {
+      f.type = 'lowpass'; f.Q.value = 1.3; f.frequency.setValueAtTime(350, t); f.frequency.linearRampToValueAtTime(Math.min(2600, 700 + freq * 7), t + 0.07); f.frequency.linearRampToValueAtTime(Math.min(1500, 500 + freq * 4), t + len);
+      pk = v * 1.1; g.gain.linearRampToValueAtTime(pk, t + 0.04);
+      [-6, 6].forEach(det => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = det; lg.connect(o.detune); o.connect(f); o.start(t); o.stop(end + rel + 0.05); });
+      const so = ctx.createOscillator(), sg = ctx.createGain(); so.type = 'sine'; so.frequency.value = freq; sg.gain.value = 0.7; so.connect(sg).connect(f); so.start(t); so.stop(end + rel + 0.05);
+    } else if (type === 'bclar') {
+      f.type = 'lowpass'; f.Q.value = 0.7; f.frequency.value = 1600; pk = v * 1.15; g.gain.linearRampToValueAtTime(pk, t + 0.04);
+      [[1, 1], [3, 0.55], [5, 0.25], [7, 0.1]].forEach(([m, a]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = 'sine'; o.frequency.value = freq * m; og.gain.value = a; lg.connect(o.detune); o.connect(og).connect(f); o.start(t); o.stop(end + rel + 0.05); });
+      const n = noiseSrc(ctx, t, len + rel), nf2 = ctx.createBiquadFilter(), ng = ctx.createGain(); nf2.type = 'bandpass'; nf2.frequency.value = 1200; nf2.Q.value = 0.8; ng.gain.value = 0.04; n.connect(nf2).connect(ng).connect(f);
+    } else if (type === 'flute') {
       f.type = 'lowpass'; f.frequency.value = 4200; f.Q.value = 0.5; pk = v * 1.1;
       g.gain.linearRampToValueAtTime(pk, t + 0.05);
       [[1, 1], [2, 0.18], [3, 0.05]].forEach(([m, a]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = 'sine'; o.frequency.value = freq * m; og.gain.value = a; lg.connect(o.detune); o.connect(og).connect(f); o.start(t); o.stop(end + rel + 0.05); });
@@ -927,7 +976,7 @@ function makeImpulse(ctx) {
 const LIMIT = (() => { const c = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; c[i] = Math.tanh(x * 1.6) / Math.tanh(1.6); } return c; })();
 function buildChain(ctx) {
   const mk = () => ctx.createGain();
-  const vox = mk(), drums = mk(), bass = mk(), lead = mk(), pad = mk(), fx = mk(), dB = mk(), dL = mk(), dP = mk(), mixBus = mk(), gtr = mk(), horn = mk(), dG = mk(), dH = mk();
+  const vox = mk(), drums = mk(), bass = mk(), lead = mk(), pad = mk(), fx = mk(), dB = mk(), dL = mk(), dP = mk(), mixBus = mk(), gtr = mk(), horn = mk(), tuba = mk(), bone = mk(), dG = mk(), dH = mk();
   const gate = mk(), crush = ctx.createWaveShaper(), filt = ctx.createBiquadFilter(), dry = mk();
   const delay = ctx.createDelay(1.5), fb = mk(), wet = mk();
   const rvSend = mk(), rv = ctx.createConvolver(); rv.buffer = makeImpulse(ctx);
@@ -940,19 +989,19 @@ function buildChain(ctx) {
   lim.curve = LIMIT; try { lim.oversample = '2x'; } catch (e) {}
   master.gain.value = 0.82;
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
-  drums.connect(mixBus); bass.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.45); pad.connect(dP); widen(dP, 19, 0.4); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.4); horn.connect(dH); widen(dH, 15, 0.35);
+  drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.45); pad.connect(dP); widen(dP, 19, 0.4); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.4); horn.connect(dH); widen(dH, 15, 0.35);
   mixBus.connect(gate); gate.connect(crush); crush.connect(filt); filt.connect(dry); dry.connect(comp);
   filt.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
   filt.connect(rvSend); rvSend.connect(rv); rv.connect(comp);
   vox.connect(comp); comp.connect(eqHP); eqHP.connect(eqMud); eqMud.connect(eqPres); eqPres.connect(eqAir); eqAir.connect(drive); drive.connect(lim); lim.connect(fade); fade.connect(master);
-  const c = { vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
+  const c = { vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
   applyMix(c, st.mix, 0, false);
   return c;
 }
 function applyMix(ch, mix, now, ramp) {
   const set = (p, v) => { if (ramp) p.setTargetAtTime(v, now, 0.05); else p.value = v; };
   set(ch.drums.gain, mix.drums); set(ch.bass.gain, mix.bass * 1.1); set(ch.lead.gain, mix.lead); set(ch.pad.gain, mix.pad * 1.2);
-  set(ch.gtr.gain, (mix.gtr == null ? 0.75 : mix.gtr) * 1.1); set(ch.horn.gain, (mix.horn == null ? 0.75 : mix.horn) * 1.1);
+  set(ch.gtr.gain, (mix.gtr == null ? 0.75 : mix.gtr) * 1.1); set(ch.horn.gain, (mix.horn == null ? 0.75 : mix.horn) * 1.1); set(ch.tuba.gain, (mix.tuba == null ? 0.8 : mix.tuba) * 1.1); set(ch.bone.gain, (mix.bone == null ? 0.8 : mix.bone) * 1.1);
   set(ch.rvSend.gain, mix.hall * 0.9); set(ch.vox.gain, (mix.vox == null ? 0.8 : mix.vox) * 1.3); set(ch.drive.gain, 0.8 + mix.loud * 1.6);
 }
 function duckAt(ch, t, S, dur) {
@@ -983,7 +1032,8 @@ function playTrack(ctx, ch, k, tr, s, tt, dur, nf, chordDeg) {
   else if (k === 'gtr') {
     if (tr.type === 'strum') [0, 2, 4].forEach((q, j) => V.guitar(ctx, ch.gtr, tt + j * 0.014, nf(chordDeg + q, tr.oct), dur * tr.len * 0.9, 'ac', 0.2 - j * 0.03));
     else V.guitar(ctx, ch.gtr, tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.9, tr.type, 0.3);
-  } else V.horn(ctx, ch.horn, tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.95, tr.type, 0.12);
+  } else if (k === 'tuba' || k === 'bone') V.horn(ctx, ch[k], tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.95, tr.type, 0.08);
+  else V.horn(ctx, ch.horn, tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.95, tr.type, 0.12);
 }
 function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat || sty;
@@ -1106,6 +1156,8 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const hornOn = song ? (K === 'chorus' || K === 'verse' || K === 'brk') : (!chill && !inBuild && e > 0.3);
   if (T.gtr && gtrOn) playTrack(ctx, ch, 'gtr', T.gtr, s, tt, dur, nf, chordDeg);
   if (T.horn && hornOn) playTrack(ctx, ch, 'horn', T.horn, s, tt, dur, nf, chordDeg);
+  if (T.tuba && hornOn) playTrack(ctx, ch, 'tuba', T.tuba, s, tt, dur, nf, chordDeg);
+  if (T.bone && hornOn) playTrack(ctx, ch, 'bone', T.bone, s, tt, dur, nf, chordDeg);
 
   // Bass / Acid
   if (T.bass && bassOn && !S.fx.acid) playTrack(ctx, ch, 'bass', T.bass, s, tt, dur, nf, chordDeg);
@@ -1505,7 +1557,7 @@ function setChill(on) {
   applyChainSettings();
 }
 function setUIBuild(on) { $('#btn-build').classList.toggle('active-pink', on); }
-function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = { bass: null, gtr: null, horn: null }; st.chordA = null; st.chordB = null; st.melodyLock = false; renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
+function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.melodyLock = false; renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
 
 /* Auto-DJ: verändert alle paar Takte Energie, Oktave und Effekte */
 function autoDJ(bar) {
@@ -1535,6 +1587,7 @@ function refreshSlotButtons() {
   $$('.slot-btn').forEach(b => { const i = +b.dataset.slot, s = slots[i]; b.textContent = `💾 Slot ${i + 1} (${s ? STYLES[s.style].name.split(' ')[0] : 'Leer'})`; });
 }
 function snapshotState() { return { style: st.style, bpm: st.bpm, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: { ...st.fx, autodj: false }, seed: st.seed, mix: { ...st.mix }, melody: st.melody.slice(), melodyLock: st.melodyLock, scaleIdx: st.scaleIdx, scaleLock: st.scaleLock, form: st.form, beat: st.beat ? { ...st.beat } : null, chordA: st.chordA ? st.chordA.slice() : null, chordB: st.chordB ? st.chordB.slice() : null, tracks: cloneTracks(), blank: st.blank }; }
+function noTracks() { return { bass: null, gtr: null, horn: null, tuba: null, bone: null }; }
 function cloneTracks() { return JSON.parse(JSON.stringify(st.tracks)); }
 function applySlot(s) {
   st.seed = s.seed; setStyle(s.style, true);
@@ -1546,7 +1599,7 @@ function applySlot(s) {
   if (s.form) { st.form = s.form; $('#song-form').value = s.form; if (!(st.playing && st.songMode)) setForm(activeForm()); }
   if (s.melodyLock && s.melody) st.melody = s.melody.slice(); if (s.scaleLock && s.scaleIdx != null) st.scaleIdx = s.scaleIdx;
   st.beat = s.beat ? { ...s.beat } : null; st.chordA = s.chordA ? s.chordA.slice() : null; st.chordB = s.chordB ? s.chordB.slice() : null;
-  st.tracks = s.tracks ? JSON.parse(JSON.stringify(s.tracks)) : { bass: null, gtr: null, horn: null }; st.blank = !!s.blank;
+  st.tracks = s.tracks ? JSON.parse(JSON.stringify(s.tracks)) : noTracks(); st.blank = !!s.blank;
   regen(); renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
 }
 
@@ -1671,7 +1724,7 @@ function restoreSnap(sn) {
   st.melody = sn.melody.slice(); st.scaleIdx = sn.scaleIdx;
   Object.keys(sn.mix).forEach(k => setMix(k, sn.mix[k]));
   st.beat = sn.beat ? { ...sn.beat } : null; st.chordA = sn.chordA ? sn.chordA.slice() : null; st.chordB = sn.chordB ? sn.chordB.slice() : null;
-  st.tracks = sn.tracks ? JSON.parse(JSON.stringify(sn.tracks)) : { bass: null, gtr: null, horn: null }; st.blank = !!sn.blank;
+  st.tracks = sn.tracks ? JSON.parse(JSON.stringify(sn.tracks)) : noTracks(); st.blank = !!sn.blank;
   if (sn.fx) Object.keys(sn.fx).forEach(k => { if (st.fx[k] !== sn.fx[k]) setFx(k, !!sn.fx[k]); }); if (sn.melodyB) st.melodyB = sn.melodyB.slice();
   updateStatus(); renderEditor(); renderBeat(); renderChords(); renderAllRolls();
 }
@@ -1874,7 +1927,9 @@ function randomBeat() {
 const RL = {
   bass: { name: 'Bass', defType: () => ({ walk: 'walk', '808': '808' }[STYLES[st.style].bassType] || 'saw'), oct: 0, len: 2 },
   gtr: { name: 'Gitarre', defType: () => 'ac', oct: 0, len: 2 },
-  horn: { name: 'Bläser', defType: () => 'brass', oct: 1, len: 2 }
+  horn: { name: 'Bläser', defType: () => 'brass', oct: 1, len: 2 },
+  tuba: { name: 'Tuba', defType: () => 'tuba', oct: -1, len: 2 },
+  bone: { name: 'Bassposaune', defType: () => 'bone', oct: -1, len: 2 }
 };
 const RL_LABEL = { 7: '8 · Okt.', 6: '7', 5: '6', 4: '5 · Quint', 3: '4', 2: '3 · Terz', 1: '2', 0: '1 · Grund' };
 function bassFromBeat() { const p = curBeat().bass || EMPTY16, n = []; for (let i = 0; i < 16; i++) n.push(p[i] === 'x' ? 0 : -1); return { n, oct: 0, len: 2, type: RL.bass.defType() }; }
@@ -1927,7 +1982,7 @@ function initRolls() {
     $('#rl-' + k).addEventListener('click', ev => { const c = ev.target.closest('.rl-c'); if (c) rollClick(k, +c.dataset.i, +c.dataset.d); });
     $('#tp-' + k).addEventListener('change', ev => { undoPoint(); const tr = ensureTrack(k); tr.type = ev.target.value; if (k === 'gtr' && tr.type === 'strum') tr.n = tr.n.map(v => (v >= 0 ? 0 : -1)); renderRoll(k); previewTrack(k); });
     $('#ln-' + k).addEventListener('change', ev => { undoPoint(); ensureTrack(k).len = +ev.target.value; renderRoll(k); });
-    $('#om-' + k).addEventListener('click', () => { undoPoint(); const tr = ensureTrack(k); tr.oct = Math.max(-1, tr.oct - 1); renderRoll(k); });
+    $('#om-' + k).addEventListener('click', () => { undoPoint(); const tr = ensureTrack(k); tr.oct = Math.max(-2, tr.oct - 1); renderRoll(k); });
     $('#op-' + k).addEventListener('click', () => { undoPoint(); const tr = ensureTrack(k); tr.oct = Math.min(2, tr.oct + 1); renderRoll(k); });
     $('#rr-' + k).addEventListener('click', () => { undoPoint(); randomTrack(k); });
     $('#rc-' + k).addEventListener('click', () => { undoPoint(); const tr = ensureTrack(k); tr.n = Array(16).fill(-1); renderRoll(k); });
@@ -2002,7 +2057,7 @@ $('#btn-clearall').addEventListener('click', () => {
   clearArm = 0; undoPoint();
   st.blank = true; Object.keys(st.fx).forEach(k => { if (st.fx[k]) setFx(k, false); });
   const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = STYLES[st.style].lead; st.beat = eb;
-  st.tracks = { bass: emptyTrack('bass'), gtr: null, horn: null }; st.chordA = null; st.chordB = null;
+  st.tracks = Object.assign(noTracks(), { bass: emptyTrack('bass') }); st.chordA = null; st.chordB = null;
   st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false;
   renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
@@ -2052,7 +2107,7 @@ $('#fmt').addEventListener('change', ev => lsSet('musify-fmt', ev.target.value))
 $('#btn-proj-save').addEventListener('click', saveProject);
 $('#nudge').addEventListener('input', ev => { st.nudge = +ev.target.value; $('#nudge-val').textContent = st.nudge + ' ms'; });
 $('#btn-wav-song').addEventListener('click', () => exportWav(true));
-['drums', 'bass', 'gtr', 'horn', 'lead', 'pad', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
+['drums', 'bass', 'gtr', 'horn', 'tuba', 'bone', 'lead', 'pad', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
 $('#btn-newhit').addEventListener('click', newHit);
 $('#btn-chillbreak').addEventListener('click', () => { initAudio(); setChill(!st.chill); });
 $('#btn-notes').addEventListener('click', () => { notesShown = !notesShown; refreshNotesMsg(); });
@@ -2113,6 +2168,8 @@ const HELP = {
   'c-beat': 'Hier setzt du dein Schlagzeug selbst: Tippe auf ein Feld, um einen Schlag ein- oder auszuschalten. Kick, Snare, Clap, Hi-Hat, Offen und Tom haben je eine Zeile. Die beiden unteren Zeilen bestimmen, wann Melodie und Akkorde erklingen. Drücke oben ▶ PLAY, dann hörst du jede Änderung sofort.',
   'c-bass': 'Spiele deinen eigenen Bass. Tippe in das Raster: oben sind hohe Töne, unten der Grundton des Akkords. Der Bass folgt automatisch deinen Akkorden. Mit „Klang“ wählst du Sub, weich oder Säge. „Zurück zum Stil“ gibt dir den Bass des Stils zurück.',
   'c-gtr': 'Eine eigene Gitarre. Tippe in das Raster, wo sie spielen soll. Bei „Akkord-Anschlag“ schlägt sie den ganzen Akkord an, sonst spielt sie einzelne Töne. Die Gitarre ist zuerst aus, bis du ein Feld setzt. Die Lautstärke findest du im Mixer unter „Gitarre“.',
+  'c-tuba': 'Eine Tuba oder ein Sousaphon, tief und rund. Tippe ins Raster, wo ein Ton erklingen soll. Die Töne folgen deinen Akkorden. Die Tuba ist zuerst aus, bis du ein Feld setzt. Die Lautstärke findest du im Mixer unter „Tuba“.',
+  'c-bone': 'Eine Bassposaune oder Bassklarinette, tief und warm. Tippe ins Raster, wo ein Ton erklingen soll. Sie ist zuerst aus, bis du ein Feld setzt. Die Lautstärke findest du im Mixer unter „Bassposaune“.',
   'c-horn': 'Trompete, Saxofon oder Flöte. Tippe ins Raster, wo ein Ton erklingen soll. Mit „Länge“ machst du die Töne kurz oder lang. Die Bläser sind zuerst aus, bis du ein Feld setzt. Die Lautstärke findest du im Mixer unter „Bläser“.',
   'c-chords': 'Wähle die Akkorde deines Songs. Tippe unten auf einen Akkord, um den markierten Platz zu belegen. Der Song spielt die Folge Takt für Takt und beginnt danach von vorn. „Refrain" gilt für Refrain, Intro und Live-Spiel, „Strophe" für Strophe, Aufbau und Break. Die Namen passen sich der Tonart an.',
   'c-song': 'Spielt einen kompletten Song mit Intro, Strophe, Refrain, Break und Outro. Die Regler mischen die Lautstärken. „Pump" lässt Bass und Flächen beim Kick atmen, „Abwechslung" bestimmt, wie stark sich der Song verändert.',
