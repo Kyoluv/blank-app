@@ -477,7 +477,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 33</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 34</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2081,9 +2081,10 @@ $('#btn-clearall').addEventListener('click', () => {
   st.nudge = 0; $('#nudge').value = 0; $('#nudge-val').textContent = '0 ms'; $('#gen-rest').value = 0;
   st.bpm = 85; $('#bpm-slider').value = 85; $('#bpm-val').textContent = '85'; $('#song-form').value = 'standard'; st.form = 'standard';
   st.blank = true;
-  const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = STYLES[st.style].lead; st.beat = eb;
+  const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = EMPTY16; st.beat = eb;
   st.tracks = Object.assign(noTracks(), { bass: emptyTrack('bass') }); st.chordA = null; st.chordB = null;
   st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false;
+  $('#ne-txt').value = ''; $('#ne-name').value = ''; $('#ne-msg').textContent = ''; $('#gen-kind').selectedIndex = 0; $('#gen-range').value = '2'; $('#ne-scale').value = String(st.scaleIdx);
   renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
   $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Mixer-Regler stehen auf 0. Baue ihn in den Editoren neu auf und schiebe die Regler hoch, wenn du etwas hören willst. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
