@@ -477,7 +477,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 34</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 35</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2082,7 +2082,8 @@ $('#btn-clearall').addEventListener('click', () => {
   st.bpm = 85; $('#bpm-slider').value = 85; $('#bpm-val').textContent = '85'; $('#song-form').value = 'standard'; st.form = 'standard';
   st.blank = true;
   const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = EMPTY16; st.beat = eb;
-  st.tracks = Object.assign(noTracks(), { bass: emptyTrack('bass') }); st.chordA = null; st.chordB = null;
+  st.tracks = noTracks();
+  Object.keys(RL).forEach(k => { const t = emptyTrack(k), s = $('#tp-' + k); t.len = 0; t.oct = 0; if (s && s.options.length) t.type = s.options[0].value; st.tracks[k] = t; }); st.chordA = null; st.chordB = null;
   st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false;
   $('#ne-txt').value = ''; $('#ne-name').value = ''; $('#ne-msg').textContent = ''; $('#gen-kind').selectedIndex = 0; $('#gen-range').value = '2'; $('#ne-scale').value = String(st.scaleIdx);
   renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
