@@ -267,10 +267,6 @@
     <span class="pad-hint" style="bottom:6px;right:8px;">HELL & ECHO ▶</span>
     <div id="puck"></div>
   </div>
-  <div class="row-slider">
-    <span style="font-size:0.75rem;color:var(--muted);width:68px;">⏱ <b id="bpm-val">122</b> BPM</span>
-    <input type="range" id="bpm-slider" min="85" max="160" value="122">
-  </div>
 </div>
 
 <div class="card pro" id="c-oct" data-tab="play">
@@ -312,12 +308,13 @@
 </div>
 
 <div class="card" id="c-song" data-tab="song">
-  <div class="label"><span>Ganzer Song & Mixer</span><span id="song-lbl" style="color:var(--gold);"></span></div>
+  <div class="label"><span>Ganzer Song & alle Regler</span><span id="song-lbl" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
   <div class="mixgrid" style="margin-bottom:8px;"><label>🎼 Songform</label><select id="song-form" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="standard">Standard (ca. 2:40)</option><option value="radio">Radio-Edit (ca. 1:50)</option><option value="club">Club-Mix (ca. 3:40)</option><option value="bridge">Mit Bridge (ca. 2:55)</option><option value="random">Zufall bei „Neuer Hit"</option></select></div>
   <div id="song-tl" class="song-tl"></div>
   <button id="btn-song" class="play-btn" style="width:100%;margin:8px 0;">▶ Ganzen Song spielen</button>
   <div class="mixgrid">
+    <label>⏱ Tempo <b id="bpm-val">122</b> BPM</label><input type="range" id="bpm-slider" min="85" max="160" value="122">
     <label>🎭 Abwechslung</label><input type="range" id="mix-vary" min="0" max="100" value="60">
     <label>🥁 Drums</label><input type="range" id="mix-drums" min="0" max="100" value="85">
     <label>🎸 Bass</label><input type="range" id="mix-bass" min="0" max="100" value="72">
@@ -330,6 +327,9 @@
     <label>💨 Pump</label><input type="range" id="mix-pump" min="0" max="100" value="50">
     <label>🏛️ Hall</label><input type="range" id="mix-hall" min="0" max="100" value="30">
     <label>📢 Lautheit</label><input type="range" id="mix-loud" min="0" max="100" value="75">
+    <label>🎤 Stimme</label><input type="range" id="mix-vox" min="0" max="100" value="80">
+    <label>⏱ Stimm-Ausgleich <b id="nudge-val">40 ms</b></label><input type="range" id="nudge" min="0" max="250" value="40">
+    <label>🎲 Melodie-Pausen</label><input type="range" id="gen-rest" min="0" max="60" value="20">
   </div>
 </div>
 
@@ -347,7 +347,6 @@
   <div class="mixgrid">
     <label>Charakter</label><select id="gen-kind" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="walk">Zufällig (Auf und Ab)</option><option value="hook">Hook (Motiv wiederholt sich)</option><option value="arp">Arpeggio (Akkordtöne)</option><option value="wave">Welle (sanft)</option></select>
     <label>Umfang</label><select id="gen-range" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="1">1 Oktave</option><option value="2" selected>2 Oktaven</option><option value="3">3 Oktaven</option></select>
-    <label>Pausen</label><input type="range" id="gen-rest" min="0" max="60" value="20">
   </div>
   <button id="ne-gen" class="sunset-btn" style="width:100%;margin-top:8px;">🎲 32 Noten würfeln</button>
   <div class="mixgrid" style="margin-top:8px;"><label>🎼 Tonart</label><select id="ne-scale" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"></select></div>
@@ -477,7 +476,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 36</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 37</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -503,10 +502,6 @@
     <button class="oct-btn" data-tune="hard">Robo</button>
   </div>
   <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;">Sanft = natürlich, Robo = harter Pop-Effekt wie bei Hits. Die Töne richten sich nach der Tonart des Songs.</div>
-  <div class="mixgrid" style="margin-top:8px;">
-    <label>🎤 Lautstärke</label><input type="range" id="mix-vox" min="0" max="100" value="80">
-    <label>⏱ Ausgleich <b id="nudge-val">40 ms</b></label><input type="range" id="nudge" min="0" max="250" value="40">
-  </div>
   <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;">Kommt die Stimme zu spät, den Ausgleich erhöhen (Bluetooth-Kopfhörer brauchen mehr).</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
     <button id="btn-vplay">▶ Song mit Stimme</button>
@@ -2237,7 +2232,7 @@ UI.easy = lsGet('musify-mode') === 'easy';
 buildHelp(); applyView();
 
 /* ---------- Übersicht: Abschnitte und einklappbare Karten ---------- */
-const SECS = { play: ['1', 'Spielen', 'Stil, Energie, Effekte'], song: ['2', 'Ganzer Song', 'Aufbau und Mixer'], mel: ['3', 'Eigene Spuren', 'Melodie, Drums, Bass, Gitarre, Bläser, Akkorde'], voice: ['4', 'Stimme', 'einsingen'], save: ['5', 'Speichern', 'Datei, Projekte, Favoriten'] };
+const SECS = { play: ['1', 'Spielen', 'Stil, Energie, Effekte'], song: ['2', 'Ganzer Song & Regler', 'Aufbau, Tempo, alle Schieberegler'], mel: ['3', 'Editoren', 'Melodie, Drums, Bass, Gitarre, Bläser, Tuba, Posaune, Akkorde'], voice: ['4', 'Stimme', 'einsingen'], save: ['5', 'Speichern', 'Datei, Projekte, Favoriten'] };
 const OPEN_DEFAULT = ['c-style', 'c-easy', 'c-pad', 'c-song', 'c-save'];
 let openSet; try { openSet = JSON.parse(lsGet('musify-open') || 'null'); } catch (e) { openSet = null; }
 if (!Array.isArray(openSet)) openSet = OPEN_DEFAULT.slice();
