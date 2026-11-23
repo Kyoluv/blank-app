@@ -438,10 +438,9 @@
   <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Bis zu 8 Akkorde, jeder dauert einen Takt.</div>
 </div>
 
-<div class="card pro" id="c-clear" data-tab="mel" style="padding:12px;">
+<div class="card" id="c-clear" style="padding:10px;margin-top:8px;">
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
-  <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Löscht deinen eigenen Beat, Bass, Gitarre, Bläser, Akkorde und deine Melodie. Der Song spielt danach wieder den Stil. Mit „Rückgängig“ holst du alles zurück.</div>
-  <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:6px;min-height:1em;"></div>
+  <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2172,6 +2171,7 @@ function buildFolds() {
   const bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:6px;margin:6px 0 0;';
   bar.innerHTML = '<button id="fold-all" style="flex:1">▾ Alles aufklappen</button><button id="fold-none" style="flex:1">▸ Alles zuklappen</button>';
   $('#c-style').closest('.sec, .card') && $('.sec[data-sec="play"]').before(bar);
+  bar.after($('#c-clear'));
   $('#fold-all').addEventListener('click', () => { $$('.card.fold').forEach(c => c.classList.remove('shut')); saveOpen(); });
   $('#fold-none').addEventListener('click', () => { $$('.card.fold').forEach(c => c.classList.add('shut')); saveOpen(); });
 }
