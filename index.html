@@ -2076,6 +2076,8 @@ $('#btn-clearall').addEventListener('click', () => {
   if (chain && ctx) { const now = ctx.currentTime, g = chain.master.gain; g.cancelScheduledValues(now); g.setValueAtTime(0, now); g.setValueAtTime(0, now + 1.6); g.setTargetAtTime(0.82, now + 1.6, 0.04); }
   resetSettings();
   Object.keys(st.mix).forEach(k => setMix(k, 0)); setPad(0, 1);
+  st.nudge = 0; $('#nudge').value = 0; $('#nudge-val').textContent = '0 ms'; $('#gen-rest').value = 0;
+  st.bpm = 85; $('#bpm-slider').value = 85; $('#bpm-val').textContent = '85'; $('#song-form').value = 'standard'; st.form = 'standard';
   st.blank = true;
   const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = STYLES[st.style].lead; st.beat = eb;
   st.tracks = Object.assign(noTracks(), { bass: emptyTrack('bass') }); st.chordA = null; st.chordB = null;
