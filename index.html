@@ -394,7 +394,7 @@
   <div class="label"><span>🎸 Bass-Editor</span><span id="st-bass" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
   <div class="rl-ctl">
-    <label>Klang</label><select id="tp-bass" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="808">808-Sub</option><option value="walk">Weich</option><option value="saw">Säge</option></select>
+    <label>Klang</label><select id="tp-bass" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="fing">Bassgitarre (Finger)</option><option value="pick">Bassgitarre (Pick)</option><option value="808">808-Sub</option><option value="walk">Weich</option><option value="saw">Säge</option></select>
     <label>Länge</label><select id="ln-bass" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="1">kurz</option><option value="2">mittel</option><option value="4">lang</option></select>
     <label>Oktave</label><button id="om-bass">−</button><b id="ov-bass" style="min-width:20px;text-align:center;">0</b><button id="op-bass">+</button>
   </div>
@@ -488,7 +488,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 43</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 44</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -786,6 +786,16 @@ const V = {
   },
   bass(ctx, out, t, freq, dur, type, v = 0.5, sub = 0) {
     if (sub) { const so = ctx.createOscillator(), sg = envGain(ctx, t, 0.006, v * sub, dur * 1.15); so.type = 'sine'; so.frequency.value = freq; so.connect(sg).connect(out); so.start(t); so.stop(t + dur * 1.15 + 0.05); }
+    if (type === 'fing' || type === 'pick') {
+      const pk = type === 'pick', len = Math.min(2, Math.max(0.35, dur * 1.5 + 0.25));
+      const src = ctx.createBufferSource(); src.buffer = ksBuf(ctx, freq, len, pk ? 0.5 : 0.22);
+      const f = ctx.createBiquadFilter(), g = envGain(ctx, t, 0.004, v * (pk ? 1.5 : 1.7), len);
+      f.type = 'lowpass'; f.frequency.value = pk ? 1900 : 750; f.Q.value = 0.8; src.connect(f).connect(g).connect(out); src.start(t); src.stop(t + len + 0.05);
+      const so = ctx.createOscillator(), sg = envGain(ctx, t, 0.006, v * 0.75, Math.max(dur * 1.1, 0.25));
+      so.type = 'sine'; so.frequency.value = freq; so.connect(sg).connect(out); so.start(t); so.stop(t + Math.max(dur * 1.1, 0.25) + 0.1);
+      if (pk) { const n = noiseSrc(ctx, t, 0.02), nf2 = ctx.createBiquadFilter(), ng = envGain(ctx, t, 0.001, 0.05 * v, 0.02); nf2.type = 'bandpass'; nf2.frequency.value = 1400; n.connect(nf2).connect(ng).connect(out); }
+      return;
+    }
     if (type === '808') {
       const o = ctx.createOscillator(), g = envGain(ctx, t, 0.004, v * 1.1, Math.max(dur, 0.35)), ws = ctx.createWaveShaper();
       ws.curve = DIST; o.frequency.setValueAtTime(freq * 2, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.05);
