@@ -437,6 +437,12 @@
   <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Bis zu 8 Akkorde, jeder dauert einen Takt.</div>
 </div>
 
+<div class="card pro" id="c-clear" data-tab="mel" style="padding:12px;">
+  <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
+  <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Löscht deinen eigenen Beat, Bass, Gitarre, Bläser, Akkorde und deine Melodie. Der Song spielt danach wieder den Stil. Mit „Rückgängig“ holst du alles zurück.</div>
+  <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:6px;min-height:1em;"></div>
+</div>
+
 <div class="card" id="c-voice" data-tab="voice">
   <div class="label"><span>Stimme aufnehmen</span></div>
   <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">🎧 Bitte Kopfhörer tragen. Der Song läuft mit, du singst dazu. Den Effekt kannst du danach noch ändern.</div>
@@ -1983,6 +1989,17 @@ $('#ne-grid').addEventListener('click', ev => { const c = ev.target.closest('.ne
 $('#ne-add').addEventListener('click', () => { if (st.melody.length < MAX_NOTES) { undoPoint(); st.melody.push(st.melody[st.melody.length - 1] ?? 0); st.melodyLock = true; renderEditor(); } });
 $('#ne-del').addEventListener('click', () => { if (st.melody.length > 1) { undoPoint(); st.melody.pop(); st.melodyLock = true; renderEditor(); } });
 $('#ne-rand').addEventListener('click', () => { undoPoint(); const n = st.melody.length; let d = 4; st.melody = Array.from({ length: n }, () => (d = Math.max(0, Math.min(9, d + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)])))); st.melodyLock = true; renderEditor(); playMelody(); });
+let clearArm = 0;
+$('#btn-clearall').addEventListener('click', () => {
+  const b = $('#btn-clearall');
+  if (Date.now() > clearArm) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
+  clearArm = 0; undoPoint();
+  st.beat = null; st.tracks = { bass: null, gtr: null, horn: null }; st.chordA = null; st.chordB = null; st.melodyLock = false; st.scaleLock = false; regen();
+  renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
+  b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
+  $('#clearall-msg').textContent = '✔ Alles gelöscht: Beat, Bass, Gitarre, Bläser, Akkorde und Melodie sind wieder vom Stil. „↶ Rückgängig“ holt es zurück.';
+  setTimeout(() => { $('#clearall-msg').textContent = ''; }, 8000);
+});
 $('#ne-lock').addEventListener('click', () => { undoPoint(); st.melodyLock = !st.melodyLock; if (!st.melodyLock) { regen(); } renderEditor(); });
 $('#ne-play').addEventListener('click', playMelody);
 $('#ne-save').addEventListener('click', sichernMelodie);
