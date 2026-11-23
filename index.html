@@ -2072,6 +2072,8 @@ $('#btn-clearall').addEventListener('click', () => {
   const b = $('#btn-clearall');
   if (Date.now() > clearArm) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
   clearArm = 0; undoPoint();
+  if (st.playing) { try { stop(); } catch (e) {} }
+  if (chain && ctx) { const now = ctx.currentTime, g = chain.master.gain; g.cancelScheduledValues(now); g.setValueAtTime(0, now); g.setValueAtTime(0, now + 1.6); g.setTargetAtTime(0.82, now + 1.6, 0.04); }
   resetSettings();
   Object.keys(st.mix).forEach(k => setMix(k, 0)); setPad(0, 1);
   st.blank = true;
