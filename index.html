@@ -474,6 +474,7 @@
 
 <div class="card" id="c-clear" style="padding:10px;margin-top:8px;">
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
+  <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
 </div>
 
@@ -675,6 +676,7 @@ const st = {
   mix: { drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.55, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75, tuba: 0.8, bone: 0.8 },
   tracks: noTracks(), blank: false
 };
+const ST0 = { style: st.style, bpm: st.bpm, px: st.px, py: st.py, oct: st.oct, mix: { ...st.mix } };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function regen() {
   const r = rng(st.seed), sty = STYLES[st.style];
@@ -2050,6 +2052,18 @@ $('#ne-grid').addEventListener('click', ev => { const c = ev.target.closest('.ne
 $('#ne-add').addEventListener('click', () => { if (st.melody.length < MAX_NOTES) { undoPoint(); st.melody.push(st.melody[st.melody.length - 1] ?? 0); st.melodyLock = true; renderEditor(); } });
 $('#ne-del').addEventListener('click', () => { if (st.melody.length > 1) { undoPoint(); st.melody.pop(); st.melodyLock = true; renderEditor(); } });
 $('#ne-rand').addEventListener('click', () => { undoPoint(); const n = st.melody.length; let d = 4; st.melody = Array.from({ length: n }, () => (d = Math.max(0, Math.min(9, d + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)])))); st.melodyLock = true; renderEditor(); playMelody(); });
+let resetArm = 0;
+$('#btn-resetall').addEventListener('click', () => {
+  const b = $('#btn-resetall'), label = '↺ Alles zurücksetzen (wie beim ersten Start)';
+  if (Date.now() > resetArm) { resetArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles zurücksetzen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= resetArm) { b.textContent = label; b.classList.remove('active-pink'); } }, 4100); return; }
+  resetArm = 0; undoPoint();
+  const fx = {}; Object.keys(st.fx).forEach(k => { fx[k] = false; });
+  st.blank = false;
+  applySlot({ style: ST0.style, bpm: ST0.bpm, px: ST0.px, py: ST0.py, oct: ST0.oct, chaos: false, fx, seed: (Math.random() * 4294967295) >>> 0, mix: { ...ST0.mix }, melody: [], melodyLock: false, scaleLock: false, form: 'standard', beat: null, chordA: null, chordB: null, tracks: noTracks(), blank: false });
+  b.textContent = label; b.classList.remove('active-pink');
+  $('#clearall-msg').textContent = '✔ Alles ist wieder wie beim ersten Start: Stil, Tempo, Effekte, Mixer, Beat, Spuren, Akkorde und Melodie. Favoriten, Projekte und deine Aufnahme bleiben. „↶ Rückgängig“ holt Beat, Spuren, Akkorde, Melodie und Mixer zurück. Den Stil wählst du neu.';
+  setTimeout(() => { $('#clearall-msg').textContent = ''; }, 12000);
+});
 let clearArm = 0;
 $('#btn-clearall').addEventListener('click', () => {
   const b = $('#btn-clearall');
