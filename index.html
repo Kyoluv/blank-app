@@ -475,6 +475,7 @@
   <div class="label"><span>🎹 Akkorde</span><span id="ce-state" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;"><button id="ce-A">Refrain / Live</button><button id="ce-B">Strophe / Break</button></div>
+  <button id="ce-rand" class="sunset-btn" style="width:100%;margin-bottom:8px;">🎲 Zufalls-Flächen (Akkorde + Klang)</button>
   <div id="ce-row" class="ce-row"></div>
   <div class="label" style="margin-bottom:5px;"><span>Akkord wählen</span></div>
   <div id="ce-pal" class="ce-pal"></div>
@@ -489,7 +490,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 45</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 46</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2168,7 +2169,46 @@ $('#btn-proj-save').addEventListener('click', saveProject);
 $('#nudge').addEventListener('input', ev => { st.nudge = +ev.target.value; $('#nudge-val').textContent = st.nudge + ' ms'; });
 $('#btn-wav-song').addEventListener('click', () => exportWav(true));
 ['kick', 'snare', 'cl', 'hat', 'open', 'tom', 'drums', 'bass', 'gtr', 'horn', 'tuba', 'bone', 'lead', 'pad', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
-$('#btn-newhit').addEventListener('click', newHit);
+
+const pickR = a => a[Math.floor(Math.random() * a.length)], rngR = (a, b) => a + Math.random() * (b - a);
+$('#ce-rand').addEventListener('click', () => {
+  undoPoint(); const n = pickR([4, 4, 6, 8]), pool = [0, 0, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+  const arr = []; let last = -1; for (let i = 0; i < n; i++) { let d; do { d = pickR(pool); } while (d === last); arr.push(d); last = d; }
+  st[ce.which === 'B' ? 'chordB' : 'chordA'] = arr; if (!st.chordA) st.chordA = arr.slice();
+  st.padWave = pickR(['sawtooth', 'triangle', 'square', 'sawtooth']);
+  if (st.blank) st.blank = false;
+  if ((st.mix.pad || 0) < 0.35) setMix('pad', 0.55);
+  renderChords(); T0(() => $('#ce-play').click());
+});
+function T0(f) { try { f(); } catch (e) {} }
+function megaHit() {
+  undoPoint(); stopIfNeeded();
+  st.blank = false; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.beat = null; st.melodyLock = false; st.scaleLock = false;
+  setStyle(pickR(Object.keys(STYLES)));
+  const M = { drums: rngR(0.75, 0.95), bass: rngR(0.55, 0.85), lead: rngR(0.6, 1), pad: rngR(0.3, 0.7), pump: rngR(0.2, 0.7), hall: rngR(0.1, 0.5), loud: rngR(0.65, 0.85), vox: 0.8, vary: rngR(0.3, 0.9), gtr: rngR(0.5, 0.8), horn: rngR(0.5, 0.8), tuba: rngR(0.5, 0.8), bone: rngR(0.5, 0.8) };
+  Object.keys(M).forEach(k => setMix(k, M[k])); ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => setMix(k, rngR(0.8, 1)));
+  setPad(Math.random(), rngR(0.08, 0.55)); setOct(pickR(['0', '0', '1', '-1']));
+  const on = []; while (on.length < pickR([0, 1, 2])) { const f = pickR(['acid', 'arp', 'sub', 'echo', 'gate']); if (!on.includes(f)) on.push(f); }
+  ['acid', 'arp', 'sub', 'echo', 'gate', 'crush', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, on.includes(k)); });
+  st.seed = (Math.random() * 4294967295) >>> 0; regen();
+  if (Math.random() < 0.4) st.beat = randomBeat();
+  st.melodyLock = false;
+  T0(() => { const bpm = Math.round(rngR(92, 148)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm; });
+  T0(() => { st.scaleIdx = Math.floor(Math.random() * SCALES.length); st.scaleLock = true; });
+  T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['sawtooth', 'triangle', 'square']); });
+  T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
+  T0(() => { const r = Math.round(rngR(0, 40)); $('#gen-rest').value = r; });
+  T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
+  ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
+    if (Math.random() > 0.4) return; const t = emptyTrack(k), s = $('#tp-' + k);
+    t.n = Array.from({ length: 16 }, (_, i) => (Math.random() < (i % 4 === 0 ? 0.6 : 0.22) ? pickR([0, 0, 2, 4, 4, 7]) : -1));
+    if (s && s.options.length) t.type = s.options[Math.floor(Math.random() * s.options.length)].value; st.tracks[k] = t;
+  }));
+  renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor();
+}
+function stopIfNeeded() { }
+$('#btn-newhit').removeEventListener('click', newHit); $('#btn-newhit').addEventListener('click', megaHit);
+
 $('#btn-chillbreak').addEventListener('click', () => { initAudio(); setChill(!st.chill); });
 $('#btn-notes').addEventListener('click', () => { notesShown = !notesShown; refreshNotesMsg(); });
 $('#btn-wav').addEventListener('click', () => exportWav(false));
@@ -2264,7 +2304,7 @@ $('#mode-btn').addEventListener('click', () => setMode(!UI.easy));
 $('#help-btn').addEventListener('click', () => showTour(0));
 $('#tour-next').addEventListener('click', () => (tourI >= TOUR.length - 1 ? endTour() : showTour(tourI + 1)));
 $('#tour-skip').addEventListener('click', endTour);
-$('#btn-easy-make').addEventListener('click', () => { if (st.playing) stop(); newHit(); play(true); });
+$('#btn-easy-make').addEventListener('click', () => { if (st.playing) stop(); megaHit(); play(true); });
 $('#btn-easy-save').addEventListener('click', () => { setTab('save'); exportWav(true); });
 UI.easy = lsGet('musify-mode') === 'easy';
 buildHelp(); applyView();
