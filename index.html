@@ -348,6 +348,7 @@
   <div class="label"><span>✏️ Noten-Editor (eigene Melodie)</span><span id="ne-len" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
   <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">Tippe in ein Feld, um die Note an dieser Stelle zu setzen und anzuhören. Die Noten laufen der Reihe nach über den Rhythmus des Stils. Unten = tief, oben = hoch (3 Oktaven, nach oben und seitlich scrollen). Bis zu 32 Noten.</div>
+  <button id="ne-toprand" class="sunset-btn" style="width:100%;margin-bottom:8px;">🎲 Zufalls-Melodie</button>
   <div id="ne-wrap" class="ne-wrap"><div id="ne-grid" class="ne-grid"></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">
     <button id="ne-add">➕ Note</button><button id="ne-del">➖ Note</button><button id="ne-play">▶ Anhören</button>
@@ -488,7 +489,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 44</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 45</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2075,7 +2076,7 @@ $('#ne-delall').addEventListener('click', () => { undoPoint(); st.melody = Array
 $('#ne-grid').addEventListener('click', ev => { const c = ev.target.closest('.ne-c'); if (!c) return; if (delOne) { undoPoint(); st.melody[+c.dataset.col] = REST; st.melodyLock = true; renderEditor(); return; } setNote(+c.dataset.col, +c.dataset.row); });
 $('#ne-add').addEventListener('click', () => { if (st.melody.length < MAX_NOTES) { undoPoint(); st.melody.push(st.melody[st.melody.length - 1] ?? 0); st.melodyLock = true; renderEditor(); } });
 $('#ne-del').addEventListener('click', () => { if (st.melody.length > 1) { undoPoint(); st.melody.pop(); st.melodyLock = true; renderEditor(); } });
-$('#ne-rand').addEventListener('click', () => { undoPoint(); const n = st.melody.length; let d = 4; st.melody = Array.from({ length: n }, () => (d = Math.max(0, Math.min(9, d + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)])))); st.melodyLock = true; renderEditor(); playMelody(); });
+$('#ne-rand').addEventListener('click', () => { audibleMelody(); undoPoint(); const n = st.melody.length; let d = 4; st.melody = Array.from({ length: n }, () => (d = Math.max(0, Math.min(9, d + [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)])))); st.melodyLock = true; renderEditor(); playMelody(); });
 function resetSettings() {
   const fx = {}; Object.keys(st.fx).forEach(k => { fx[k] = false; });
   st.blank = false;
@@ -2120,7 +2121,13 @@ $('#btn-clearall').addEventListener('click', () => {
 $('#ne-lock').addEventListener('click', () => { undoPoint(); st.melodyLock = !st.melodyLock; if (!st.melodyLock) { regen(); } renderEditor(); });
 $('#ne-play').addEventListener('click', playMelody);
 $('#ne-save').addEventListener('click', sichernMelodie);
-$('#ne-gen').addEventListener('click', () => { undoPoint(); st.melody = genMelody(MAX_NOTES, +$('#gen-rest').value / 100, $('#gen-range').value, $('#gen-kind').value); st.melodyLock = true; renderEditor(); $('#ne-msg').textContent = '🎲 32 neue Noten gewürfelt. Gefällt es dir nicht, würfle noch einmal.'; playMelody(); });
+function audibleMelody() {
+  if (!st.beat) st.beat = { ...styleBeat() };
+  if (!/x/.test(st.beat.lead || '')) { st.beat.lead = STYLES[st.style].lead || 'x.x.x.x.x.x.x.x.'; renderBeat(); }
+  if ((st.mix.lead || 0) < 0.3) setMix('lead', 1);
+}
+$('#ne-toprand').addEventListener('click', () => { $('#ne-gen').click(); });
+$('#ne-gen').addEventListener('click', () => { audibleMelody(); undoPoint(); st.melody = genMelody(MAX_NOTES, +$('#gen-rest').value / 100, $('#gen-range').value, $('#gen-kind').value); st.melodyLock = true; renderEditor(); $('#ne-msg').textContent = '🎲 32 neue Noten gewürfelt. Gefällt es dir nicht, würfle noch einmal.'; playMelody(); });
 $('#ne-copy').addEventListener('click', () => { $('#ne-txt').value = melText(st.melody); try { navigator.clipboard.writeText($('#ne-txt').value).then(() => { $('#ne-msg').textContent = '✔ Noten kopiert und ins Textfeld gesetzt.'; }).catch(() => { $('#ne-msg').textContent = 'Noten stehen im Textfeld (zum Kopieren markieren).'; }); } catch (e) { $('#ne-msg').textContent = 'Noten stehen im Textfeld.'; } });
 $('#ne-new32').addEventListener('click', () => { undoPoint(); st.melody = Array(MAX_NOTES).fill(REST); st.melodyLock = true; renderEditor(); $('#ne-msg').textContent = 'Leere Melodie mit 32 Feldern. Tippe die Noten ins Feld, die Pausen bleiben still.'; });
 $('#ne-ext32').addEventListener('click', () => { undoPoint(); const m = st.melody.slice(), n0 = m.length; while (st.melody.length < MAX_NOTES) st.melody.push(m[st.melody.length % n0]); st.melodyLock = true; renderEditor(); $('#ne-msg').textContent = 'Auf 32 Noten verlängert (Melodie wiederholt, jetzt änderbar).'; });
