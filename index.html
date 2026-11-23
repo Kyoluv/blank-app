@@ -218,6 +218,28 @@
 
 <button id="btn-install" class="play-btn" style="width:100%;margin-bottom:10px;" hidden>📲 Als App installieren</button>
 
+<div class="card" id="c-sliders" style="padding:10px;">
+  <div class="label"><span>🎚 Alle Regler</span></div>
+  <div class="mixgrid">
+    <label>⏱ Tempo <b id="bpm-val">122</b> BPM</label><input type="range" id="bpm-slider" min="85" max="160" value="122">
+    <label>🎭 Abwechslung</label><input type="range" id="mix-vary" min="0" max="100" value="60">
+    <label>🥁 Drums</label><input type="range" id="mix-drums" min="0" max="100" value="85">
+    <label>🎸 Bass</label><input type="range" id="mix-bass" min="0" max="100" value="72">
+    <label>🎸 Gitarre</label><input type="range" id="mix-gtr" min="0" max="100" value="75">
+    <label>🎺 Bläser</label><input type="range" id="mix-horn" min="0" max="100" value="75">
+    <label>🎺 Tuba</label><input type="range" id="mix-tuba" min="0" max="100" value="80">
+    <label>🎷 Bassposaune</label><input type="range" id="mix-bone" min="0" max="100" value="80">
+    <label>🎹 Melodie</label><input type="range" id="mix-lead" min="0" max="100" value="100">
+    <label>☁️ Flächen</label><input type="range" id="mix-pad" min="0" max="100" value="55">
+    <label>💨 Pump</label><input type="range" id="mix-pump" min="0" max="100" value="50">
+    <label>🏛️ Hall</label><input type="range" id="mix-hall" min="0" max="100" value="30">
+    <label>📢 Lautheit</label><input type="range" id="mix-loud" min="0" max="100" value="75">
+    <label>🎤 Stimme</label><input type="range" id="mix-vox" min="0" max="100" value="80">
+    <label>⏱ Stimm-Ausgleich <b id="nudge-val">40 ms</b></label><input type="range" id="nudge" min="0" max="250" value="40">
+    <label>🎲 Melodie-Pausen</label><input type="range" id="gen-rest" min="0" max="60" value="20">
+  </div>
+</div>
+
 <div class="card" id="c-style" data-tab="play">
   <div class="label"><span>Stil wählen</span><span id="style-badge" style="color:var(--accent);">DANCE-POP</span></div>
   <div class="grid-styles" id="style-grid">
@@ -313,24 +335,7 @@
   <div class="mixgrid" style="margin-bottom:8px;"><label>🎼 Songform</label><select id="song-form" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="standard">Standard (ca. 2:40)</option><option value="radio">Radio-Edit (ca. 1:50)</option><option value="club">Club-Mix (ca. 3:40)</option><option value="bridge">Mit Bridge (ca. 2:55)</option><option value="random">Zufall bei „Neuer Hit"</option></select></div>
   <div id="song-tl" class="song-tl"></div>
   <button id="btn-song" class="play-btn" style="width:100%;margin:8px 0;">▶ Ganzen Song spielen</button>
-  <div class="mixgrid">
-    <label>⏱ Tempo <b id="bpm-val">122</b> BPM</label><input type="range" id="bpm-slider" min="85" max="160" value="122">
-    <label>🎭 Abwechslung</label><input type="range" id="mix-vary" min="0" max="100" value="60">
-    <label>🥁 Drums</label><input type="range" id="mix-drums" min="0" max="100" value="85">
-    <label>🎸 Bass</label><input type="range" id="mix-bass" min="0" max="100" value="72">
-    <label>🎸 Gitarre</label><input type="range" id="mix-gtr" min="0" max="100" value="75">
-    <label>🎺 Bläser</label><input type="range" id="mix-horn" min="0" max="100" value="75">
-    <label>🎺 Tuba</label><input type="range" id="mix-tuba" min="0" max="100" value="80">
-    <label>🎷 Bassposaune</label><input type="range" id="mix-bone" min="0" max="100" value="80">
-    <label>🎹 Melodie</label><input type="range" id="mix-lead" min="0" max="100" value="100">
-    <label>☁️ Flächen</label><input type="range" id="mix-pad" min="0" max="100" value="55">
-    <label>💨 Pump</label><input type="range" id="mix-pump" min="0" max="100" value="50">
-    <label>🏛️ Hall</label><input type="range" id="mix-hall" min="0" max="100" value="30">
-    <label>📢 Lautheit</label><input type="range" id="mix-loud" min="0" max="100" value="75">
-    <label>🎤 Stimme</label><input type="range" id="mix-vox" min="0" max="100" value="80">
-    <label>⏱ Stimm-Ausgleich <b id="nudge-val">40 ms</b></label><input type="range" id="nudge" min="0" max="250" value="40">
-    <label>🎲 Melodie-Pausen</label><input type="range" id="gen-rest" min="0" max="60" value="20">
-  </div>
+  <div style="font-size:0.72rem;color:var(--muted);">🎚 Alle Regler (Tempo, Lautstärken, Hall …) stehen ganz oben unter dem Play-Knopf.</div>
 </div>
 
 <div class="card" id="c-notes" data-tab="mel">
@@ -476,7 +481,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 40</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 41</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
