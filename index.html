@@ -639,7 +639,7 @@ const st = {
   scaleIdx: 0, prog: [0,5,3,4], prog2: [0,3,4,3], melody: [], acidLine: [], vox: [], autoOff: {},
   songMode: false, songDone: false, melodyLock: false, scaleLock: false, form: 'standard', formPick: null, beat: null, chordA: null, chordB: null, leadType: null, padWave: 'sawtooth', melodyB: [], voiceRaw: null, voiceWet: null, voiceFx: 'hall', nudge: 40,
   mix: { drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.55, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75 },
-  tracks: { bass: null, gtr: null, horn: null }
+  tracks: { bass: null, gtr: null, horn: null }, blank: false
 };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function regen() {
@@ -989,7 +989,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat || sty;
   const s = n % 16, bar = Math.floor(n / 16);
   const tt = t + ((s % 2 === 1 && !S.fx.straight) ? sty.swing * dur : 0);
-  const cut = leadCut(S) * ((STYLES[S.style] || {}).dark || 1), vary = S.mix.vary == null ? 0.6 : S.mix.vary, seed = S.seed || 1, rr = (a, b) => H(seed, a, b);
+  const B = !!S.blank, cut = leadCut(S) * ((STYLES[S.style] || {}).dark || 1), vary = B ? 0 : (S.mix.vary == null ? 0.6 : S.mix.vary), seed = S.seed || 1, rr = (a, b) => H(seed, a, b);
   const song = !!S.songMode, sec = song ? sectionAt(bar) : null, K = song ? sec.kind : '';
   const tr = song && sec.final && vary > 0.25 ? Math.pow(2, 2 / 12) : 1;
   const nf = (d, o) => noteFreq(sc, d, o) * tr;
@@ -1006,18 +1006,18 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   if (song) {
     if (K === 'build') {
       bi = (sec.barIn * 16 + s) / (sec.bars * 16);
-      if (sec.barIn === 0 && s === 0) {
+      if (sec.barIn === 0 && s === 0 && !B) {
         V.riser(ctx, ch.fx, tt, dur * sec.bars * 16);
         if (vary > 0.2) { ch.filt.frequency.cancelScheduledValues(tt); ch.filt.frequency.setValueAtTime(baseCut(S), tt); ch.filt.frequency.exponentialRampToValueAtTime(2500, tt + dur * sec.bars * 16 * 0.92); }
       }
       if (vary > 0.2 && sec.barIn === sec.bars - 1 && s === 0) V.swell(ctx, ch.fx, tt, dur * 14);
       if (vary > 0.3 && sec.barIn === sec.bars - 1 && s === 15) ch.fade.gain.setTargetAtTime(0.0001, tt, 0.01);
     }
-    if (K === 'chorus' && sec.barIn === 0 && s === 0) { V.crash(ctx, ch.fx, tt); V.kick(ctx, ch.drums, tt, 1.1); }
+    if (K === 'chorus' && sec.barIn === 0 && s === 0 && !B) { V.crash(ctx, ch.fx, tt); V.kick(ctx, ch.drums, tt, 1.1); }
     if (n === 0) { ch.fade.gain.cancelScheduledValues(0); ch.fade.gain.setValueAtTime(1, Math.max(0, tt - 0.01)); }
     if (s === 0 && sec.barIn === 0) {
       if (K !== 'build' || vary <= 0.2) ch.filt.frequency.setTargetAtTime(K === 'brk' ? 900 : baseCut(S), tt, 0.25);
-      if (K === 'brk' && sec.i > 0) V.crash(ctx, ch.fx, tt);
+      if (K === 'brk' && sec.i > 0 && !B) V.crash(ctx, ch.fx, tt);
       if (K !== 'outro') ch.fade.gain.setTargetAtTime({ intro: 0.78, verse: 0.88, build: 0.92, chorus: 1, brk: 0.82 }[K], tt, K === 'chorus' ? 0.02 : 0.12);
     }
     if (K === 'outro' && sec.barIn === 0 && s === 0) { ch.fade.gain.setValueAtTime(1, tt); ch.fade.gain.linearRampToValueAtTime(0.0001, tt + dur * 16 * sec.bars * 0.96); }
@@ -1052,6 +1052,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
     padV = chill ? 0.1 : 0.05 + 0.03 * (1 - e);
   }
 
+  if (B) arpOn = false;
   // Fills und Varianten (Schlagzeug)
   const barEnd4 = bar % 4 === 3, barEnd8 = bar % 8 === 7;
   const fillOn = vary > 0.1 && barEnd4 && !inBuild && !chill && K !== 'outro' && !(K === 'intro' && sec.barIn < 4) && rr(bar, 31) < Math.min(1, (0.25 + vary * 0.7) * (barEnd8 ? 1.4 : 1));
@@ -1063,7 +1064,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   // Akkorde
   const inv = rr(bar, 5) < vary * 0.45;
   const triad = (inv ? [2, 4, 7] : [0, 2, 4]).map(k => nf(chordDeg + k, 0));
-  if (s === 0) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
+  if (s === 0 && (!B || S.chordA)) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
   if (stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.11 * (sty.quiet || 1));
 
   // Schlagzeug
@@ -1075,7 +1076,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   if (snareOn && !inBuild) {
     const sn = S.fx.half ? s === 8 : hit(pat.snare, s);
     if (sn && !(inFill && fillType === 0 && s >= 12)) V.snare(ctx, ch.drums, tt, 0.9, sty.clap);
-    if (sty.clap && !S.fx.half && !hit(pat.snare, s) && pat.snare === '................' && (s === 4 || s === 12) && !inFill) V.snare(ctx, ch.drums, tt, 0.8, true);
+    if (sty.clap && !B && !S.fx.half && !hit(pat.snare, s) && pat.snare === '................' && (s === 4 || s === 12) && !inFill) V.snare(ctx, ch.drums, tt, 0.8, true);
     if (vary > 0.2 && (s === 7 || s === 15) && !hit(pat.snare, s) && !inFill && rr(n, 51) < vary * 0.25) V.snare(ctx, ch.drums, tt, 0.25, false);
     if (inFill) {
       if (fillType === 0) V.snare(ctx, ch.drums, tt, 0.4 + 0.18 * (s - 12), false);
@@ -1083,7 +1084,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
       else if (fillType === 2 && s === 15) V.snare(ctx, ch.drums, tt, 1, false);
     }
   }
-  if (inBuild && bi > 0.25 && (bi > 0.5 || s % 2 === 0)) V.snare(ctx, ch.drums, tt, 0.4 + bi * 0.7, false);
+  if (inBuild && !B && bi > 0.25 && (bi > 0.5 || s % 2 === 0)) V.snare(ctx, ch.drums, tt, 0.4 + bi * 0.7, false);
   if (hatOn && !(song && inBuild && bi > 0.75)) {
     if (chill) { if (s % 4 === 2) V.hat(ctx, ch.drums, tt, 0.12, false); }
     else {
@@ -1504,7 +1505,7 @@ function setChill(on) {
   applyChainSettings();
 }
 function setUIBuild(on) { $('#btn-build').classList.toggle('active-pink', on); }
-function newHit(noUndo) { if (!noUndo) undoPoint(); st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
+function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = { bass: null, gtr: null, horn: null }; st.chordA = null; st.chordB = null; st.melodyLock = false; renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
 
 /* Auto-DJ: verändert alle paar Takte Energie, Oktave und Effekte */
 function autoDJ(bar) {
@@ -1533,7 +1534,7 @@ let slots = loadSlots();
 function refreshSlotButtons() {
   $$('.slot-btn').forEach(b => { const i = +b.dataset.slot, s = slots[i]; b.textContent = `💾 Slot ${i + 1} (${s ? STYLES[s.style].name.split(' ')[0] : 'Leer'})`; });
 }
-function snapshotState() { return { style: st.style, bpm: st.bpm, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: { ...st.fx, autodj: false }, seed: st.seed, mix: { ...st.mix }, melody: st.melody.slice(), melodyLock: st.melodyLock, scaleIdx: st.scaleIdx, scaleLock: st.scaleLock, form: st.form, beat: st.beat ? { ...st.beat } : null, chordA: st.chordA ? st.chordA.slice() : null, chordB: st.chordB ? st.chordB.slice() : null, tracks: cloneTracks() }; }
+function snapshotState() { return { style: st.style, bpm: st.bpm, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: { ...st.fx, autodj: false }, seed: st.seed, mix: { ...st.mix }, melody: st.melody.slice(), melodyLock: st.melodyLock, scaleIdx: st.scaleIdx, scaleLock: st.scaleLock, form: st.form, beat: st.beat ? { ...st.beat } : null, chordA: st.chordA ? st.chordA.slice() : null, chordB: st.chordB ? st.chordB.slice() : null, tracks: cloneTracks(), blank: st.blank }; }
 function cloneTracks() { return JSON.parse(JSON.stringify(st.tracks)); }
 function applySlot(s) {
   st.seed = s.seed; setStyle(s.style, true);
@@ -1545,7 +1546,7 @@ function applySlot(s) {
   if (s.form) { st.form = s.form; $('#song-form').value = s.form; if (!(st.playing && st.songMode)) setForm(activeForm()); }
   if (s.melodyLock && s.melody) st.melody = s.melody.slice(); if (s.scaleLock && s.scaleIdx != null) st.scaleIdx = s.scaleIdx;
   st.beat = s.beat ? { ...s.beat } : null; st.chordA = s.chordA ? s.chordA.slice() : null; st.chordB = s.chordB ? s.chordB.slice() : null;
-  st.tracks = s.tracks ? JSON.parse(JSON.stringify(s.tracks)) : { bass: null, gtr: null, horn: null };
+  st.tracks = s.tracks ? JSON.parse(JSON.stringify(s.tracks)) : { bass: null, gtr: null, horn: null }; st.blank = !!s.blank;
   regen(); renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
 }
 
@@ -1619,7 +1620,7 @@ async function exportWav(song) {
   setProg(0, 'Vorbereiten …');
   try {
     if (mp3 && typeof lamejs === 'undefined') throw new Error('Der MP3-Baustein ist nicht geladen. Bitte WAV wählen.');
-    const S = JSON.parse(JSON.stringify({ style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
+    const S = JSON.parse(JSON.stringify({ style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
     S.build = null; S.fx.autodj = false; S.songMode = !!song; if (song) S.chill = false;
     const dur = 60 / st.bpm / 4, sr = 44100, secs = bars * 16 * dur + 3;
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -1663,14 +1664,15 @@ async function shareLast() {
 
 /* ---------- Rückgängig / Wiederholen ---------- */
 const undoStack = [], redoStack = [];
-function undoSnap() { return { seed: st.seed, melody: st.melody.slice(), melodyLock: st.melodyLock, scaleIdx: st.scaleIdx, scaleLock: st.scaleLock, mix: { ...st.mix }, beat: st.beat ? { ...st.beat } : null, chordA: st.chordA ? st.chordA.slice() : null, chordB: st.chordB ? st.chordB.slice() : null, tracks: cloneTracks() }; }
+function undoSnap() { return { seed: st.seed, melody: st.melody.slice(), melodyLock: st.melodyLock, scaleIdx: st.scaleIdx, scaleLock: st.scaleLock, mix: { ...st.mix }, beat: st.beat ? { ...st.beat } : null, chordA: st.chordA ? st.chordA.slice() : null, chordB: st.chordB ? st.chordB.slice() : null, tracks: cloneTracks(), blank: st.blank, fx: { ...st.fx }, melodyB: st.melodyB ? st.melodyB.slice() : [] }; }
 function undoPoint() { undoStack.push(undoSnap()); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; refreshUndoUI(); }
 function restoreSnap(sn) {
   st.seed = sn.seed; st.melodyLock = sn.melodyLock; st.scaleLock = sn.scaleLock; st.scaleIdx = sn.scaleIdx; regen();
   st.melody = sn.melody.slice(); st.scaleIdx = sn.scaleIdx;
   Object.keys(sn.mix).forEach(k => setMix(k, sn.mix[k]));
   st.beat = sn.beat ? { ...sn.beat } : null; st.chordA = sn.chordA ? sn.chordA.slice() : null; st.chordB = sn.chordB ? sn.chordB.slice() : null;
-  st.tracks = sn.tracks ? JSON.parse(JSON.stringify(sn.tracks)) : { bass: null, gtr: null, horn: null };
+  st.tracks = sn.tracks ? JSON.parse(JSON.stringify(sn.tracks)) : { bass: null, gtr: null, horn: null }; st.blank = !!sn.blank;
+  if (sn.fx) Object.keys(sn.fx).forEach(k => { if (st.fx[k] !== sn.fx[k]) setFx(k, !!sn.fx[k]); }); if (sn.melodyB) st.melodyB = sn.melodyB.slice();
   updateStatus(); renderEditor(); renderBeat(); renderChords(); renderAllRolls();
 }
 function doUndo() { if (!undoStack.length) return; redoStack.push(undoSnap()); restoreSnap(undoStack.pop()); refreshUndoUI(); }
@@ -1998,11 +2000,14 @@ $('#btn-clearall').addEventListener('click', () => {
   const b = $('#btn-clearall');
   if (Date.now() > clearArm) { clearArm = Date.now() + 4000; b.textContent = '⚠️ Wirklich alles löschen? Nochmal tippen'; b.classList.add('active-pink'); setTimeout(() => { if (Date.now() >= clearArm) { b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink'); } }, 4100); return; }
   clearArm = 0; undoPoint();
-  st.beat = null; st.tracks = { bass: null, gtr: null, horn: null }; st.chordA = null; st.chordB = null; st.melodyLock = false; st.scaleLock = false; regen();
+  st.blank = true; Object.keys(st.fx).forEach(k => { if (st.fx[k]) setFx(k, false); });
+  const eb = {}; BEAT_ROWS.forEach(([k]) => { eb[k] = EMPTY16; }); eb.lead = STYLES[st.style].lead; st.beat = eb;
+  st.tracks = { bass: emptyTrack('bass'), gtr: null, horn: null }; st.chordA = null; st.chordB = null;
+  st.melody = Array(MAX_NOTES).fill(REST); st.melodyB = Array(MAX_NOTES).fill(REST); st.melodyLock = true; st.scaleLock = false;
   renderEditor(); renderBeat(); renderChords(); renderAllRolls(); updateStatus(); refreshNotesMsg();
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
-  $('#clearall-msg').textContent = '✔ Alles gelöscht: Beat, Bass, Gitarre, Bläser, Akkorde und Melodie sind wieder vom Stil. „↶ Rückgängig“ holt es zurück.';
-  setTimeout(() => { $('#clearall-msg').textContent = ''; }, 8000);
+  $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts. Baue ihn in den Editoren neu auf. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
+  setTimeout(() => { $('#clearall-msg').textContent = ''; }, 12000);
 });
 $('#ne-lock').addEventListener('click', () => { undoPoint(); st.melodyLock = !st.melodyLock; if (!st.melodyLock) { regen(); } renderEditor(); });
 $('#ne-play').addEventListener('click', playMelody);
