@@ -387,7 +387,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="label" style="margin-top:10px;"><span>🎲 Zufallsgenerator (32 Noten)</span></div>
   <div class="mixgrid">
-    <label>Charakter</label><select id="gen-kind" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="walk">Zufällig (Auf und Ab)</option><option value="hook">Hook (Motiv wiederholt sich)</option><option value="arp">Arpeggio (Akkordtöne)</option><option value="wave">Welle (sanft)</option></select>
+    <label>Charakter</label><select id="gen-kind" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="smart">Smart (passt zu den Akkorden)</option><option value="walk">Zufällig (Auf und Ab)</option><option value="hook">Hook (Motiv wiederholt sich)</option><option value="arp">Arpeggio (Akkordtöne)</option><option value="wave">Welle (sanft)</option></select>
     <label>Umfang</label><select id="gen-range" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="1">1 Oktave</option><option value="2" selected>2 Oktaven</option><option value="3">3 Oktaven</option></select>
   </div>
   <button id="ne-gen" class="sunset-btn" style="width:100%;margin-top:8px;">🎲 32 Noten würfeln</button>
@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 56</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 57</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1405,8 +1405,8 @@ function detectPitch(x, sr) {
   }
   return { f0, hopS: hop * D };
 }
-function autoTune(x, sr, scaleIdx, mode) {
-  const [, strength, speed] = TUNE[mode]; if (!strength) return x;
+function autoTune(x, sr, scaleIdx, mode, harm) {
+  const [, strength, speed] = harm ? [0, 1, 0.4] : TUNE[mode]; if (!strength) return x;
   const sc = SCALES[scaleIdx], allowed = new Set(sc.notes.map(v => (v + sc.rs) % 12));
   const { f0, hopS } = detectPitch(x, sr), nf = f0.length; if (!nf) return x;
   // Zielton je Stück Stimme: Median glätten, nächsten erlaubten Ton wählen, mit Trägheit
@@ -1419,8 +1419,9 @@ function autoTune(x, sr, scaleIdx, mode) {
       let bt = null, bd = 99; for (let k = -6; k <= 6; k++) { const t = Math.round(m) + k; if (!allowed.has(((t % 12) + 12) % 12)) continue; const dd = Math.abs(t - m); if (dd < bd) { bd = dd; bt = t; } }
       tgt = bt;
     }
-    const want = Math.pow(2, (tgt - m) * strength / 12);
-    cur += (Math.min(1.5, Math.max(0.66, want)) - cur) * speed; ratio[f] = cur;
+    let tg = tgt; if (harm) { let c = 0; while (c < harm) { tg++; if (allowed.has(((tg % 12) + 12) % 12)) c++; } }
+    const want = Math.pow(2, (tg - m) * strength / 12);
+    cur += (Math.min(harm ? 1.9 : 1.5, Math.max(harm ? 0.6 : 0.66, want)) - cur) * speed; ratio[f] = cur;
   }
   const out = new Float32Array(x.length), N = x.length;
   const at = (arr, pos) => { const p = Math.min(arr.length - 1, Math.max(0, pos / hopS)), i = Math.floor(p), j = Math.min(arr.length - 1, i + 1); return arr[i] + (arr[j] - arr[i]) * (p - i); };
@@ -1442,13 +1443,15 @@ function autoTune(x, sr, scaleIdx, mode) {
   if (pk > 0.98) { const k = 0.95 / pk; for (let i = 0; i < N; i++) out[i] *= k; }
   return out;
 }
-function needsRetune() { return st.tune !== 'off' && st.voiceRaw && st.tuneScale !== st.scaleIdx; }
+function needsRetune() { return (st.tune !== 'off' || (st.harmony && st.harmony !== 'off')) && st.voiceRaw && st.tuneScale !== st.scaleIdx; }
 async function renderVoice() {
   const raw = st.voiceRaw; if (!raw) return;
   await new Promise(r => setTimeout(r, 20));
   const sr = raw.sr, tail = (st.voiceFx === 'hall' || st.voiceFx === 'echo') ? 3 : 0.5;
   const oc = new (OAC_())(2, Math.ceil((raw.data.length / sr + tail) * sr), sr);
-  const b = oc.createBuffer(1, raw.data.length, sr); b.copyToChannel(st.tune === 'off' ? raw.data : autoTune(raw.data, sr, st.scaleIdx, st.tune), 0); st.tuneScale = st.scaleIdx;
+  const b = oc.createBuffer(1, raw.data.length, sr); let base = st.tune === 'off' ? raw.data : autoTune(raw.data, sr, st.scaleIdx, st.tune);
+  if (st.harmony && st.harmony !== 'off') { const h3 = autoTune(raw.data, sr, st.scaleIdx, 'x', 2), h5 = st.harmony === '35' ? autoTune(raw.data, sr, st.scaleIdx, 'x', 4) : null, mx = new Float32Array(base.length); for (let i = 0; i < mx.length; i++) mx[i] = base[i] * 0.9 + (h3[i] || 0) * 0.5 + (h5 ? (h5[i] || 0) * 0.4 : 0); base = mx; }
+  b.copyToChannel(base, 0); st.tuneScale = st.scaleIdx;
   const src = oc.createBufferSource(); src.buffer = b;
   voiceFx(oc, src, st.voiceFx).connect(oc.destination); src.start(0);
   st.voiceWet = await oc.startRendering();
@@ -1895,10 +1898,25 @@ function playMelody() {
 }
 
 /* ---------- Zufallsgenerator für eigene Melodien ---------- */
+function smartMelody(n, restP, lo, hi) {
+  const prog = progOf('A'), pick = a => a[Math.floor(Math.random() * a.length)], cl = d => Math.max(lo, Math.min(hi, d)), mid = Math.round((lo + hi) / 2);
+  const contour = pick([[0, 1, 2, 1], [0, 2, 1, 0], [0, -1, 0, 2], [2, 1, 0, 1]]), form = pick([[0, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 2]]), out = [];
+  for (let p = 0; p * 8 < n; p++) {
+    const cr = prog[p % prog.length], tones = []; for (let o = -14; o <= 14; o += 7) [0, 2, 4].forEach(t => { const d = cr + t + o; if (d >= lo && d <= hi) tones.push(d); });
+    const near = x => tones.reduce((b, t) => (Math.abs(t - x) < Math.abs(b - x) ? t : b), tones[0] == null ? mid : tones[0]), v = form[p % form.length]; let anchor = near(mid);
+    for (let i = 0; i < 8 && out.length < n; i++) {
+      if (i % 4 === 0) { anchor = near(mid + (v === 1 ? 2 : v === 2 ? -2 : 0) + (i === 4 ? pick([-2, 0, 2]) : 0)); out.push(anchor); }
+      else out.push(Math.random() < restP ? REST : cl(anchor + contour[i % 4] + (v === 2 ? 1 : 0)));
+    }
+  }
+  out[n - 1] = near0(prog, lo, hi); return out.slice(0, n);
+}
+function near0(prog, lo, hi) { const c = [0, 7, -7].find(d => d >= lo && d <= hi); return c == null ? 0 : c; }
 function genMelody(n, restP, rangeKey, kind) {
   const [lo, hi] = { 1: [0, 7], 2: [-3, 10], 3: [-7, 14] }[rangeKey] || [0, 7];
   const cl = d => Math.max(lo, Math.min(hi, d)), pick = a => a[Math.floor(Math.random() * a.length)], mid = Math.round((lo + hi) / 2);
   let out = [];
+  if (kind === 'smart') return smartMelody(n, restP, lo, hi);
   if (kind === 'hook') {
     let d = mid; const mot = [];
     for (let i = 0; i < 4; i++) { d = cl(d + pick([-2, -1, 1, 2, 3])); mot.push(d); }
@@ -2228,20 +2246,24 @@ $('#ce-rand').addEventListener('click', () => {
   renderChords(); T0(() => $('#ce-play').click());
 });
 function T0(f) { try { f(); } catch (e) {} }
+let learn = {}; try { learn = JSON.parse(localStorage.getItem('musify-learn') || '{}'); } catch (e) { learn = {}; }
+const saveLearn = () => { try { localStorage.setItem('musify-learn', JSON.stringify(learn)); } catch (e) {} };
+const wOf = k => Math.max(0.12, 1 + (learn[k] || 0));
+function wPick(items, prefix) { const w = items.map(i => wOf(prefix + i)); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < items.length; i++) { r -= w[i]; if (r <= 0) return items[i]; } return items[items.length - 1]; }
 function megaHit() {
   undoPoint(); stopIfNeeded(); setChordsOff(false);
   st.blank = false; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.beat = null; st.melodyLock = false; st.scaleLock = false;
-  setStyle(pickR(Object.keys(STYLES)));
+  setStyle(wPick(Object.keys(STYLES), 'style:'));
   const M = { drums: rngR(0.75, 0.95), bass: rngR(0.55, 0.85), lead: rngR(0.6, 1), pad: rngR(0.3, 0.7), pump: rngR(0.2, 0.7), hall: rngR(0.1, 0.5), tone: rngR(0.6, 0.95), loud: rngR(0.65, 0.85), vox: 0.8, vary: rngR(0.3, 0.9), gtr: rngR(0.5, 0.8), horn: rngR(0.5, 0.8), tuba: rngR(0.5, 0.8), bone: rngR(0.5, 0.8) };
   Object.keys(M).forEach(k => setMix(k, M[k])); ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => setMix(k, rngR(0.8, 1)));
-  setPad(Math.random(), rngR(0.08, 0.55)); setOct(pickR(['0', '0', '1', '-1']));
-  const on = [], want = pickR([0, 1, 2, 3]); while (on.length < want) { const f = pickR(['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter', 'vocal']); if (!on.includes(f) && !(f === 'half' && on.includes('straight')) && !(f === 'straight' && on.includes('half'))) on.push(f); }
+  setPad(Math.random(), rngR(0.08, 0.55)); setOct(wPick(['0', '1', '-1'], 'oct:'));
+  const on = [], want = pickR([0, 1, 2, 3]); while (on.length < want) { const f = wPick(['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter', 'vocal'], 'fx:'); if (!on.includes(f) && !(f === 'half' && on.includes('straight')) && !(f === 'straight' && on.includes('half'))) on.push(f); }
   ['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, on.includes(k)); });
   st.seed = (Math.random() * 4294967295) >>> 0; regen();
   if (Math.random() < 0.4) st.beat = randomBeat();
   st.melodyLock = false;
   T0(() => { const bpm = Math.round(rngR(92, 148)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm; });
-  T0(() => { st.scaleIdx = Math.floor(Math.random() * SCALES.length); st.scaleLock = true; });
+  T0(() => { st.scaleIdx = wPick(SCALES.map((_, i) => i), 'scale:'); st.scaleLock = true; });
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['sawtooth', 'triangle', 'square']); });
   T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
   T0(() => { const r = Math.round(rngR(0, 40)); $('#gen-rest').value = r; });
@@ -2256,6 +2278,7 @@ function megaHit() {
   T0(() => { ['bass', 'gtr', 'horn', 'tuba', 'bone'].forEach(k => { const t = st.tracks[k], s = $('#ln-' + k); if (t && s && s.options.length) { const o = s.options[Math.floor(Math.random() * s.options.length)].value; s.value = o; t.len = Number.isNaN(+o) ? o : +o; } }); });
   T0(() => { st.chaos = Math.random() < 0.25; $('#btn-chaos').classList.toggle('active-pink', st.chaos); setOct(st.oct); });
   T0(() => pickR($$('#vfx-grid button')).click()); T0(() => pickR($$('#tune-grid button')).click());
+  st.lastHit = { style: st.style, scale: st.scaleIdx, oct: String(st.oct), fx: Object.keys(st.fx).filter(k => st.fx[k] && k !== 'autodj') };
   renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor();
 }
 function stopIfNeeded() { }
@@ -2437,7 +2460,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const sticky = $('#sticky');
   // 2) Sprungmarken
   const jump = document.createElement('div'); jump.id = 'jump';
-  [['⭐ Favoriten', 'c-favs'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
     const b = document.createElement('button'); b.textContent = t;
     b.addEventListener('click', () => {
       const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
@@ -2514,6 +2537,165 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
     const i = favs.indexOf(id); if (i >= 0) favs.splice(i, 1); else favs.push(id); saveFavs(); renderFavs();
   }, true);
   renderFavs();
+})();
+
+/* ---------- KI-Werkstatt ---------- */
+(function kiLab() {
+  const pickK = a => a[Math.floor(Math.random() * a.length)], rngK = (a, b) => a + Math.random() * (b - a);
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-ki'; card.style.padding = '10px';
+  card.innerHTML = `<div class="label"><span>🤖 KI-Werkstatt</span></div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Alles läuft in der App, ohne Internet.</div>
+  <div style="font-size:.78rem;margin:4px 0;">🎭 Stimmung wählen:</div>
+  <div id="ki-moods" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+    <button id="ki-accomp">🎤 Begleitung zur Stimme</button>
+    <button id="ki-harm">🎶 Harmonie: Aus</button>
+    <button id="ki-mixas">🎚 Mix-Assistent</button>
+    <button id="ki-master">🪄 Auto-Mastering</button>
+    <button id="ki-smart">🎼 Smarte Melodie</button>
+    <button id="ki-arr">🏗 Auto-Arrangement</button>
+    <button id="ki-up">👍 Gefällt mir</button>
+    <button id="ki-down">👎 Nicht so</button>
+    <button id="ki-title" style="grid-column:1/3;">✍️ Songtitel ausdenken</button>
+  </div>
+  <div id="ki-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>
+  <button id="ki-useTitle" style="width:100%;margin-top:6px;display:none;">📝 Als Projektname übernehmen</button>
+  <button id="ki-forget" style="width:100%;margin-top:6px;font-size:.72rem;">🧽 Gelerntes vergessen</button>`;
+  const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  const msg = t => { $('#ki-msg').textContent = t; };
+  const setBpmK = v => { v = Math.round(Math.max(85, Math.min(160, v))); const e = $('#bpm-slider'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+  const setScaleK = i => { st.scaleIdx = i; st.scaleLock = true; };
+  const smartInto = () => { st.melody = smartMelody(MAX_NOTES, 0.15, -3, 10); st.melodyLock = true; if (!/x/.test((st.beat && st.beat.lead) || '')) { st.beat = st.beat || {}; if (!st.beat.lead || !/x/.test(st.beat.lead)) st.beat.lead = STYLES[st.style].lead; } if ((st.mix.lead || 0) < 0.3) setMix('lead', 1); };
+  const allRender = () => { renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor(); };
+
+  // 1) Stimmungen
+  const MOODS = {
+    '😢 traurig': { styles: ['lofi', 'schlager', 'synth80'], scale: [0, 4], bpm: [85, 100], mix: { tone: 0.45, hall: 0.45, drums: 0.6, pump: 0.15 }, fx: ['echo'], oct: '0' },
+    '🔥 wild': { styles: ['dnb', 'phonk', 'techno', 'trap'], scale: [0, 3, 4], bpm: [135, 160], mix: { tone: 0.9, hall: 0.15, drums: 0.95, pump: 0.6 }, fx: ['gate', 'stutter', 'acid'], oct: '1' },
+    '😌 entspannt': { styles: ['lofi', 'summer', 'afro', 'reggaeton'], scale: [1, 2], bpm: [85, 105], mix: { tone: 0.6, hall: 0.4, drums: 0.6, pump: 0.2 }, fx: ['echo'], oct: '0' },
+    '☀️ Sommer': { styles: ['summer', 'y2020', 'afro', 'dance'], scale: [1, 2], bpm: [100, 125], mix: { tone: 0.85, hall: 0.3, drums: 0.8, pump: 0.4 }, fx: ['arp'], oct: '0' },
+    '🌑 düster': { styles: ['berlin', 'techno', 'western', 'phonk'], scale: [3, 4, 0], bpm: [120, 135], mix: { tone: 0.35, hall: 0.4, drums: 0.85, pump: 0.5 }, fx: ['sub', 'phone'], oct: '-1' },
+    '🚀 episch': { styles: ['y2010', 'synth80', 'big40', 'euro90'], scale: [2, 4, 0], bpm: [110, 130], mix: { tone: 0.8, hall: 0.55, drums: 0.9, pump: 0.5 }, fx: ['arp', 'echo'], oct: '0' }
+  };
+  Object.keys(MOODS).forEach(name => {
+    const b = document.createElement('button'); b.textContent = name;
+    b.addEventListener('click', () => {
+      const m = MOODS[name]; if (st.playing) stop();
+      megaHit(); setStyle(pickK(m.styles).replace(/^$/, 'dance')); setScaleK(pickK(m.scale)); regen(); setBpmK(rngK(m.bpm[0], m.bpm[1]));
+      Object.keys(m.mix).forEach(k => setMix(k, m.mix[k]));
+      Object.keys(st.fx).forEach(k => { if (k !== 'autodj') setFx(k, m.fx.includes(k)); }); setOct(m.oct);
+      st.chordA = null; st.chordB = null; smartInto(); allRender();
+      msg(`${name}: ${STYLES[st.style].name}, ${Math.round(st.bpm)} BPM, ${SCALES[st.scaleIdx].name}. Drück PLAY.`);
+    });
+    $('#ki-moods').appendChild(b);
+  });
+
+  // 2) Begleitung zur Stimme
+  function analyseVoice(raw) {
+    const { f0, hopS } = detectPitch(raw.data, raw.sr), pcw = new Array(12).fill(0), notes = [];
+    for (let f = 0; f < f0.length; f++) if (f0[f] > 0) { const m = 69 + 12 * Math.log2(f0[f] / 440), pc = ((Math.round(m) % 12) + 12) % 12; pcw[pc]++; notes.push([f * hopS / raw.sr, pc]); }
+    let best = 0, bs = -1e9;
+    SCALES.forEach((sc, i) => { const set = new Set(sc.notes.map(v => (v + sc.rs) % 12)); let s = 0; for (let p = 0; p < 12; p++) s += set.has(p) ? pcw[p] : -0.8 * pcw[p]; s += 0.6 * pcw[sc.rs]; if (s > bs) { bs = s; best = i; } });
+    // Tempo aus der Lautstärke-Hüllkurve
+    const x = raw.data, hop = Math.round(raw.sr / 100), env = []; for (let i = 0; i + hop < x.length; i += hop) { let e = 0; for (let k = 0; k < hop; k++) e += Math.abs(x[i + k]); env.push(e / hop); }
+    const on = env.map((v, i) => Math.max(0, v - (env[i - 1] || 0))); let bb = 110, bsc = -1;
+    for (let bpm = 85; bpm <= 160; bpm++) { const lag = 6000 / bpm; let s = 0; for (let k = 1; k <= 3; k++) { const L = Math.round(lag * k); for (let i = 0; i + L < on.length; i++) s += on[i] * on[i + L]; } if (s > bsc) { bsc = s; bb = bpm; } }
+    return { scale: best, bpm: bb, notes, dur: x.length / raw.sr };
+  }
+  $('#ki-accomp').addEventListener('click', async () => {
+    if (!st.voiceRaw) { msg('Erst unter „Stimme“ etwas einsingen oder summen. Dann baue ich dir die Begleitung dazu.'); return; }
+    msg('🔎 Ich höre deine Aufnahme ab …'); await new Promise(r => setTimeout(r, 40));
+    const a = analyseVoice(st.voiceRaw), sc = SCALES[a.scale], set = [0, 2, 4].map(() => 0);
+    if (st.playing) stop(); if (st.blank) megaHit();
+    const nch = a.dur > 12 ? 8 : 4, seg = a.dur / nch, arr = [];
+    for (let s = 0; s < nch; s++) {
+      const h = new Array(12).fill(0); a.notes.forEach(([t, pc]) => { if (t >= s * seg && t < (s + 1) * seg) h[pc]++; });
+      let bd = 0, bsc = -1; for (let d = 0; d < 7; d++) { let sum = 0; [0, 2, 4].forEach(o => { const idx = d + o; sum += h[(sc.notes[idx % 7] + sc.rs) % 12]; }); if (d === 0) sum += 0.5; if (sum > bsc) { bsc = sum; bd = d; } }
+      arr.push(fixDeg(sc, bd));
+    }
+    const styleKey = Object.keys(STYLES).filter(k => !['dnb', 'tw20', 'sw30'].includes(k)).reduce((b, k) => (Math.abs(STYLES[k].bpm - a.bpm) < Math.abs(STYLES[b].bpm - a.bpm) ? k : b));
+    setStyle(styleKey, true); setScaleK(a.scale); regen(); setBpmK(a.bpm); st.chordA = arr; st.chordB = null; st.blank = false;
+    allRender(); try { if (needsRetune()) await renderVoice(); } catch (e) {}
+    msg(`✔ Erkannt: ${sc.name}, ca. ${a.bpm} BPM. Ich habe ${STYLES[st.style].name} mit den Akkorden ${arr.map(chordName).join(' – ')} dazugebaut. Drück PLAY.`);
+  });
+
+  // 7) Harmonie
+  $('#ki-harm').addEventListener('click', async () => {
+    const order = ['off', '3', '35']; st.harmony = order[(order.indexOf(st.harmony || 'off') + 1) % 3];
+    $('#ki-harm').textContent = '🎶 Harmonie: ' + { off: 'Aus', 3: 'Terz', 35: 'Terz + Quinte' }[st.harmony];
+    if (!st.voiceRaw) { msg('Harmonie ist eingestellt. Sie wird zu deiner nächsten Aufnahme dazugerechnet.'); return; }
+    msg('🎶 Ich rechne die Harmonie-Stimmen aus … (kann kurz dauern)'); await new Promise(r => setTimeout(r, 40));
+    try { await renderVoice(); msg(st.harmony === 'off' ? '✔ Harmonie ausgeschaltet.' : '✔ Fertig. Hör dir die Aufnahme mit „Anhören“ an.'); } catch (e) { msg('Das hat nicht geklappt: ' + e.message); }
+  });
+
+  // 3) + 4) Mix-Assistent und Mastering: Abhören
+  let kiAn = null;
+  async function measure(secs) {
+    if (!ctx || !chain) initAudio();
+    if (!st.playing) $('#btn-play').click();
+    if (!kiAn || kiAn.context !== ctx) { kiAn = ctx.createAnalyser(); kiAn.fftSize = 4096; kiAn.smoothingTimeConstant = 0; chain.master.connect(kiAn); }
+    const fb = new Float32Array(kiAn.frequencyBinCount), tb = new Float32Array(kiAn.fftSize), hz = ctx.sampleRate / kiAn.fftSize, band = [0, 0, 0, 0]; let peak = 0, n = 0;
+    await new Promise(r => setTimeout(r, 1500));
+    const t0 = performance.now();
+    while (performance.now() - t0 < secs * 1000) {
+      await new Promise(r => setTimeout(r, 100)); kiAn.getFloatFrequencyData(fb); kiAn.getFloatTimeDomainData(tb);
+      for (const v of tb) peak = Math.max(peak, Math.abs(v));
+      for (let i = 1; i < fb.length; i++) { const f = i * hz, p = Math.pow(10, fb[i] / 10); if (f < 150) band[0] += p; else if (f < 500) band[1] += p; else if (f < 2500) band[2] += p; else if (f < 10000) band[3] += p; }
+      n++;
+    }
+    const tot = band.reduce((a, b) => a + b, 0) || 1; return { low: band[0] / tot, lowmid: band[1] / tot, mid: band[2] / tot, high: band[3] / tot, peak };
+  }
+  const bump = (k, f) => { const v = Math.max(0, Math.min(1, (st.mix[k] == null ? 0.7 : st.mix[k]) * f)); setMix(k, v); };
+  const bumpAdd = (k, d) => setMix(k, Math.max(0, Math.min(1, (st.mix[k] == null ? 0.7 : st.mix[k]) + d)));
+  $('#ki-mixas').addEventListener('click', async () => {
+    msg('👂 Ich höre 4 Sekunden zu …'); const m = await measure(4), said = [];
+    if (m.low > 0.62) { bump('bass', 0.85); bump('kick', 0.9); said.push('zu viel Bass → Bass leiser'); } else if (m.low < 0.3) { bump('bass', 1.2); said.push('zu wenig Bass → Bass lauter'); }
+    if (m.high > 0.12) { bumpAdd('tone', -0.12); said.push('zu schrill → Helligkeit runter'); } else if (m.high < 0.03) { bumpAdd('tone', 0.12); said.push('zu dumpf → Helligkeit hoch'); }
+    if (m.mid < 0.12) { bumpAdd('lead', 0.12); bumpAdd('pad', 0.05); said.push('Melodie geht unter → Melodie lauter'); } else if (m.mid > 0.38) { bumpAdd('lead', -0.1); said.push('Mitten zu dick → Melodie leiser'); }
+    if (m.peak > 0.95) { bumpAdd('loud', -0.1); said.push('zu laut, es übersteuert → Lautheit runter'); } else if (m.peak < 0.45) { bumpAdd('loud', 0.12); said.push('zu leise → Lautheit hoch'); }
+    msg(said.length ? '✔ Das habe ich geändert: ' + said.join('; ') + '. Hör nochmal rein.' : '✔ Dein Mix klingt ausgewogen. Ich ändere nichts.');
+  });
+  $('#ki-master').addEventListener('click', async () => {
+    msg('👂 Ich messe den Song (4 Sekunden) …'); const m = await measure(4);
+    const target = 0.88, dl = Math.max(-0.25, Math.min(0.25, (target - m.peak) * 0.6)); bumpAdd('loud', dl);
+    bumpAdd('tone', Math.max(-0.15, Math.min(0.15, (0.06 - m.high) * 3))); if (m.low > 0.55) bump('bass', 0.92);
+    msg(`🪄 Fertig gemastert: Spitze war ${m.peak.toFixed(2)}, Ziel ${target}. Lautheit ${dl >= 0 ? '+' : ''}${Math.round(dl * 100)} %, Helligkeit und Bass sind ausgeglichen.`);
+  });
+
+  // 6) Smarte Melodie
+  $('#ki-smart').addEventListener('click', () => { undoPoint(); smartInto(); allRender(); msg('🎼 Neue Melodie, die zu deinen Akkorden passt, mit Motiv und Wiederholung. Drück PLAY.'); try { playMelody(); } catch (e) {} });
+
+  // 8) Auto-Arrangement
+  $('#ki-arr').addEventListener('click', () => {
+    if (st.playing) stop(); if (st.blank) megaHit();
+    const club = ['techno', 'berlin', 'western', 'phonk', 'dnb', 'y2000', 'euro90', 'y2010'], pop = ['dance', 'y2020', 'schlager', 'synth80', 'summer'];
+    const f = club.includes(st.style) ? 'club' : pop.includes(st.style) ? 'radio' : 'bridge';
+    st.form = f; $('#song-form').value = f; setForm(f); if (!st.melodyLock) smartInto(); allRender();
+    const bars = FORMS[f].plan.reduce((a, p) => a + p[2], 0);
+    msg(`🏗 ${FORMS[f].name}: ${FORMS[f].plan.map(p => p[1]).join(' → ')} (${bars} Takte, etwa ${Math.round(bars * 4 * 60 / st.bpm)} Sekunden). Starte „Ganzen Song spielen“.`);
+    setTimeout(() => { if (!st.playing) play(true); }, 300);
+  });
+
+  // 5) Lernen
+  const learnNow = d => { const h = st.lastHit; if (!h) { msg('Drück erst auf „Shuffle“, dann sage ich dir, was ich mir merken soll.'); return false; } const keys = ['style:' + h.style, 'scale:' + h.scale, 'oct:' + h.oct].concat(h.fx.map(f => 'fx:' + f)); keys.forEach(k => { learn[k] = Math.max(-0.85, Math.min(3, (learn[k] || 0) + d)); }); saveLearn(); return true; };
+  const favText = () => { const top = Object.keys(learn).filter(k => k.startsWith('style:') && learn[k] > 0).sort((a, b) => learn[b] - learn[a]).slice(0, 2).map(k => STYLES[k.slice(6)] && STYLES[k.slice(6)].name).filter(Boolean); return top.length ? ' Dein Lieblingsstil: ' + top.join(', ') + '.' : ''; };
+  $('#ki-up').addEventListener('click', () => { if (learnNow(0.5)) msg('👍 Gemerkt! Solche Kombinationen kommen jetzt öfter.' + favText()); });
+  $('#ki-down').addEventListener('click', () => { if (learnNow(-0.5)) msg('👎 Gemerkt! So etwas kommt jetzt seltener. Ich mische neu.'); if (st.lastHit) $('#btn-newhit').click(); });
+  $('#ki-forget').addEventListener('click', () => { learn = {}; saveLearn(); msg('🧽 Ich habe alles vergessen, was ich über deinen Geschmack gelernt hatte.'); });
+
+  // 9) Titel
+  const WORDS = {
+    club: [['Dunkle', 'Neon', 'Nächtliche', 'Elektrische', 'Rastlose'], ['Maschine', 'Halle', 'Pulse', 'Kathedrale', 'Fabrik']],
+    pop: [['Goldene', 'Heller', 'Ewiger', 'Süßer', 'Wilder'], ['Sommer', 'Traum', 'Funke', 'Moment', 'Herzschlag']],
+    chill: [['Leiser', 'Sanfter', 'Müder', 'Blauer', 'Weicher'], ['Regen', 'Sonntag', 'Nebel', 'Abend', 'Gedanke']],
+    retro: [['Verlorene', 'Alte', 'Glänzende', 'Tanzende', 'Letzte'], ['Platte', 'Tanzfläche', 'Bar', 'Straße', 'Show']]
+  };
+  $('#ki-title').addEventListener('click', () => {
+    const s = st.style, g = ['techno', 'berlin', 'western', 'phonk', 'dnb', 'trap', 'y2000'].includes(s) ? 'club' : ['lofi', 'reggaeton', 'afro'].includes(s) ? 'chill' : ['tw20', 'sw30', 'big40', 'disco70', 's60', 'synth80', 'schlager'].includes(s) ? 'retro' : 'pop';
+    const [a, n] = WORDS[g], t = pickK(a) + ' ' + pickK(n) + (Math.random() < 0.35 ? ' in ' + SCALES[st.scaleIdx].name.split('-')[0] : '');
+    msg('✍️ Wie wäre es mit: „' + t + '“'); $('#ki-useTitle').style.display = ''; $('#ki-useTitle').dataset.t = t;
+  });
+  $('#ki-useTitle').addEventListener('click', () => { const t = $('#ki-useTitle').dataset.t; const p = $('#proj-name'); if (p) { p.value = t; p.dispatchEvent(new Event('input', { bubbles: true })); } msg('📝 Übernommen: „' + t + '“ (steht jetzt bei „Speichern“ als Name).'); });
 })();
 
 </script>
