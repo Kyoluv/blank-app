@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 70</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 71</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1053,11 +1053,11 @@ function buildChain(ctx) {
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
   const dk = {}; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); dk[k].connect(drums); });
   drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.45); pad.connect(dP); widen(dP, 19, 0.4); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.4); horn.connect(dH); widen(dH, 15, 0.35);
-  mixBus.connect(gate); gate.connect(crush); crush.connect(trem); trem.connect(phHP); phHP.connect(phLP); phLP.connect(filt); lfo.connect(lfoG); lfoG.connect(trem.gain); lfo.start(); filt.connect(dry); dry.connect(comp);
+  mixBus.connect(gate); gate.connect(crush); crush.connect(trem); trem.connect(phHP); phHP.connect(phLP); phLP.connect(filt); lfo.connect(lfoG); lfoG.connect(trem.gain); lfo.start(); filt.connect(dry); const pocket = ctx.createBiquadFilter(), duck = mk(); pocket.type = 'peaking'; pocket.frequency.value = 1900; pocket.Q.value = 0.9; pocket.gain.value = 0; dry.connect(pocket); pocket.connect(duck); duck.connect(comp);
   filt.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
   filt.connect(rvSend); rvSend.connect(rv); rv.connect(comp);
   vox.connect(comp); comp.connect(eqHP); eqHP.connect(eqMud); eqMud.connect(eqPres); eqPres.connect(eqAir); eqAir.connect(drive); drive.connect(lim); lim.connect(fade); fade.connect(master);
-  const c = { trem, phHP, phLP, lfo, lfoG, eqAir, dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
+  const c = { pocket, duck, trem, phHP, phLP, lfo, lfoG, eqAir, dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
   applyMix(c, st.mix, 0, false);
   return c;
 }
@@ -1301,6 +1301,12 @@ function tick() {
     nextT += dur; stepN++;
   }
 }
+function applyPocket(c, cx, t0, buf, off) {
+  if (!c.duck || !c.pocket) return; const d = buf.getChannelData(0), sr = buf.sampleRate, hop = Math.floor(sr / 20), n = Math.floor((d.length - off * sr) / hop); if (n < 4) return;
+  const raw = new Float32Array(n); let mx = 0; for (let i = 0; i < n; i++) { let e = 0; const s0 = Math.floor(off * sr) + i * hop; for (let k = 0; k < hop; k += 4) e += d[s0 + k] * d[s0 + k]; raw[i] = Math.sqrt(e / (hop / 4)); mx = Math.max(mx, raw[i]); }
+  const dc = new Float32Array(n), pc = new Float32Array(n); let y = 0; for (let i = 0; i < n; i++) { const v = Math.min(1, raw[i] / Math.max(1e-6, mx * 0.3)); y += (v - y) * (v > y ? 0.7 : 0.1); dc[i] = 1 - 0.3 * y; pc[i] = -6 * y; }
+  const dur = n * hop / sr; c.duck.gain.cancelScheduledValues(t0); c.pocket.gain.cancelScheduledValues(t0); c.duck.gain.setValueAtTime(1, t0); c.duck.gain.setValueCurveAtTime(dc, t0 + 0.001, dur); c.pocket.gain.setValueCurveAtTime(pc, t0 + 0.001, dur);
+}
 function play(song) {
   if (st.playing) stop();
   if (song) setForm(activeForm());
@@ -1310,7 +1316,7 @@ function play(song) {
   if (!song) chain.filt.frequency.setTargetAtTime(st.chill ? 700 : baseCut(st), ctx.currentTime, 0.1);
   stepN = 0; nextT = ctx.currentTime + 0.08; songT0 = nextT; st.playing = true;
   if (song && st.voiceWet && !rec.active) {
-    voiceSrc = ctx.createBufferSource(); voiceSrc.buffer = st.voiceWet; voiceSrc.connect(chain.vox); try { const vr = ctx.createGain(); vr.gain.value = 0.45; voiceSrc.connect(vr); vr.connect(chain.rvSend); } catch (e) {} voiceSrc.start(songT0, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01));
+    voiceSrc = ctx.createBufferSource(); voiceSrc.buffer = st.voiceWet; voiceSrc.connect(chain.vox); try { const vr = ctx.createGain(); vr.gain.value = 0.45; voiceSrc.connect(vr); vr.connect(chain.rvSend); } catch (e) {} voiceSrc.start(songT0, Math.min(st.nudge / 1000 + (st.voiceOff || 0), st.voiceWet.duration - 0.01)); try { applyPocket(chain, ctx, songT0, st.voiceWet, st.nudge / 1000 + (st.voiceOff || 0)); } catch (e) {}
   }
   timer = setInterval(tick, 25); tick();
   const b = $('#btn-play'), sb = $('#btn-song');
@@ -1324,7 +1330,7 @@ function stop() {
   clearInterval(timer); st.playing = false; st.build = null; setUIBuild(false);
   const b = $('#btn-play'), sb = $('#btn-song');
   b.textContent = '▶ PLAY'; b.classList.remove('stop'); sb.textContent = '▶ Ganzen Song spielen'; sb.classList.remove('stop');
-  if (chain) { chain.fade.gain.cancelScheduledValues(0); chain.fade.gain.setValueAtTime(1, ctx.currentTime); chain.dB.gain.cancelScheduledValues(0); chain.dB.gain.value = 1; chain.dL.gain.cancelScheduledValues(0); chain.dL.gain.value = 1; chain.dP.gain.cancelScheduledValues(0); chain.dP.gain.value = 1; }
+  if (chain) { chain.fade.gain.cancelScheduledValues(0); chain.fade.gain.setValueAtTime(1, ctx.currentTime); try { chain.duck.gain.cancelScheduledValues(0); chain.duck.gain.setValueAtTime(1, ctx.currentTime); chain.pocket.gain.cancelScheduledValues(0); chain.pocket.gain.setValueAtTime(0, ctx.currentTime); } catch (e) {} chain.dB.gain.cancelScheduledValues(0); chain.dB.gain.value = 1; chain.dL.gain.cancelScheduledValues(0); chain.dL.gain.value = 1; chain.dP.gain.cancelScheduledValues(0); chain.dP.gain.value = 1; }
   st.songMode = false; updateTimeline(-1);
   try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {}
   updateStatus();
@@ -1553,7 +1559,7 @@ async function finishRec() {
   let pk = 0; for (let i = 0; i < data.length; i += 3) pk = Math.max(pk, Math.abs(data[i]));
   if (pk < 0.003) { recMsg('Es kam kein Ton an. Mikrofon prüfen und noch einmal versuchen.'); return; }
   const k = 0.9 / pk; for (let i = 0; i < data.length; i++) data[i] *= k;
-  st.voiceRaw = { data, sr }; recMsg('Verarbeite Stimme …');
+  st.voiceRaw = { data, sr }; st.voiceOff = 0; recMsg('Verarbeite Stimme …');
   try { await renderVoice(); recMsg(`✔ Aufnahme gespeichert (${(end / sr).toFixed(0)} s). Tippe „Song mit Stimme anhören“.`); } catch (e) { recMsg('Fehler: ' + e.message); }
   refreshVoiceUI();
 }
@@ -1755,7 +1761,7 @@ async function exportWav(song) {
     applyMix(ch, S.mix, 0, false);
     ch.master.connect(octx.destination);
     const withVoice = !!(song && st.voiceWet);
-    if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); try { const vr = octx.createGain(); vr.gain.value = 0.45; vs.connect(vr); vr.connect(ch.rvSend); } catch (e) {} vs.start(0.05, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01)); }
+    if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); try { const vr = octx.createGain(); vr.gain.value = 0.45; vs.connect(vr); vr.connect(ch.rvSend); } catch (e) {} vs.start(0.05, Math.min(st.nudge / 1000 + (st.voiceOff || 0), st.voiceWet.duration - 0.01)); try { applyPocket(ch, octx, 0.05, st.voiceWet, st.nudge / 1000 + (st.voiceOff || 0)); } catch (e) {} }
     ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = S.chill ? 700 : baseCut(S); applyFxNodes(ch, S, 0, false);
     const total = bars * 16;
     for (let n = 0; n < total; n++) { scheduleStep(octx, ch, S, n, 0.05 + n * dur, dur, false); if (n % 48 === 47) { setProg(0.02 + 0.18 * n / total, 'Vorbereiten …'); await yieldUI(); } }
@@ -1829,7 +1835,7 @@ async function renderProjects() {
 async function saveProject() {
   const nm = $('#proj-name').value.trim() || `Projekt ${new Date().toLocaleDateString('de-DE')}`;
   const snap = snapshotState(); snap.voiceFx = st.voiceFx; snap.nudge = st.nudge; snap.tune = st.tune;
-  const o = { id: Date.now(), name: nm, date: new Date().toISOString().slice(0, 10), snap, voice: st.voiceRaw ? { data: st.voiceRaw.data, sr: st.voiceRaw.sr } : null };
+  const o = { id: Date.now(), name: nm, date: new Date().toISOString().slice(0, 10), snap, voiceOff: st.voiceOff || 0, voice: st.voiceRaw ? { data: st.voiceRaw.data, sr: st.voiceRaw.sr } : null };
   projMsg('Sichere …');
   try { await dbPut(o); projMsg(`✔ „${nm}" gesichert${o.voice ? ' (mit Stimme)' : ''}.`); $('#proj-name').value = ''; } catch (e) { projMsg('Sichern nicht möglich: ' + (e && e.message ? e.message : 'Speicher voll oder gesperrt')); }
   renderProjects();
@@ -1839,7 +1845,7 @@ async function loadProject(p) {
   undoPoint();
   applySlot(p.snap);
   st.voiceFx = p.snap.voiceFx || 'hall'; st.tune = p.snap.tune || 'off'; st.nudge = p.snap.nudge == null ? 40 : p.snap.nudge; $('#nudge').value = st.nudge; $('#nudge-val').textContent = st.nudge + ' ms';
-  if (p.voice) { st.voiceRaw = { data: p.voice.data, sr: p.voice.sr }; projMsg('Stimme wird geladen …'); try { await renderVoice(); } catch (e) {} } else { st.voiceRaw = null; st.voiceWet = null; }
+  st.voiceOff = p.voiceOff || 0; if (p.voice) { st.voiceRaw = { data: p.voice.data, sr: p.voice.sr }; projMsg('Stimme wird geladen …'); try { await renderVoice(); } catch (e) {} } else { st.voiceRaw = null; st.voiceWet = null; }
   refreshVoiceUI(); projMsg(`✔ „${p.name}" geladen.`);
 }
 
@@ -2699,6 +2705,12 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
 })();
 
 /* ---------- Text zu Gesang (Formant-Synthese, offline) ---------- */
+function chordAt(bar) {
+  const sc = SCALES[st.scaleIdx], sec = sectionAt(Math.max(0, bar)), K = sec.kind, useB = (K === 'verse' || K === 'build' || K === 'brk');
+  const prog = useB ? (st.chordB || st.chordA || st.prog2) : (st.chordA || st.prog), fx = (useB ? (st.chordB || st.chordA) : st.chordA) ? ((c, d) => d) : fixDeg;
+  return fx(sc, prog[Math.max(0, bar) % prog.length]);
+}
+const VOFF = 0.2;
 const SING = (function () {
   const V = { a: [800, 1200, 2800], e: [500, 1900, 2600], i: [300, 2300, 3000], o: [500, 900, 2600], u: [320, 800, 2500], ae: [650, 1700, 2600], oe: [450, 1500, 2500], ue: [300, 1700, 2300], sw: [500, 1500, 2500], uh: [700, 1200, 2600] };
   const isV = c => 'aeiouäöüy'.includes(c);
@@ -2803,7 +2815,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=70'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=71'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2847,7 +2859,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=70'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=71'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -2901,11 +2913,11 @@ const SING = (function () {
     const fin = oc.createGain(), cv = oc.createConvolver(), irl = Math.floor(44100 * 0.4), ir = oc.createBuffer(1, irl, 44100), ird = ir.getChannelData(0); for (let i = 0; i < irl; i++) ird[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irl, 2.6); cv.buffer = ir;
     const wg = oc.createGain(); wg.gain.value = 0.16; src.connect(hp); hp.connect(warm); warm.connect(sf); sf.connect(pres); pres.connect(air); air.connect(cmp); cmp.connect(fin); fin.connect(oc.destination); fin.connect(cv); cv.connect(wg); wg.connect(oc.destination); src.start(0); dub.forEach(([s2, g2]) => { g2.connect(hp); s2.start(0); });
     const rb = await oc.startRendering(), data = new Float32Array(rb.getChannelData(0)); let p2 = 0; for (let i = 0; i < data.length; i += 2) p2 = Math.max(p2, Math.abs(data[i])); if (p2 > 0) { const kk = 0.8 / p2; for (let i = 0; i < data.length; i++) data[i] *= kk; }
-    return { data, sr: 44100, syl: ev.length };
+    return { data, sr: 44100, syl: ev.length, off: VOFF };
   }
   async function render(text, lang, voice, notesDeg, sc, bpm, fit, tts) {
     const sr = 44100, u0 = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
-    const ev = []; let ni = 0;
+    const ev = []; let ni = 0, out_off = 0;
     const cfg = { male: { med: 135, fs: 0.9, vib: 14, port: 0.03 }, female: { med: 290, fs: 1.14, vib: 20, port: 0.03 }, robot: { med: 160, fs: 1, vib: 0, port: 0.002 } }[voice] || { med: 135, fs: 0.9, vib: 14, port: 0.03 };
     const sh = Math.pow(2, Math.round(Math.log2(cfg.med / (noteFreq(sc, 2, 0) * 1))));
     const fDeg = d => { let f = noteFreq(sc, d, 0) * sh; while (f > cfg.med * 2.7) f /= 2; while (f < cfg.med * 0.6) f *= 2; return f; };
@@ -2920,25 +2932,28 @@ const SING = (function () {
       else { const arc = Math.round(3.2 * Math.sin(Math.PI * ph)); d = base + arc + (Math.random() < 0.35 ? (Math.random() < 0.5 ? -1 : 1) : 0) + (Math.random() < 0.12 ? (Math.random() < 0.5 ? -3 : 3) : 0); }
       if (first && Math.random() < 0.4) d = base - 1; d = Math.max(-3, Math.min(9, d)); if (!last && d === prevDeg && Math.random() < 0.6) d += Math.random() < 0.5 ? 1 : -1; prevDeg = d; return d;
     };
-    let repNo = 0;
+    let repNo = 0; const barSec = 240 / bpm;
     const pass = (u, t0, ni0, ri0) => {
       let t = t0, ri = ri0, n = ni0;
       sy.forEach((s, idx) => {
         if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
         let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
-        const d = units * u; ev.push({ s, t, d, f: fDeg(degFor(idx, repNo)) }); n++; t += d;
+        const d = units * u; let dg = degFor(idx, repNo);
+        if (barSec) { const gt = t - VOFF, bar = Math.floor(gt / barSec + 1e-6), e8 = Math.round(gt / (barSec / 8)); if (d >= barSec / 8 * 1.5 || e8 % 4 === 0) { const root = chordAt(bar); let best = dg, bd = 99; for (let k = -3; k <= 3; k++) [0, 2, 4].forEach(q => { const tn = root + q + 7 * k, dd = Math.abs(tn - dg); if (dd < bd || (dd === bd && tn > best)) { bd = dd; best = tn; } }); dg = Math.max(-4, Math.min(10, best)); prevDeg = dg; } }
+        ev.push({ s, t, d, f: fDeg(dg) }); n++; t += d;
       });
       repNo++; return { t, ni: n, ri };
     };
-    let t = 0.15;
+    let t = VOFF;
     if (fit && fit.target > 0) {
-      const probe = pass(1, 0, 0, 0); ev.length = 0; const units = Math.max(1, probe.t);
-      const reps = Math.min(8, Math.max(1, Math.round(fit.target / (units * u0 * 2.4 + 3 * u0))));
-      let u = (fit.target - (reps - 1) * 3 * u0) / (reps * units); u = Math.max(u0 * 0.6, Math.min(u0 * 8, u));
-      t = fit.lead + 0.15; let ri = 0; ni = 0;
-      for (let r = 0; r < reps; r++) { const o = pass(u, t, ni, ri); t = o.t + (r < reps - 1 ? 3 * u0 : 0); ni = o.ni; ri = o.ri; if (t - fit.lead > fit.target + 4) break; }
+      const probe = pass(1, 0, 0, 0); ev.length = 0; repNo = 0; const units = Math.max(1, probe.t), targetBars = Math.max(1, Math.floor(fit.target / barSec));
+      const calc = mm => { const pb = Math.max(1, Math.ceil(units * mm / 8)); return { pb, reps: Math.max(1, Math.floor(targetBars / pb)) }; };
+      let m = 1, c = calc(1); for (const mm of [3, 2]) { const q = calc(mm); if (q.reps >= 3) { m = mm; c = q; break; } }
+      const reps = Math.min(8, c.reps), spacing = Math.max(c.pb, Math.floor(targetBars / reps)); let ni2 = 0, ri2 = 0; t = fit.lead + VOFF;
+      for (let r = 0; r < reps; r++) { const o = pass(u0 * m, fit.lead + VOFF + r * spacing * barSec, ni2, ri2); t = o.t; ni2 = o.ni; ri2 = o.ri; }
       fit.reps = reps;
     } else { const o = pass(u0, t, 0, 0); t = o.t; }
+    out_off = VOFF;
     if (tts) return await TTSR(ev, t, voice, cfg, lang === 'auto' ? detect(text) : lang, tts);
     const T = t + 0.6, oc = new (OAC_())(1, Math.ceil(T * sr), sr), mk = v => { const g = oc.createGain(); g.gain.value = v; return g; };
     const osc = oc.createOscillator(); osc.type = 'sawtooth'; const lfo = oc.createOscillator(), lg = mk(0); lfo.frequency.value = 5.3; lfo.connect(lg).connect(osc.detune); const dr = oc.createOscillator(), drg = mk(9), dr2 = oc.createOscillator(), drg2 = mk(4); dr.frequency.value = 0.7; dr2.frequency.value = 9.3; dr.connect(drg).connect(osc.detune); dr2.connect(drg2).connect(osc.detune); dr.start(0); dr2.start(0);
@@ -2970,7 +2985,7 @@ const SING = (function () {
       vamp.gain.setTargetAtTime(0, Math.min(cEnd - 0.012, p2), 0.012);
     });
     const buf = await oc.startRendering(), data = new Float32Array(buf.getChannelData(0)); let pk = 0; for (let i = 0; i < data.length; i += 2) pk = Math.max(pk, Math.abs(data[i])); if (pk > 0) { const k = 0.8 / pk; for (let i = 0; i < data.length; i++) data[i] *= k; }
-    return { data, sr, syl: ev.length };
+    return { data, sr, syl: ev.length, off: VOFF };
   }
   const api = { render, detect, syllables, progress: null }; return api;
 })();
@@ -3041,7 +3056,7 @@ const SING = (function () {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
       const lang = $('#sing-lang').value, fit = $('#sing-fit').value === 'song' ? (() => { const bar = 240 / st.bpm, P = FORMS[activeForm()].plan, a = P[0][2], z = P[P.length - 1][2]; return { lead: a * bar, target: Math.max(8, (SONG_BARS - a - z) * bar - 1), reps: 1 }; })() : null,
         r = await SING.render(txt, lang, $('#sing-voice').value, notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', old: false })[$('#sing-eng').value]);
-      if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; await renderVoice(); refreshVoiceUI();
+      if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; st.voiceOff = r.off || 0; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
       msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. ${SING.fell && $('#sing-eng').value === 'ai' ? ' ⚠️ Die KI-Stimme war nicht erreichbar (Internet oder Seite?). Ich habe die einfache Sprachsynthese genommen.' : ''} Du hörst ihn jetzt solo. Mit „🎵 Mit Song anhören“ hörst du ihn zur Musik. Er spielt auch bei „Ganzen Song spielen“ mit.`);
       soloStop(); soloPlay();
@@ -3139,7 +3154,7 @@ const SING = (function () {
   tb.addEventListener('click', tiltToggle);
 
   // ===== 4) Tap-Tempo =====
-  const bs = $('#bpm-slider'); if (bs) { const tt = document.createElement('button'); tt.id = 'btn-tap'; tt.textContent = '👆 Tempo antippen'; tt.style.cssText = 'width:100%;margin-top:6px;'; bs.after(tt);
+  const bs = $('#bpm-slider'); if (bs) { const tt = document.createElement('button'); tt.id = 'btn-tap'; tt.textContent = '👆 Tempo antippen'; tt.style.cssText = 'width:100%;margin-top:2px;grid-column:1/-1;'; bs.after(tt);
     let taps = []; tt.addEventListener('pointerdown', () => { const n = performance.now(); if (taps.length && n - taps[taps.length - 1] > 2200) taps = []; taps.push(n); taps = taps.slice(-6); if (taps.length >= 3) { const d = []; for (let i = 1; i < taps.length; i++) d.push(taps[i] - taps[i - 1]); let bpm = 60000 / (d.reduce((a, b) => a + b, 0) / d.length); while (bpm > 160) bpm /= 2; while (bpm < 85) bpm *= 2; bs.value = Math.round(bpm); bs.dispatchEvent(new Event('input', { bubbles: true })); tt.textContent = '👆 ' + Math.round(bpm) + ' BPM – weiter antippen'; } else tt.textContent = '👆 Noch ' + (3 - taps.length) + ' Mal im Takt tippen'; }); }
 
   // ===== 5) Tastenkürzel =====
