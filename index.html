@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 96</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 97</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 96</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 97</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=96'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=97'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=96'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=97'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3574,7 +3574,13 @@ function setWorld(id, quiet, off) {
     else V.bass(ctx, chain.bass, t, noteFreq(sc, d, -1), beat * 0.8, STYLES[st.style].bassType || 'saw', 0.5);
     b.classList.add('active-pink'); setTimeout(() => b.classList.remove('active-pink'), 160); if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
   }
-  jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); hit(b); });
+  // Chrome auf Tablets gibt den Ton erst nach einem echten Tippen frei (pointerup/click), nicht schon bei pointerdown
+  let pend = null;
+  const unlock = () => { try { initAudio(); if (ctx.state !== 'running') return ctx.resume(); } catch (e) {} return Promise.resolve(); };
+  ['pointerup', 'click', 'touchend'].forEach(n => document.addEventListener(n, () => { if (typeof ctx !== 'undefined' && ctx && ctx.state === 'running') return; try { if (ctx) ctx.resume(); } catch (e) {} }, true));
+  jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); try { initAudio(); } catch (e) {} if (ctx.state === 'running') hit(b); else pend = b; });
+  const fire = ev => { const b = pend || ev.target.closest('.jam'); if (!pend) return; pend = null; unlock().then(() => hit(b)); };
+  jg.addEventListener('pointerup', fire); jg.addEventListener('click', fire);
   // ===== Beatbox =====
   const bc = document.createElement('div'); bc.className = 'card'; bc.id = 'c-bbox'; bc.style.padding = '10px';
   bc.innerHTML = '<div class="label"><span>🎙 Beatbox-Beat</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Mach mit dem Mund einen Beat: tiefes „Bumm“ = Kick, „Tss“ = Hi-Hat, „Pff“ oder „Kah“ = Snare. Du hast 2 Takte Zeit. Fange auf dem ersten Schlag an. Stelle vorher das Tempo ein und halte das Gerät nah an den Mund.</div><button id="bb-go" class="sunset-btn" style="width:100%;">🎙 Beatbox aufnehmen (2 Takte)</button><div id="bb-msg" style="font-size:.78rem;margin-top:8px;line-height:1.4;min-height:1.2em;"></div>';
