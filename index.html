@@ -223,7 +223,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 <body>
 <div id="vsb"><i></i></div>
 
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 8px;"><button id="btn-reload" style="flex:1;padding:12px;border-radius:12px;font-weight:700;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 88</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 8px;"><button id="btn-reload" style="flex:1;padding:12px;border-radius:12px;font-weight:700;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 89</span></div>
 <div id="sticky">
 <header>
   <div class="brand-box">
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 88</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 89</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1098,15 +1098,15 @@ const WORLDS = [
   { n: 'Original', e: '🎛', d: 'Unverändert, so wie bisher.', hp: 20, lp: 20000, lo: 0, hi: 0, sat: 0, bits: 0, qw: 0, wow: 0, wowHz: 0.5, hiss: 0, crack: 0, hall: 0 },
   { n: 'Lo-Fi Kassette', e: '📼', d: 'Warm, leicht eiernd, mit Rauschen.', hp: 60, lp: 4800, lo: 3, hi: -4, sat: 2, bits: 0, qw: 0, wow: 0.0035, wowHz: 0.6, hiss: 0.012, crack: 0, hall: 0.05 },
   { n: 'Schallplatte', e: '💿', d: 'Knistern, gedämpfte Höhen.', hp: 80, lp: 7500, lo: 2, hi: -3, sat: 1.2, bits: 0, qw: 0, wow: 0.0012, wowHz: 0.55, hiss: 0.006, crack: 0.09, hall: 0 },
-  { n: '8-Bit Spielhalle', e: '👾', d: 'Harter, grober Computer-Klang.', hp: 140, lp: 9500, lo: -2, hi: 2, sat: 0.8, bits: 4, qw: 0.85, wow: 0, wowHz: 0.5, hiss: 0, crack: 0, hall: 0 },
-  { n: 'Radio / Telefon', e: '📻', d: 'Schmal und schnarrend.', hp: 480, lp: 3200, lo: 0, hi: 0, sat: 3.5, bits: 0, qw: 0, wow: 0.0008, wowHz: 2, hiss: 0.012, crack: 0.02, hall: 0 },
+  { n: '8-Bit Spielhalle', e: '👾', d: 'Harter, grober Computer-Klang.', hp: 140, lp: 9500, lo: -2, hi: 2, sat: 0.4, bits: 6, qw: 0.5, wow: 0, wowHz: 0.5, hiss: 0, crack: 0, hall: 0 },
+  { n: 'Radio / Telefon', e: '📻', d: 'Schmal und schnarrend.', hp: 480, lp: 3200, lo: 0, hi: 0, sat: 1.8, bits: 0, qw: 0, wow: 0.0008, wowHz: 2, hiss: 0.012, crack: 0.02, hall: 0 },
   { n: 'Unter Wasser', e: '🌊', d: 'Dumpf und schwimmend.', hp: 40, lp: 700, lo: 4, hi: -8, sat: 0, bits: 0, qw: 0, wow: 0.007, wowHz: 0.25, hiss: 0, crack: 0, hall: 0.25 },
   { n: 'Kathedrale', e: '⛪', d: 'Riesiger Hall, weich.', hp: 60, lp: 11000, lo: 0, hi: -3, sat: 0, bits: 0, qw: 0, wow: 0.0006, wowHz: 0.3, hiss: 0, crack: 0, hall: 0.8 },
   { n: 'Glas & Luft', e: '✨', d: 'Dünn, glitzernd, ganz hell.', hp: 220, lp: 20000, lo: -6, hi: 8, sat: 0.4, bits: 0, qw: 0, wow: 0.0015, wowHz: 4.5, hiss: 0.004, crack: 0, hall: 0.3 },
   { n: 'Industrial', e: '🔥', d: 'Dunkel, hart und metallisch, nur leicht angeraut.', hp: 100, lp: 9000, lo: 2, hi: 1, sat: 1.8, bits: 0, qw: 0, wow: 0, wowHz: 0.5, hiss: 0.004, crack: 0, hall: 0 },
   { n: 'Höhle', e: '🕳', d: 'Dunkel, dick, mit Hall.', hp: 30, lp: 1900, lo: 6, hi: -6, sat: 0.8, bits: 0, qw: 0, wow: 0.002, wowHz: 0.2, hiss: 0, crack: 0, hall: 0.65 },
   { n: 'Super-8 Film', e: '🎞', d: 'Alter Film: eiernd, knisternd.', hp: 90, lp: 6000, lo: 2, hi: -2, sat: 1.5, bits: 0, qw: 0, wow: 0.005, wowHz: 0.45, hiss: 0.018, crack: 0.05, hall: 0.1 },
-  { n: 'Taschenradio', e: '📟', d: 'Winziger Lautsprecher, 6 Bit.', hp: 700, lp: 4200, lo: -4, hi: 2, sat: 5, bits: 6, qw: 0.7, wow: 0, wowHz: 0.5, hiss: 0.01, crack: 0, hall: 0 }
+  { n: 'Taschenradio', e: '📟', d: 'Winziger Lautsprecher, 6 Bit.', hp: 700, lp: 4200, lo: -4, hi: 2, sat: 2, bits: 7, qw: 0.4, wow: 0, wowHz: 0.5, hiss: 0.01, crack: 0, hall: 0 }
 ];
 const _sc = {}, satCurve = k => _sc['s' + k] || (_sc['s' + k] = (() => { const c = new Float32Array(2048), t = Math.tanh(k); for (let i = 0; i < 2048; i++) { const x = i / 1023.5 - 1; c[i] = Math.tanh(k * x) / t; } return c; })()), qCurve = b => _sc['q' + b] || (_sc['q' + b] = (() => { const c = new Float32Array(4096), L = Math.pow(2, b - 1); for (let i = 0; i < 4096; i++) { const x = i / 2047.5 - 1; c[i] = Math.round(x * L) / L; } return c; })());
 function liveBase(ch) { const l = st.live || {}; return { lp: l.wobble ? 900 : l.dull ? 650 : 20000, hp: l.thin ? 900 : 20 }; }
@@ -2355,8 +2355,8 @@ function applyRecipe(rc) {
   else if (rc.tracks === 'few') { ['gtr', 'horn', 'tuba', 'bone'].forEach(k => { st.tracks[k] = null; }); fill(pickR(['gtr', 'horn']), 0.2); }
   else if (rc.tracks === 'bass808') { ['gtr', 'horn', 'tuba', 'bone'].forEach(k => { st.tracks[k] = null; }); if (st.tracks.bass) st.tracks.bass.type = '808'; }
   if (rc.chaos != null) { st.chaos = !!rc.chaos; $('#btn-chaos').classList.toggle('active-pink', st.chaos); }
-  if (typeof setWorld === 'function' && !st.worldOff) setWorld(pickR(rc.world || [0]));
-  setLive(pickR(rc.live || [[]]));
+  if (typeof setWorld === 'function' && !st.worldOff) { let w = pickR(rc.world || [0]); if ([3, 4, 8, 11].includes(w) && Math.random() > 0.2) w = pickR([0, 0, 0, 7, 6, 10]); setWorld(w); }
+  setLive(pickR(rc.live || [[]]).filter(k => !['crush', 'ring'].includes(k) || Math.random() < 0.2));
 }
 function megaHit() {
   undoPoint(); stopIfNeeded(); setChordsOff(false); const RC = pickRecipe();
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=88'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=89'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=88'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=89'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
