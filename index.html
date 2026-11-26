@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 55</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 56</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2235,7 +2235,7 @@ function megaHit() {
   const M = { drums: rngR(0.75, 0.95), bass: rngR(0.55, 0.85), lead: rngR(0.6, 1), pad: rngR(0.3, 0.7), pump: rngR(0.2, 0.7), hall: rngR(0.1, 0.5), tone: rngR(0.6, 0.95), loud: rngR(0.65, 0.85), vox: 0.8, vary: rngR(0.3, 0.9), gtr: rngR(0.5, 0.8), horn: rngR(0.5, 0.8), tuba: rngR(0.5, 0.8), bone: rngR(0.5, 0.8) };
   Object.keys(M).forEach(k => setMix(k, M[k])); ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => setMix(k, rngR(0.8, 1)));
   setPad(Math.random(), rngR(0.08, 0.55)); setOct(pickR(['0', '0', '1', '-1']));
-  const on = []; while (on.length < pickR([0, 1, 2])) { const f = pickR(['acid', 'arp', 'sub', 'echo', 'gate']); if (!on.includes(f)) on.push(f); }
+  const on = [], want = pickR([0, 1, 2, 3]); while (on.length < want) { const f = pickR(['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter', 'vocal']); if (!on.includes(f) && !(f === 'half' && on.includes('straight')) && !(f === 'straight' && on.includes('half'))) on.push(f); }
   ['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, on.includes(k)); });
   st.seed = (Math.random() * 4294967295) >>> 0; regen();
   if (Math.random() < 0.4) st.beat = randomBeat();
@@ -2251,6 +2251,11 @@ function megaHit() {
     t.n = Array.from({ length: 16 }, (_, i) => (Math.random() < (i % 4 === 0 ? 0.6 : 0.22) ? pickR([0, 0, 2, 4, 4, 7]) : -1));
     if (s && s.options.length) t.type = s.options[Math.floor(Math.random() * s.options.length)].value; st.tracks[k] = t;
   }));
+  T0(() => { setMix('vox', rngR(0.55, 1)); const n = Math.round(rngR(10, 90)); st.nudge = n; $('#nudge').value = n; $('#nudge-val').textContent = n + ' ms'; });
+  T0(() => { const gk = $('#gen-kind'), gr = $('#gen-range'); gk.selectedIndex = Math.floor(Math.random() * gk.options.length); gr.selectedIndex = Math.floor(Math.random() * gr.options.length); });
+  T0(() => { ['bass', 'gtr', 'horn', 'tuba', 'bone'].forEach(k => { const t = st.tracks[k], s = $('#ln-' + k); if (t && s && s.options.length) { const o = s.options[Math.floor(Math.random() * s.options.length)].value; s.value = o; t.len = Number.isNaN(+o) ? o : +o; } }); });
+  T0(() => { st.chaos = Math.random() < 0.25; $('#btn-chaos').classList.toggle('active-pink', st.chaos); setOct(st.oct); });
+  T0(() => pickR($$('#vfx-grid button')).click()); T0(() => pickR($$('#tune-grid button')).click());
   renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor();
 }
 function stopIfNeeded() { }
