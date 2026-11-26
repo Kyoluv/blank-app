@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 59</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 61</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2797,17 +2797,30 @@ const SING = (function () {
     });
     return syl.filter((s, i, a) => !(s.lineEnd && false));
   }
-  async function render(text, lang, voice, notesDeg, sc, bpm) {
-    const sr = 44100, u = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
-    const ev = []; let t = 0.15, ni = 0, ri = 0, lastWordEnd = null;
+  async function render(text, lang, voice, notesDeg, sc, bpm, fit) {
+    const sr = 44100, u0 = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
+    const ev = []; let ni = 0;
     const cfg = { male: { med: 135, fs: 0.9, vib: 14, port: 0.03 }, female: { med: 260, fs: 1.14, vib: 20, port: 0.03 }, robot: { med: 160, fs: 1, vib: 0, port: 0.002 } }[voice] || { med: 135, fs: 0.9, vib: 14, port: 0.03 };
     const freqs = notesDeg.map(d => noteFreq(sc, d, 0)), srt = freqs.slice().sort((a, b) => a - b), med = srt[srt.length >> 1], sh = Math.pow(2, Math.round(Math.log2(cfg.med / med)));
     const fOf = k => { let f = freqs[k % freqs.length] * sh; while (f > 700) f /= 2; while (f < 70) f *= 2; return f; };
-    sy.forEach((s, idx) => {
-      if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
-      let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
-      const d = units * u; ev.push({ s, t, d, f: fOf(ni++) }); t += d;
-    });
+    const pass = (u, t0, ni0, ri0) => {
+      let t = t0, ri = ri0, n = ni0;
+      sy.forEach((s, idx) => {
+        if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
+        let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
+        const d = units * u; ev.push({ s, t, d, f: fOf(n++) }); t += d;
+      });
+      return { t, ni: n, ri };
+    };
+    let t = 0.15;
+    if (fit && fit.target > 0) {
+      const probe = pass(1, 0, 0, 0); ev.length = 0; const units = Math.max(1, probe.t);
+      const reps = Math.min(8, Math.max(1, Math.round(fit.target / (units * u0 * 2.4 + 3 * u0))));
+      let u = (fit.target - (reps - 1) * 3 * u0) / (reps * units); u = Math.max(u0 * 0.6, Math.min(u0 * 8, u));
+      t = fit.lead + 0.15; let ri = 0; ni = 0;
+      for (let r = 0; r < reps; r++) { const o = pass(u, t, ni, ri); t = o.t + (r < reps - 1 ? 3 * u0 : 0); ni = o.ni; ri = o.ri; if (t - fit.lead > fit.target + 4) break; }
+      fit.reps = reps;
+    } else { const o = pass(u0, t, 0, 0); t = o.t; }
     const T = t + 0.6, oc = new (OAC_())(1, Math.ceil(T * sr), sr), mk = v => { const g = oc.createGain(); g.gain.value = v; return g; };
     const osc = oc.createOscillator(); osc.type = 'sawtooth'; const lfo = oc.createOscillator(), lg = mk(cfg.vib); lfo.frequency.value = 5.3; lfo.connect(lg).connect(osc.detune);
     const vamp = mk(0), out = mk(1), fl = [0, 1, 2].map(k => { const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.Q.value = [9, 11, 13][k]; const g = mk([1, 0.7, 0.4][k]); osc.connect(b); b.connect(g).connect(vamp); return b; });
@@ -2844,12 +2857,27 @@ const SING = (function () {
   <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Schreibe einen Text auf Deutsch oder Englisch. Die App singt ihn zur Melodie deines Songs. Das klingt wie eine Computerstimme.</div>
   <textarea id="sing-txt" rows="4" maxlength="400" placeholder="Zum Beispiel: Heute Nacht tanzen wir bis zum Morgen&#10;Oder: We dance all night under the stars" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;"></textarea>
   <div class="mixgrid" style="margin-top:8px;"><label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
+  <label>📏 Länge</label><select id="sing-fit" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="song">Über den ganzen Song strecken</option><option value="once">Nur einmal singen</option></select>
   <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option><option value="robot">Roboter</option></select></div>
   <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;">🎯 Auto-Tune (zieht den Gesang auf die Töne der Tonart)</div>
   <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
+  <button id="sing-auto" class="oct-btn" style="width:100%;margin-top:8px;">✍️ Autotext: Die App schreibt den Text</button>
   <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎶 Text singen lassen</button>
   <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  const AUTO = {
+    de: { th: [['Nacht','Stadt','Licht','Herz','Traum','Welt'],['tanzen','fliegen','leuchten','brennen','träumen','singen'],['Sterne','Lichter','Träume','Wolken','Farben','Flammen'],['heute','immer','jetzt','wieder','nie mehr','zusammen']],
+      L: [a => `Heute ${a.v[0]} wir in der ${a.n[0]}`, a => `Dein ${a.n[1]} ist mein ${a.n[2]}`, a => `Wir ${a.v[1]} durch die ${a.s[0]}`, a => `Alle ${a.s[1]} ${a.v[2]} für uns`, a => `${a.t[0]} ${a.v[3]} wir zusammen`, a => `Oh oh ${a.t[1]} für dich`, a => `Die ${a.n[3]} gehört uns`, a => `Lass uns ${a.v[4]} bis zum Morgen`] },
+    en: { th: [['night','city','light','heart','dream','world'],['dance','fly','shine','burn','run','sing'],['stars','lights','dreams','clouds','colors','flames'],['tonight','forever','right now','once again','together','all day']],
+      L: [a => `Tonight we ${a.v[0]} in the ${a.n[0]}`, a => `Your ${a.n[1]} is my ${a.n[2]}`, a => `We ${a.v[1]} through the ${a.s[0]}`, a => `All the ${a.s[1]} ${a.v[2]} for us`, a => `${a.t[0]} we ${a.v[3]} together`, a => `Oh oh ${a.t[1]} for you`, a => `The ${a.n[3]} is ours`, a => `Let us ${a.v[4]} till the morning`] }
+  };
+  const pk = arr => arr[Math.floor(Math.random() * arr.length)], shuf = arr => arr.slice().sort(() => Math.random() - 0.5);
+  function autoText() {
+    let l = $('#sing-lang').value; if (l === 'auto') l = (navigator.language || 'de').startsWith('en') ? 'en' : 'de';
+    const D = AUTO[l], mk = () => { const a = { n: shuf(D.th[0]), v: shuf(D.th[1]), s: shuf(D.th[2]), t: shuf(D.th[3]) }; return shuf(D.L).slice(0, 4).map(f => f(a)).join('\n'); };
+    const verse = mk(), chorus = mk(); return [verse, chorus, mk(), chorus].join('\n\n');
+  }
+  $('#sing-auto').addEventListener('click', () => { $('#sing-txt').value = autoText(); if ($('#sing-lang').value === 'auto') $('#sing-lang').value = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-msg').textContent = '✍️ Text geschrieben. Tippe auf „Text singen lassen“ oder noch mal auf Autotext für einen neuen.'; });
   $$('#sing-tune button').forEach(b => b.addEventListener('click', () => setTune(b.dataset.tune)));
   $('#sing-go').addEventListener('click', async () => {
     const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
@@ -2857,10 +2885,11 @@ const SING = (function () {
     msg('🎤 Ich übe den Text …'); $('#sing-go').disabled = true; await new Promise(r => setTimeout(r, 30));
     try {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
-      const lang = $('#sing-lang').value, r = await SING.render(txt, lang, $('#sing-voice').value, notes, SCALES[st.scaleIdx], st.bpm);
+      const lang = $('#sing-lang').value, fit = $('#sing-fit').value === 'song' ? (() => { const bar = 240 / st.bpm, P = FORMS[activeForm()].plan, a = P[0][2], z = P[P.length - 1][2]; return { lead: a * bar, target: Math.max(8, (SONG_BARS - a - z) * bar - 1), reps: 1 }; })() : null,
+        r = await SING.render(txt, lang, $('#sing-voice').value, notes, SCALES[st.scaleIdx], st.bpm, fit);
       if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
-      msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}. Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. Er spielt bei „Ganzen Song spielen“ mit.`);
+      msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. Er spielt bei „Ganzen Song spielen“ mit.`);
       $('#btn-vplay').click();
     } catch (e) { msg('Das hat nicht geklappt: ' + e.message); }
     $('#sing-go').disabled = false;
