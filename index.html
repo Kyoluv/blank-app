@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 74</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 75</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2643,7 +2643,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
     $('#ki-harm').textContent = '🎶 Harmonie: ' + { off: 'Aus', 3: 'Terz', 35: 'Terz + Quinte' }[st.harmony];
     if (!st.voiceRaw) { msg('Harmonie ist eingestellt. Sie wird zu deiner nächsten Aufnahme dazugerechnet.'); return; }
     msg('🎶 Ich rechne die Harmonie-Stimmen aus … (kann kurz dauern)'); await new Promise(r => setTimeout(r, 40));
-    try { await renderVoice(); msg(st.harmony === 'off' ? '✔ Harmonie ausgeschaltet.' : '✔ Fertig. Hör dir die Aufnahme mit „Anhören“ an.'); } catch (e) { msg('Das hat nicht geklappt: ' + e.message); }
+    try { await renderVoice(); msg(st.harmony === 'off' ? '✔ Harmonie ausgeschaltet.' : '✔ Fertig. Hör dir die Aufnahme mit „Anhören“ an.'); } catch (e) { try { console.warn('SING ' + e.stack); } catch (x) {} msg('Das hat nicht geklappt: ' + e.message); }
   });
 
   // 3) + 4) Mix-Assistent und Mastering: Abhören
@@ -2827,7 +2827,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=74'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=75'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2864,14 +2864,15 @@ const SING = (function () {
   const wcache = {};
   function wordAudio(word, lang, r) {
     const key = lang + '|' + word.toLowerCase() + '|' + r; if (wcache[key]) return wcache[key];
-    const arr = window.__ES.speak(word.toLowerCase(), { rawdata: 'array', voice: lang === 'de' ? 'de' : 'en/en-us', speed: 100, pitch: 50, amplitude: 100 });
+    const sp = () => window.__ES.speak(word.toLowerCase(), { rawdata: 'array', voice: lang === 'de' ? 'de' : 'en/en-us', speed: 100, pitch: 50, amplitude: 100 });
+    let arr = null; for (let k = 0; k < 3 && !arr; k++) { try { arr = sp(); } catch (e) { try { window.__ES.speak('a', { rawdata: 'array', voice: lang === 'de' ? 'de' : 'en/en-us' }); } catch (e2) {} } }
     if (!arr || !arr.length) return (wcache[key] = null); let { x, sr } = wavDecode(arr); if (r !== 1) x = resampleLin(x, r);
     let a = 0, b = x.length; while (a < b && Math.abs(x[a]) < 0.01) a++; while (b > a && Math.abs(x[b - 1]) < 0.01) b--; x = x.slice(Math.max(0, a - 40), Math.min(x.length, b + 40));
     return (wcache[key] = { x, sr, parts: analyze(x, sr) });
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=74'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=75'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -2883,16 +2884,17 @@ const SING = (function () {
     }
     return id;
   }
-  async function TTSR(ev, tEnd, voice, cfg, lang, mode) {
+  async function TTSR(ev, tEnd, voice, cfg, lang, mode, rap) {
     let aiId = null, r = voice === 'female' ? 1.17 : voice === 'robot' ? 1 : 0.97; const SR = 22050;
     if (mode === 'ai') { try { aiId = await aiPrefetch(ev.map(e => e.s.word).filter(Boolean), lang, voice, SING.progress); r = 1; } catch (e) { console.warn(e); if (SING.progress) SING.progress('KI-Stimme nicht erreichbar (' + (e && e.message || e) + '). Ich nehme die einfache Sprachsynthese.'); aiId = null; SING.fell = true; } }
     if (!aiId) await esLoad();
     const out = new Float32Array(Math.ceil((tEnd + 1) * SR)); let words = [], cur = null;
     ev.forEach(e => { if (e.s.first || !cur) { cur = []; words.push(cur); } cur.push(e); });
-    const vibD = voice === 'robot' ? 0 : voice === 'female' ? 30 : 24; let nw = 0;
+    const vibD = (voice === 'robot' || rap) ? 0 : voice === 'female' ? 30 : 24; let nw = 0;
     for (const W of words) {
       const wd = W[0].s.word; if (!wd) continue; const A = aiId ? wcache['ai|' + aiId + '|' + wd.toLowerCase()] : wordAudio(wd, lang, r); if (!A || !A.parts.length) continue;
       const t0 = W[0].t, last = W[W.length - 1]; let D = Math.round((last.t + last.d - t0 - (last.d > 0.3 ? 0.03 : 0)) * SR);
+      let ratio = 1; if (rap) { const nat = A.x.length * SR / A.sr; D = Math.round(Math.max(Math.min(nat * 1.08, D), nat * 0.62)); let sp = 0, sc = 0; A.parts.forEach(p => { if (p.v && p.marks) for (let q = 1; q < p.marks.length; q++) { sp += p.marks[q] - p.marks[q - 1]; sc++; } }); const f0n = sc ? A.sr / (sp / sc) : 150; ratio = Math.max(0.55, Math.min(1.9, W[0].f / f0n)); }
       const sa = A.sr, k = SR / sa; let V = 0, U = 0; A.parts.forEach(p => { const l = p.b - p.a; if (p.v) V += l; else U += l; });
       if (V <= 0) continue; let su = 1, sv = (D - U) / V; if (sv < 0.7) { sv = 0.7; su = Math.max(0.45, (D - V * sv) / Math.max(1, U)); }
       // Silbengrenzen im stimmhaften Teil
@@ -2907,8 +2909,8 @@ const SING = (function () {
           const ta = p.a + tau / sv; let mi = 0, bd = 1e9; for (let q = 0; q < m.length; q++) { const d = Math.abs(m[q] - ta); if (d < bd) { bd = d; mi = q; } else if (m[q] > ta) break; }
           const Pa = Math.max(20, Math.round(((m[Math.min(m.length - 1, mi + 1)] - m[Math.max(0, mi - 1)]) / Math.max(1, Math.min(m.length - 1, mi + 1) - Math.max(0, mi - 1))))), c = m[mi];
           const { f, sBeg, i: si0 } = fAt(vt + tau); const amp = 0.8 + 0.2 * Math.min(1, W[si0].d / 0.5) + (si0 === 0 ? 0.08 : 0); const sinceNote = vt + tau - sBeg; let fm = f; if (vibD) { const ramp = Math.max(0, Math.min(1, (sinceNote / SR - 0.18) / 0.35)); fm *= Math.pow(2, (vibD * ramp * Math.sin(2 * Math.PI * 5.4 * (op + tau) / SR) + 6 * Math.sin(2 * Math.PI * 0.8 * (op + tau) / SR)) / 1200); }
-          if (voice !== 'robot') { const sc0 = 0.09 * SR; if (sinceNote < sc0 && sinceNote >= 0) fm *= Math.pow(2, -38 * Math.pow(1 - sinceNote / sc0, 2) / 1200); fm *= 1 + (Math.random() - 0.5) * 0.006; }
-          const Ps = SR / fm, g = Ps / Pa * amp * (1 + (Math.random() - 0.5) * 0.08); for (let i = -Pa; i < Pa; i++) { const si = c + i, di = op + Math.round(tau) + i; if (si < 0 || si >= x.length || di < 0 || di >= out.length) continue; out[di] += x[si] * (0.5 + 0.5 * Math.cos(Math.PI * i / Pa)) * g; }
+          if (voice !== 'robot' && !rap) { const sc0 = 0.09 * SR; if (sinceNote < sc0 && sinceNote >= 0) fm *= Math.pow(2, -38 * Math.pow(1 - sinceNote / sc0, 2) / 1200); fm *= 1 + (Math.random() - 0.5) * 0.006; }
+          if (rap) fm = (SR / Pa) * ratio; const Ps = SR / fm, g = Ps / Pa * amp * (1 + (Math.random() - 0.5) * 0.08); for (let i = -Pa; i < Pa; i++) { const si = c + i, di = op + Math.round(tau) + i; if (si < 0 || si >= x.length || di < 0 || di >= out.length) continue; out[di] += x[si] * (0.5 + 0.5 * Math.cos(Math.PI * i / Pa)) * g; }
           tau += Ps;
         }
         vt += n; op += n;
@@ -2927,7 +2929,26 @@ const SING = (function () {
     const rb = await oc.startRendering(), data = new Float32Array(rb.getChannelData(0)); let p2 = 0; for (let i = 0; i < data.length; i += 2) p2 = Math.max(p2, Math.abs(data[i])); if (p2 > 0) { const kk = 0.8 / p2; for (let i = 0; i < data.length; i++) data[i] *= kk; }
     return { data, sr: 44100, syl: ev.length, off: VOFF };
   }
-  async function render(text, lang, voice, notesDeg, sc, bpm, fit, tts) {
+  // ===== Rap / Sprechgesang: natürliche Wörter im Takt, Tonhöhe auf Akkordtönen =====
+  function rapPlan(sy, bpm, fit, fDeg, cfg) {
+    const barSec = 240 / bpm, sx = barSec / 16, lines = []; let cur = [];
+    sy.forEach(s => { if (s.pause === 2) { if (cur.length) lines.push(cur); cur = []; return; } if (s.pause || s.lineEnd || !s.word) return; if (s.first || !cur.length) cur.push({ word: s.word, n: 0 }); cur[cur.length - 1].n++; });
+    if (cur.length) lines.push(cur);
+    const items = []; let bar = 0;
+    lines.forEach(L => { const S = L.reduce((a, w) => a + w.n, 0), B = Math.max(1, Math.ceil(S / 9)), step = Math.min(4, 16 * B / S); let k = 0; L.forEach((w, wi) => { const p0 = Math.round(k * step); k += w.n; const p1 = wi + 1 < L.length ? Math.round(k * step) : Math.min(16 * B, p0 + 8); items.push({ word: w.word, b: bar, p0, span: Math.max(1, p1 - p0), first: wi === 0 }); }); bar += B; });
+    const LB = Math.max(1, bar), tb = fit && fit.target > 0 ? Math.max(1, Math.floor(fit.target / barSec)) : 0;
+    let reps = 1, spacing = LB; if (tb) { reps = Math.min(4, Math.max(1, Math.floor(tb / LB))); spacing = Math.max(LB, Math.floor(tb / reps)); }
+    const base = cfg.med * 0.85, ev = []; let prev = base, tEnd = 0;
+    for (let r = 0; r < reps; r++) items.forEach(it => {
+      const gb = r * spacing + it.b; if (tb && gb >= tb) return;
+      const t = (fit ? fit.lead : 0) + VOFF + (gb * 16 + it.p0) * sx, barIdx = Math.floor((t - VOFF) / barSec + 1e-6), root = chordAt(barIdx), c = [];
+      for (let k = -2; k <= 2; k++) [0, 2, 4].forEach(q => { const f = fDeg(root + q + 7 * k); if (f > base * 0.72 && f < base * 1.55) c.push(f); });
+      let f = base; if (c.length) { c.sort((a, b) => Math.abs(Math.log(a / (it.first ? base : prev))) - Math.abs(Math.log(b / (it.first ? base : prev)))); f = c[Math.random() < 0.7 || c.length < 2 ? 0 : 1]; }
+      prev = f; const d = it.span * sx; ev.push({ s: { word: it.word, first: true, wordEnd: true, on: [], coda: [], nuc: null }, t, d, f }); tEnd = Math.max(tEnd, t + d);
+    });
+    return { ev, tEnd: tEnd + 0.4, reps };
+  }
+  async function render(text, lang, voice, notesDeg, sc, bpm, fit, tts, style) {
     const sr = 44100, u0 = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
     const ev = []; let ni = 0, out_off = 0;
     const cfg = { male: { med: 135, fs: 0.9, vib: 14, port: 0.03 }, female: { med: 290, fs: 1.14, vib: 20, port: 0.03 }, robot: { med: 160, fs: 1, vib: 0, port: 0.002 } }[voice] || { med: 135, fs: 0.9, vib: 14, port: 0.03 };
@@ -2956,6 +2977,7 @@ const SING = (function () {
       });
       repNo++; return { t, ni: n, ri };
     };
+    if (tts && style === 'rap') { const rp = rapPlan(sy, bpm, fit, fDeg, cfg); if (fit) fit.reps = rp.reps; return await TTSR(rp.ev, rp.tEnd, voice, cfg, lang === 'auto' ? detect(text) : lang, tts, true); }
     let t = VOFF;
     if (fit && fit.target > 0) {
       const probe = pass(1, 0, 0, 0); ev.length = 0; repNo = 0; const units = Math.max(1, probe.t), targetBars = Math.max(1, Math.floor(fit.target / barSec));
@@ -3003,17 +3025,18 @@ const SING = (function () {
 })();
 (function singCard() {
   const card = document.createElement('div'); card.className = 'card'; card.id = 'c-sing'; card.style.padding = '10px';
-  card.innerHTML = `<div class="label"><span>🎤 Text zu Gesang</span></div>
-  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Schreibe einen Text auf Deutsch oder Englisch. Die App singt ihn zur Melodie deines Songs. Das klingt wie eine Computerstimme.</div>
+  card.innerHTML = `<div class="label"><span>🎤 Gesang &amp; Stimme</span></div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;"><b>Schritt 1:</b> Text schreiben (oder Autotext). <b>Schritt 2:</b> Stil wählen. <b>Schritt 3:</b> Gesang erzeugen. Es bleibt eine Computerstimme, <b>Rap</b> klingt am natürlichsten.</div>
   <textarea id="sing-txt" rows="4" maxlength="400" placeholder="Zum Beispiel: Heute Nacht tanzen wir bis zum Morgen&#10;Oder: We dance all night under the stars" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;"></textarea>
-  <div class="mixgrid" style="margin-top:8px;"><label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
+  <div class="mixgrid" style="margin-top:8px;"><label>🎭 Stil</label><select id="sing-style" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="rap">🗣 Rap / Sprechgesang (natürlich)</option><option value="sing">🎶 Singen (Melodie, gedehnt)</option><option value="robot">🤖 Roboter</option></select>
+  <label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
   <label>📏 Länge</label><select id="sing-fit" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="song">Über den ganzen Song strecken</option><option value="once">Nur einmal singen</option></select>
   <label>🔊 Klang</label><select id="sing-eng" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="tts">Echte Sprache (verständlich)</option><option value="ai">KI-Stimme (natürlicher, online, Beta)</option><option value="old">Synthesizer (alt)</option></select>
-  <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option><option value="robot">Roboter</option></select></div>
+  <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option></select></div>
   <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;">🎯 Auto-Tune (zieht den Gesang auf die Töne der Tonart)</div>
   <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
   <button id="sing-auto" class="oct-btn" style="width:100%;margin-top:8px;">✍️ Autotext: Die App schreibt den Text</button>
-  <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎶 Text singen lassen</button>
+  <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎤 Gesang erzeugen</button>
   <div style="display:flex;gap:8px;margin-top:8px;"><button id="sing-solo" class="oct-btn" style="flex:1;">▶ Nur Gesang anhören</button><button id="sing-song" class="oct-btn" style="flex:1;">🎵 Mit Song anhören</button></div>
   <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
@@ -3042,7 +3065,7 @@ const SING = (function () {
     const v1 = cs[0].concat(cs[1 % cs.length]), ch = [T.hook].concat(cs[2 % cs.length], [T.hook]), v2 = cs[3 % cs.length].concat(cs[4 % cs.length] || cs[0]);
     return { th, text: [v1.join('\n'), ch.join('\n'), v2.join('\n'), ch.join('\n')].join('\n\n') };
   }
-  $('#sing-auto').addEventListener('click', () => { let l = $('#sing-lang').value; if (l === 'auto') { l = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-lang').value = l; } const r = autoText(l); $('#sing-txt').value = r.text; $('#sing-msg').textContent = '✍️ Neuer Text zum Thema „' + r.th + '“. Tippe auf „Text singen lassen“ oder noch mal auf Autotext für ein anderes Thema.'; });
+  $('#sing-auto').addEventListener('click', () => { let l = $('#sing-lang').value; if (l === 'auto') { l = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-lang').value = l; } const r = autoText(l); $('#sing-txt').value = r.text; $('#sing-msg').textContent = '✍️ Neuer Text zum Thema „' + r.th + '“. Tippe auf „Gesang erzeugen“ oder noch mal auf Autotext für ein anderes Thema.'; });
   let soloCtx = null, soloSrc = null;
   function soloStop() { try { if (soloSrc) { soloSrc.onended = null; soloSrc.stop(); } } catch (e) {} soloSrc = null; $('#sing-solo').textContent = '▶ Nur Gesang anhören'; }
   async function soloPlay() {
@@ -3067,12 +3090,12 @@ const SING = (function () {
     try {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
       const lang = $('#sing-lang').value, fit = $('#sing-fit').value === 'song' ? (() => { const bar = 240 / st.bpm, P = FORMS[activeForm()].plan, a = P[0][2], z = P[P.length - 1][2]; return { lead: a * bar, target: Math.max(8, (SONG_BARS - a - z) * bar - 1), reps: 1 }; })() : null,
-        r = await SING.render(txt, lang, $('#sing-voice').value, notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', old: false })[$('#sing-eng').value]);
+        r = await SING.render(txt, lang, ($('#sing-style').value === 'robot' ? 'robot' : $('#sing-voice').value), notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', old: false })[$('#sing-eng').value], $('#sing-style').value === 'rap' ? 'rap' : 'sing');
       if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; st.voiceOff = r.off || 0; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
       msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. ${SING.fell && $('#sing-eng').value === 'ai' ? ' ⚠️ Die KI-Stimme war nicht erreichbar (Internet oder Seite?). Ich habe die einfache Sprachsynthese genommen.' : ''} Du hörst ihn jetzt solo. Mit „🎵 Mit Song anhören“ hörst du ihn zur Musik. Er spielt auch bei „Ganzen Song spielen“ mit.`);
       soloStop(); soloPlay();
-    } catch (e) { msg('Das hat nicht geklappt: ' + e.message); }
+    } catch (e) { try { console.warn('SING ' + e.stack); } catch (x) {} msg('Das hat nicht geklappt: ' + e.message); }
     $('#sing-go').disabled = false;
   });
 })();
