@@ -247,7 +247,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 <div class="card" id="c-sliders" style="padding:10px;">
   <div class="label"><span>🎚 Alle Regler</span></div>
   <div class="mixgrid">
-    <label>⏱ Tempo <b id="bpm-val">122</b> BPM</label><input type="range" id="bpm-slider" min="85" max="160" value="122">
+    <label>⏱ Tempo <b id="bpm-val">122</b> BPM</label><input type="range" id="bpm-slider" min="70" max="175" value="122">
     <label>🎭 Abwechslung</label><input type="range" id="mix-vary" min="0" max="100" value="60">
     <label>🥁 Drums</label><input type="range" id="mix-drums" min="0" max="100" value="85">
     <label>　🔹 Bassdrum (Kick)</label><input type="range" id="mix-kick" min="0" max="100" value="100">
@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 72</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 73</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -620,7 +620,17 @@ const SCALES = [
   { name: 'C-Dur', root: 261.63, rs: 0, notes: [0,2,4,5,7,9,11,12] },
   { name: 'F-Dur', root: 174.61, rs: 5, notes: [0,2,4,5,7,9,11,12] },
   { name: 'E-Phrygisch', root: 164.81, rs: 4, notes: [0,1,3,5,7,8,10,12] },
-  { name: 'D-Moll', root: 146.83, rs: 2, notes: [0,2,3,5,7,8,10,12] }
+  { name: 'D-Moll', root: 146.83, rs: 2, notes: [0,2,3,5,7,8,10,12] },
+  { name: 'G-Moll', root: 196.00, rs: 7, notes: [0,2,3,5,7,8,10,12] },
+  { name: 'E-Moll', root: 164.81, rs: 4, notes: [0,2,3,5,7,8,10,12] },
+  { name: 'C-Moll', root: 130.81, rs: 0, notes: [0,2,3,5,7,8,10,12] },
+  { name: 'D-Dur', root: 146.83, rs: 2, notes: [0,2,4,5,7,9,11,12] },
+  { name: 'G-Dur', root: 196.00, rs: 7, notes: [0,2,4,5,7,9,11,12] },
+  { name: 'B-Dur', root: 233.08, rs: 10, notes: [0,2,4,5,7,9,11,12] },
+  { name: 'D-Dorisch', root: 146.83, rs: 2, notes: [0,2,3,5,7,9,10,12] },
+  { name: 'G-Mixolydisch', root: 196.00, rs: 7, notes: [0,2,4,5,7,9,10,12] },
+  { name: 'F-Lydisch', root: 174.61, rs: 5, notes: [0,2,4,6,7,9,11,12] },
+  { name: 'A-Harmonisch-Moll', root: 220.00, rs: 9, notes: [0,2,3,5,7,8,11,12] }
 ];
 const REST = -99, DEG_MIN = -7, DEG_MAX = 14, MAX_NOTES = 32;
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','B','H'];
@@ -1103,7 +1113,7 @@ function playTrack(ctx, ch, k, tr, s, tt, dur, nf, chordDeg) {
 function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat || sty;
   const s = n % 16, bar = Math.floor(n / 16);
-  const tt = t + ((s % 2 === 1 && !S.fx.straight) ? sty.swing * dur : 0);
+  const tt = t + ((s % 2 === 1 && !S.fx.straight) ? (S.swingX != null ? S.swingX : sty.swing) * dur : 0);
   const B = !!S.blank, cut = leadCut(S) * ((STYLES[S.style] || {}).dark || 1), vary = B ? 0 : (S.mix.vary == null ? 0.6 : S.mix.vary), seed = S.seed || 1, rr = (a, b) => H(seed, a, b);
   const song = !!S.songMode, sec = song ? sectionAt(bar) : null, K = song ? sec.kind : '';
   const tr = song && sec.final && vary > 0.25 ? Math.pow(2, 2 / 12) : 1;
@@ -1615,7 +1625,7 @@ function setPad(px, py) {
   $('#energy-lbl').textContent = `Drop: ${Math.round((1 - st.py) * 100)}%`;
   if (chain) chain.wet.gain.setTargetAtTime(echoAmount(st), ctx.currentTime, 0.1);
 }
-function setStyle(key, keepBpm) {
+function setStyle(key, keepBpm) { st.swingX = null;
   st.style = key; st.scaleLock = false; if (!keepBpm) { st.bpm = STYLES[key].bpm; $('#bpm-slider').value = st.bpm; $('#bpm-val').textContent = Math.round(st.bpm); }
   $$('#style-grid button').forEach(b => b.classList.toggle('active', b.dataset.style === key));
   regen(); updateStatus(); refreshNotesMsg(); applyChainSettings(); if (document.getElementById('ne-grid')) renderEditor();
@@ -1753,7 +1763,7 @@ async function exportWav(song) {
   setProg(0, 'Vorbereiten …');
   try {
     if (mp3 && typeof lamejs === 'undefined') throw new Error('Der MP3-Baustein ist nicht geladen. Bitte WAV wählen.');
-    const S = JSON.parse(JSON.stringify({ style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, chordsOff: st.chordsOff, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
+    const S = JSON.parse(JSON.stringify({ swingX: st.swingX, style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, chordsOff: st.chordsOff, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
     S.build = null; S.fx.autodj = false; S.songMode = !!song; if (song) S.chill = false;
     const dur = 60 / st.bpm / 4, sr = 44100, secs = bars * 16 * dur + 3;
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -2264,27 +2274,27 @@ function megaHit() {
   const M = { drums: rngR(0.6, 1), bass: rngR(0.4, 0.95), lead: rngR(0.45, 1), pad: padL, pump: Math.random() < 0.2 ? rngR(0, 0.12) : rngR(0.15, 0.9), hall: Math.random() < 0.25 ? rngR(0.55, 0.85) : rngR(0, 0.5), tone: rngR(0.3, 1), loud: rngR(0.5, 0.9), vox: 0.8, vary: rngR(0.08, 1), gtr: rngR(0.35, 0.9), horn: rngR(0.35, 0.9), tuba: rngR(0.35, 0.9), bone: rngR(0.35, 0.9) };
   Object.keys(M).forEach(k => setMix(k, M[k])); ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => setMix(k, rngR(0.55, 1))); if (Math.random() < 0.3) setMix(pickR(['cl', 'open', 'tom', 'hat']), rngR(0, 0.2));
   setPad(Math.random(), rngR(0.08, 0.55)); setOct(wPick(['0', '1', '-1', '2', '0', '1'], 'oct:'));
-  const on = [], want = pickR([0, 1, 2, 3]); while (on.length < want) { const f = wPick(['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter', 'vocal'], 'fx:'); if (!on.includes(f) && !(f === 'half' && on.includes('straight')) && !(f === 'straight' && on.includes('half'))) on.push(f); }
+  const on = [], want = pickR([0, 1, 1, 2, 2, 3, 4]); while (on.length < want) { const f = wPick(['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter', 'vocal'], 'fx:'); if (!on.includes(f) && !(f === 'half' && on.includes('straight')) && !(f === 'straight' && on.includes('half'))) on.push(f); }
   ['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, on.includes(k)); });
   st.seed = (Math.random() * 4294967295) >>> 0; regen();
   if (Math.random() < 0.65) st.beat = randomBeat();
   { const RP = { 0: [3, 4, 5, 2, 0], 3: [0, 4, 1, 5], 4: [0, 5, 3], 5: [3, 4, 1, 2], 1: [4, 3, 0], 2: [5, 3, 1] }, mk = () => { const len = pickR([4, 4, 4, 2, 3, 6, 8]), p = [Math.random() < 0.7 ? 0 : 5]; while (p.length < len) { const o = RP[p[p.length - 1]].filter(x => x !== p[p.length - 1]); p.push(pickR(o)); } return p; }; if (Math.random() < 0.7) { st.chordA = mk(); st.chordB = Math.random() < 0.6 ? mk() : null; } if (Math.random() < 0.1) setChordsOff(true); }
   st.melodyLock = false;
-  T0(() => { const bpm = Math.round(rngR(92, 148)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm; });
+  T0(() => { const bpm = Math.round(rngR(76, 168)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm; });
   T0(() => { st.scaleIdx = wPick(SCALES.map((_, i) => i), 'scale:'); st.scaleLock = true; });
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['triangle', 'triangle', 'sawtooth', 'sine', 'square']); });
   T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
-  T0(() => { const r = Math.round(rngR(0, 40)); $('#gen-rest').value = r; });
+  T0(() => { const r = Math.round(rngR(0, 60)); $('#gen-rest').value = r; st.swingX = Math.random() < 0.45 ? rngR(0, 0.38) : null; });
   T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || {}), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
   ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
-    if (Math.random() > 0.4) return; const t = emptyTrack(k), s = $('#tp-' + k);
+    if (Math.random() > 0.55) return; const t = emptyTrack(k), s = $('#tp-' + k);
     t.n = Array.from({ length: 16 }, (_, i) => (Math.random() < (i % 4 === 0 ? 0.6 : 0.22) ? pickR([0, 0, 2, 4, 4, 7]) : -1));
     if (s && s.options.length) t.type = s.options[Math.floor(Math.random() * s.options.length)].value; st.tracks[k] = t;
   }));
   T0(() => { setMix('vox', rngR(0.55, 1)); const n = Math.round(rngR(10, 90)); st.nudge = n; $('#nudge').value = n; $('#nudge-val').textContent = n + ' ms'; });
   T0(() => { const gk = $('#gen-kind'), gr = $('#gen-range'); gk.selectedIndex = Math.floor(Math.random() * gk.options.length); gr.selectedIndex = Math.floor(Math.random() * gr.options.length); });
   T0(() => { ['bass', 'gtr', 'horn', 'tuba', 'bone'].forEach(k => { const t = st.tracks[k], s = $('#ln-' + k); if (t && s && s.options.length) { const o = s.options[Math.floor(Math.random() * s.options.length)].value; s.value = o; t.len = Number.isNaN(+o) ? o : +o; } }); });
-  T0(() => { st.chaos = Math.random() < 0.25; $('#btn-chaos').classList.toggle('active-pink', st.chaos); setOct(st.oct); });
+  T0(() => { st.chaos = Math.random() < 0.35; $('#btn-chaos').classList.toggle('active-pink', st.chaos); setOct(st.oct); });
   T0(() => pickR($$('#vfx-grid button')).click()); T0(() => pickR($$('#tune-grid button')).click());
   st.lastHit = { style: st.style, scale: st.scaleIdx, oct: String(st.oct), fx: Object.keys(st.fx).filter(k => st.fx[k] && k !== 'autodj') };
   renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor();
@@ -2571,7 +2581,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   <button id="ki-forget" style="width:100%;margin-top:6px;font-size:.72rem;">🧽 Gelerntes vergessen</button>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
   const msg = t => { $('#ki-msg').textContent = t; };
-  const setBpmK = v => { v = Math.round(Math.max(85, Math.min(160, v))); const e = $('#bpm-slider'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+  const setBpmK = v => { v = Math.round(Math.max(70, Math.min(175, v))); const e = $('#bpm-slider'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
   const setScaleK = i => { st.scaleIdx = i; st.scaleLock = true; };
   const smartInto = () => { st.melody = smartMelody(MAX_NOTES, 0.15, -3, 10); st.melodyLock = true; if (!/x/.test((st.beat && st.beat.lead) || '')) { st.beat = st.beat || {}; if (!st.beat.lead || !/x/.test(st.beat.lead)) st.beat.lead = STYLES[st.style].lead; } if ((st.mix.lead || 0) < 0.3) setMix('lead', 1); };
   const allRender = () => { renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor(); };
@@ -2817,7 +2827,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=72'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=73'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2861,7 +2871,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=72'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=73'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3157,7 +3167,7 @@ const SING = (function () {
 
   // ===== 4) Tap-Tempo =====
   const bs = $('#bpm-slider'); if (bs) { const tt = document.createElement('button'); tt.id = 'btn-tap'; tt.textContent = '👆 Tempo antippen'; tt.style.cssText = 'width:100%;margin-top:2px;grid-column:1/-1;'; bs.after(tt);
-    let taps = []; tt.addEventListener('pointerdown', () => { const n = performance.now(); if (taps.length && n - taps[taps.length - 1] > 2200) taps = []; taps.push(n); taps = taps.slice(-6); if (taps.length >= 3) { const d = []; for (let i = 1; i < taps.length; i++) d.push(taps[i] - taps[i - 1]); let bpm = 60000 / (d.reduce((a, b) => a + b, 0) / d.length); while (bpm > 160) bpm /= 2; while (bpm < 85) bpm *= 2; bs.value = Math.round(bpm); bs.dispatchEvent(new Event('input', { bubbles: true })); tt.textContent = '👆 ' + Math.round(bpm) + ' BPM – weiter antippen'; } else tt.textContent = '👆 Noch ' + (3 - taps.length) + ' Mal im Takt tippen'; }); }
+    let taps = []; tt.addEventListener('pointerdown', () => { const n = performance.now(); if (taps.length && n - taps[taps.length - 1] > 2200) taps = []; taps.push(n); taps = taps.slice(-6); if (taps.length >= 3) { const d = []; for (let i = 1; i < taps.length; i++) d.push(taps[i] - taps[i - 1]); let bpm = 60000 / (d.reduce((a, b) => a + b, 0) / d.length); while (bpm > 175) bpm /= 2; while (bpm < 70) bpm *= 2; bs.value = Math.round(bpm); bs.dispatchEvent(new Event('input', { bubbles: true })); tt.textContent = '👆 ' + Math.round(bpm) + ' BPM – weiter antippen'; } else tt.textContent = '👆 Noch ' + (3 - taps.length) + ' Mal im Takt tippen'; }); }
 
   // ===== 5) Tastenkürzel =====
   document.addEventListener('keydown', e => {
