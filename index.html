@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 66</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 67</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2803,7 +2803,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=66'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=67'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2857,8 +2857,8 @@ const SING = (function () {
       if (V <= 0) continue; let su = 1, sv = (D - U) / V; if (sv < 0.7) { sv = 0.7; su = Math.max(0.45, (D - V * sv) / Math.max(1, U)); }
       // Silbengrenzen im stimmhaften Teil
       const totD = W.reduce((a, e) => a + e.d, 0), vOut = V * sv, bnd = []; let acc = 0; W.forEach(e => { acc += e.d / totD; bnd.push(acc * vOut); });
-      const fAt = (vt) => { let i = 0; while (i < W.length - 1 && vt > bnd[i]) i++; const sBeg = i ? bnd[i - 1] : 0; let f = W[i].f; const gl = 0.045 * SR * 0.5; if (i > 0 && vt - sBeg < gl) { const q = (vt - sBeg + gl) / (2 * gl), m = q * q * (3 - 2 * q); f = W[i - 1].f * (1 - m) + f * m; } else if (i < W.length - 1 && bnd[i] - vt < gl) { const q = (vt - bnd[i] + gl) / (2 * gl), m = q * q * (3 - 2 * q); f = f * (1 - m) + W[i + 1].f * m; } return { f, sBeg, i }; };
-      const lead = A.parts[0].v ? 0 : (A.parts[0].b - A.parts[0].a) * su; let o = Math.round(t0 * SR - lead * k * 1 + 0); if (o < 0) o = 0; let vt = 0, op = o;
+      const fAt = (vt) => { let i = 0; while (i < W.length - 1 && vt > bnd[i]) i++; const sBeg = i ? bnd[i - 1] : 0; let f = W[i].f; const gl = 0.075 * SR * 0.5; if (i > 0 && vt - sBeg < gl) { const q = (vt - sBeg + gl) / (2 * gl), m = q * q * (3 - 2 * q); f = W[i - 1].f * (1 - m) + f * m; } else if (i < W.length - 1 && bnd[i] - vt < gl) { const q = (vt - bnd[i] + gl) / (2 * gl), m = q * q * (3 - 2 * q); f = f * (1 - m) + W[i + 1].f * m; } return { f, sBeg, i }; };
+      const lead = A.parts[0].v ? 0 : (A.parts[0].b - A.parts[0].a) * su; let o = Math.round((t0 + (voice === 'robot' ? 0 : (Math.random() - 0.5) * 0.024)) * SR - lead * k * 1 + 0); if (o < 0) o = 0; let vt = 0, op = o;
       A.parts.forEach(p => {
         const x = A.x;
         if (!p.v) { const n = Math.round((p.b - p.a) * su), nb = p.b - p.a; for (let i = 0; i < n; i++) { const si = p.a + Math.min(nb - 1, Math.floor(i * nb / Math.max(1, n))), fd = Math.min(1, i / 60, (n - i) / 60); const idx = op + i; if (idx < out.length) { const y = x[si] * 0.9; out[idx] += 0.4 * Math.tanh(y / 0.4) * fd; } } op += n; return; }
@@ -2867,21 +2867,23 @@ const SING = (function () {
           const ta = p.a + tau / sv; let mi = 0, bd = 1e9; for (let q = 0; q < m.length; q++) { const d = Math.abs(m[q] - ta); if (d < bd) { bd = d; mi = q; } else if (m[q] > ta) break; }
           const Pa = Math.max(20, Math.round(((m[Math.min(m.length - 1, mi + 1)] - m[Math.max(0, mi - 1)]) / Math.max(1, Math.min(m.length - 1, mi + 1) - Math.max(0, mi - 1))))), c = m[mi];
           const { f, sBeg, i: si0 } = fAt(vt + tau); const amp = 0.8 + 0.2 * Math.min(1, W[si0].d / 0.5) + (si0 === 0 ? 0.08 : 0); const sinceNote = vt + tau - sBeg; let fm = f; if (vibD) { const ramp = Math.max(0, Math.min(1, (sinceNote / SR - 0.18) / 0.35)); fm *= Math.pow(2, (vibD * ramp * Math.sin(2 * Math.PI * 5.4 * (op + tau) / SR) + 6 * Math.sin(2 * Math.PI * 0.8 * (op + tau) / SR)) / 1200); }
-          const Ps = SR / fm, g = Ps / Pa * amp; for (let i = -Pa; i < Pa; i++) { const si = c + i, di = op + Math.round(tau) + i; if (si < 0 || si >= x.length || di < 0 || di >= out.length) continue; out[di] += x[si] * (0.5 + 0.5 * Math.cos(Math.PI * i / Pa)) * g; }
+          if (voice !== 'robot') { const sc0 = 0.09 * SR; if (sinceNote < sc0 && sinceNote >= 0) fm *= Math.pow(2, -38 * Math.pow(1 - sinceNote / sc0, 2) / 1200); fm *= 1 + (Math.random() - 0.5) * 0.006; }
+          const Ps = SR / fm, g = Ps / Pa * amp * (1 + (Math.random() - 0.5) * 0.08); for (let i = -Pa; i < Pa; i++) { const si = c + i, di = op + Math.round(tau) + i; if (si < 0 || si >= x.length || di < 0 || di >= out.length) continue; out[di] += x[si] * (0.5 + 0.5 * Math.cos(Math.PI * i / Pa)) * g; }
           tau += Ps;
         }
         vt += n; op += n;
       });
       nw++;
     }
+    if (voice !== 'robot') { let env = 0, pv = 0; const ka = Math.exp(-1 / (SR * 0.02)); for (let i = 0; i < out.length; i++) { const a = Math.abs(out[i]); env = a > env ? a : env * ka; const n = Math.random() * 2 - 1, hpn = n - pv; pv = n; out[i] += hpn * env * 0.07; } }
     // Pegel + Klangformung (Wärme, Präsenz, Kompressor, Hall)
     let pk = 0; for (let i = 0; i < out.length; i += 2) pk = Math.max(pk, Math.abs(out[i])); if (pk > 0) { const kk = 0.8 / pk; for (let i = 0; i < out.length; i++) out[i] *= kk; }
     const OA = OAC_(), oc = new OA(1, Math.ceil((tEnd + 1) * 44100), 44100), buf = oc.createBuffer(1, out.length, SR); buf.copyToChannel(out, 0);
     const src = oc.createBufferSource(); src.buffer = buf; const dub = []; [[9, 0.014, 0.42], [-8, 0.024, 0.36]].forEach(([dc, dl, dg]) => { const s2 = oc.createBufferSource(); s2.buffer = buf; s2.detune.value = dc; const dd = oc.createDelay(0.1); dd.delayTime.value = dl; const g2 = oc.createGain(); g2.gain.value = dg; s2.connect(dd); dd.connect(g2); dub.push([s2, g2]); }); const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
-    const pres = oc.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3000; pres.gain.value = 4.5; pres.Q.value = 0.8; const air = oc.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 5000; air.gain.value = 4;
+    const pres = oc.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3000; pres.gain.value = 4.5; pres.Q.value = 0.8; const air = oc.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 5000; air.gain.value = 4; const warm = oc.createBiquadFilter(); warm.type = 'lowshelf'; warm.frequency.value = 250; warm.gain.value = 2.5; const sf = oc.createBiquadFilter(); sf.type = 'peaking'; sf.frequency.value = 2700; sf.Q.value = 1.2; sf.gain.value = 3;
     const cmp = oc.createDynamicsCompressor(); cmp.threshold.value = -24; cmp.ratio.value = 3; cmp.attack.value = 0.004; cmp.release.value = 0.12;
     const fin = oc.createGain(), cv = oc.createConvolver(), irl = Math.floor(44100 * 0.4), ir = oc.createBuffer(1, irl, 44100), ird = ir.getChannelData(0); for (let i = 0; i < irl; i++) ird[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irl, 2.6); cv.buffer = ir;
-    const wg = oc.createGain(); wg.gain.value = 0.16; src.connect(hp); hp.connect(pres); pres.connect(air); air.connect(cmp); cmp.connect(fin); fin.connect(oc.destination); fin.connect(cv); cv.connect(wg); wg.connect(oc.destination); src.start(0); dub.forEach(([s2, g2]) => { g2.connect(hp); s2.start(0); });
+    const wg = oc.createGain(); wg.gain.value = 0.16; src.connect(hp); hp.connect(warm); warm.connect(sf); sf.connect(pres); pres.connect(air); air.connect(cmp); cmp.connect(fin); fin.connect(oc.destination); fin.connect(cv); cv.connect(wg); wg.connect(oc.destination); src.start(0); dub.forEach(([s2, g2]) => { g2.connect(hp); s2.start(0); });
     const rb = await oc.startRendering(), data = new Float32Array(rb.getChannelData(0)); let p2 = 0; for (let i = 0; i < data.length; i += 2) p2 = Math.max(p2, Math.abs(data[i])); if (p2 > 0) { const kk = 0.8 / p2; for (let i = 0; i < data.length; i++) data[i] *= kk; }
     return { data, sr: 44100, syl: ev.length };
   }
