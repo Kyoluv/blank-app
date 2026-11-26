@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 64</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 65</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2803,7 +2803,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=64'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=65'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2969,6 +2969,7 @@ const SING = (function () {
   <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
   <button id="sing-auto" class="oct-btn" style="width:100%;margin-top:8px;">✍️ Autotext: Die App schreibt den Text</button>
   <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎶 Text singen lassen</button>
+  <div style="display:flex;gap:8px;margin-top:8px;"><button id="sing-solo" class="oct-btn" style="flex:1;">▶ Nur Gesang anhören</button><button id="sing-song" class="oct-btn" style="flex:1;">🎵 Mit Song anhören</button></div>
   <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
   const AUTO = {
@@ -2984,6 +2985,20 @@ const SING = (function () {
     const verse = mk(), chorus = mk(); return [verse, chorus, mk(), chorus].join('\n\n');
   }
   $('#sing-auto').addEventListener('click', () => { $('#sing-txt').value = autoText(); if ($('#sing-lang').value === 'auto') $('#sing-lang').value = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-msg').textContent = '✍️ Text geschrieben. Tippe auf „Text singen lassen“ oder noch mal auf Autotext für einen neuen.'; });
+  let soloCtx = null, soloSrc = null;
+  function soloStop() { try { if (soloSrc) { soloSrc.onended = null; soloSrc.stop(); } } catch (e) {} soloSrc = null; $('#sing-solo').textContent = '▶ Nur Gesang anhören'; }
+  async function soloPlay() {
+    if (soloSrc) { soloStop(); return; }
+    if (!st.voiceRaw) { $('#sing-msg').textContent = 'Erst einen Text singen lassen.'; return; }
+    if (st.playing) stop();
+    if (needsRetune()) { $('#sing-msg').textContent = 'Stimme wird angepasst …'; await renderVoice(); }
+    if (!st.voiceWet) return;
+    soloCtx = soloCtx || new (window.AudioContext || window.webkitAudioContext)(); if (soloCtx.state === 'suspended') await soloCtx.resume();
+    const src = soloCtx.createBufferSource(), g = soloCtx.createGain(); g.gain.value = 0.9; src.buffer = st.voiceWet; src.connect(g); g.connect(soloCtx.destination);
+    src.onended = () => { if (soloSrc === src) soloStop(); }; src.start(); soloSrc = src; $('#sing-solo').textContent = '⏹ Stopp';
+  }
+  $('#sing-solo').addEventListener('click', soloPlay);
+  $('#sing-song').addEventListener('click', () => { soloStop(); $('#btn-vplay').click(); });
   $$('#sing-tune button').forEach(b => b.addEventListener('click', () => setTune(b.dataset.tune)));
   $('#sing-go').addEventListener('click', async () => {
     const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
@@ -2995,8 +3010,8 @@ const SING = (function () {
         r = await SING.render(txt, lang, $('#sing-voice').value, notes, SCALES[st.scaleIdx], st.bpm, fit, $('#sing-eng').value === 'tts');
       if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
-      msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. Er spielt bei „Ganzen Song spielen“ mit.`);
-      $('#btn-vplay').click();
+      msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. Du hörst ihn jetzt solo. Mit „🎵 Mit Song anhören“ hörst du ihn zur Musik. Er spielt auch bei „Ganzen Song spielen“ mit.`);
+      soloStop(); soloPlay();
     } catch (e) { msg('Das hat nicht geklappt: ' + e.message); }
     $('#sing-go').disabled = false;
   });
