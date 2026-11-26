@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 94</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 95</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 94</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 95</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=94'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=95'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=94'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=95'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3607,6 +3607,63 @@ function setWorld(id, quiet, off) {
     } catch (e) { msg('Die Aufnahme konnte nicht ausgewertet werden: ' + e.message); }
     btn.disabled = false;
   });
+})();
+
+
+/* ---------- v95: Kompakt-Umbau (alle Funktionen bleiben) ---------- */
+(function compact() {
+  const css = document.createElement('style');
+  css.textContent = `
+  .card { scroll-margin-top: 112px; }
+  body.dense .card { margin-bottom: 8px; }
+  body.dense .card > .label { padding: 9px 12px; font-size: .78rem; }
+  body.dense .card:not(.shut) > .label { margin-bottom: 6px; }
+  body.dense .card > .cbody { padding: 0 10px 10px; }
+  body.dense .cbody > div[style*="font-size:.72rem"], body.dense .cbody > .help, body.dense .cbody > p.hint { display: none; }
+  body.dense .cbody button { padding-top: 8px; padding-bottom: 8px; }
+  body.dense .oct-btn.jam { padding: 12px 0 !important; }
+  body.dense .sec { margin: 12px 0 6px; }
+  body.dense .sec small { display: none; }
+  #cbar { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+  #cbar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } #cbar button { padding: 8px 4px; font-size: .74rem; }
+  #mini { font-size: .72rem; color: var(--muted); padding: 0 4px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  `;
+  document.head.appendChild(css);
+  // Kopf (Logo, Visualizer, Update-Knopf) scrollt weg, nur Play-Leiste und Sprungmenü bleiben oben
+  const sticky = document.getElementById('sticky'), hdr = sticky.querySelector('header'), stage = document.getElementById('stage'), top = document.getElementById('topbar');
+  const head = document.createElement('div'); head.id = 'pagehead'; head.style.cssText = 'padding-top:calc(8px + env(safe-area-inset-top));';
+  head.appendChild(hdr); if (stage) head.appendChild(stage); if (top) head.appendChild(top); sticky.before(head);
+  sticky.style.paddingTop = 'calc(4px + env(safe-area-inset-top))';
+  const mini = document.createElement('div'); mini.id = 'mini'; sticky.prepend(mini);
+  const stx = document.getElementById('status-txt'), sync = () => { mini.textContent = '♪ ' + (stx ? stx.textContent : ''); };
+  if (stx) new MutationObserver(sync).observe(stx, { subtree: true, childList: true, characterData: true }); sync();
+  // später eingefügte Karten einordnen und einklappbar machen
+  function foldify(id, tab, afterLast) {
+    const c = document.getElementById(id); if (!c) return; c.dataset.tab = tab; c.style.padding = '';
+    const lab = c.querySelector(':scope > .label'); if (lab && !c.querySelector(':scope > .cbody')) {
+      const body = document.createElement('div'); body.className = 'cbody'; let n = lab.nextElementSibling; while (n) { const nx = n.nextElementSibling; body.appendChild(n); n = nx; } c.appendChild(body);
+      c.classList.add('fold'); if (!openSet.includes(id)) c.classList.add('shut'); lab.addEventListener('click', e => { if (e.target.closest('button')) return; setOpen(c, c.classList.contains('shut')); });
+    }
+    if (afterLast) { const all = [...document.querySelectorAll('.card[data-tab="' + tab + '"]')].filter(x => x !== c), last = all[all.length - 1]; if (last) last.after(c); }
+  }
+  ['c-mood', 'c-evo', 'c-world', 'c-jam', 'c-bbox'].forEach(id => foldify(id, 'play', true));
+  foldify('c-sing', 'voice', true); foldify('c-cover', 'save', true);
+  foldify('c-favs', 'play', true); foldify('c-ki', 'play', true); foldify('c-sliders', 'song', true);
+  { const cl = document.getElementById('c-clear'); if (cl) { cl.dataset.tab = 'save'; const all = [...document.querySelectorAll('.card[data-tab="save"]')].filter(x => x !== cl), last = all[all.length - 1]; if (last) last.after(cl); } }
+  const onScroll = () => { mini.style.display = window.scrollY > 110 ? 'block' : 'none'; }; window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  // Leiste mit Schaltern: Kompakt-Modus und "nur eine Karte offen"
+  const bar = document.createElement('div'); bar.id = 'cbar'; bar.innerHTML = '<button id="t-dense"></button><button id="t-acc"></button>';
+  const fb = document.getElementById('fold-all'), fn = document.getElementById('fold-none'); if (fb) { const old = fb.parentNode; old.after(bar); bar.prepend(fb, fn); fb.textContent = '▾ Alle auf'; fn.textContent = '▸ Alle zu'; old.remove(); } else document.getElementById('c-clear').before(bar);
+  let dense = lsGet('musify-dense') !== '0', acc = lsGet('musify-acc') !== '0';
+  const paint = () => { document.body.classList.toggle('dense', dense); document.getElementById('t-dense').textContent = dense ? '📏 Kompakt: AN' : '📏 Kompakt: aus'; document.getElementById('t-acc').textContent = acc ? '☝ Eine Karte offen: AN' : '☝ Eine Karte offen: aus'; document.getElementById('t-dense').classList.toggle('active-pink', dense); document.getElementById('t-acc').classList.toggle('active-pink', acc); };
+  document.getElementById('t-dense').addEventListener('click', () => { dense = !dense; lsSet('musify-dense', dense ? '1' : '0'); paint(); });
+  document.getElementById('t-acc').addEventListener('click', () => { acc = !acc; lsSet('musify-acc', acc ? '1' : '0'); paint(); });
+  paint();
+  // Akkordeon: beim Öffnen einer Karte werden die anderen im selben Abschnitt zugeklappt
+  const _so = setOpen;
+  setOpen = function (c, open) { if (open && acc && c.dataset.tab) document.querySelectorAll('.card.fold[data-tab="' + c.dataset.tab + '"]').forEach(o => { if (o !== c && o.id !== 'c-easy') o.classList.add('shut'); }); _so(c, open); if (open && acc) setTimeout(() => { try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 60); };
+  const _fa = document.getElementById('fold-all'); if (_fa) _fa.addEventListener('click', () => { acc = false; lsSet('musify-acc', '0'); paint(); });
+  try { applyView(); } catch (e) {}
 })();
 
 </script>
