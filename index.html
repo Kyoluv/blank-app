@@ -223,7 +223,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 <body>
 <div id="vsb"><i></i></div>
 
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 8px;"><button id="btn-reload" style="flex:1;padding:12px;border-radius:12px;font-weight:700;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 91</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 8px;"><button id="btn-reload" style="flex:1;padding:12px;border-radius:12px;font-weight:700;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 92</span></div>
 <div id="sticky">
 <header>
   <div class="brand-box">
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 91</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 92</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=91'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=92'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=91'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=92'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3445,6 +3445,21 @@ function setWorld(id, quiet, off) {
     if (Math.random() < 0.3 * S) c.padWave = pk(['triangle', 'sawtooth', 'sine', 'square']);
     return c;
   }
+  const OPP = { 0: 1, 1: 0, 2: 4, 4: 2, 5: 10, 10: 5, 6: 9, 9: 6, 7: 8, 8: 7, 3: 13, 13: 3, 11: 12, 12: 11, 14: 1 };
+  const FAST = ['techno', 'berlin', 'dnb', 'phonk', 'trap', 'y2010', 'euro90', 'dance', 'y2000'], SLOW = ['lofi', 'schlager', 'synth80', 's60', 'sw30', 'big40', 'tw20', 'disco70', 'summer', 'afro', 'reggaeton', 'y2020', 'rock50', 'western'];
+  function revolt(p, full) {
+    const c = JSON.parse(JSON.stringify(p)), ax = () => full || Math.random() < 0.7;
+    if (ax()) c.bpm = Math.round(clamp(240 - p.bpm + (full ? 0 : rr(-8, 8)), 70, 175));
+    if (ax()) { const o = OPP[p.scaleIdx != null ? p.scaleIdx : st.scaleIdx]; c.scaleIdx = o != null ? o : 0; c.scaleLock = true; c.chordA = null; c.chordB = null; }
+    if (ax()) { c.mix = c.mix || {}; ['drums', 'bass', 'lead', 'pad', 'hall', 'pump', 'vary', 'tone'].forEach(k => { if (c.mix[k] != null) c.mix[k] = clamp(1 - c.mix[k], k === 'drums' ? 0.18 : k === 'bass' ? 0.4 : 0.04, 0.95); }); }
+    if (ax()) c.style = pk(FAST.includes(p.style) ? SLOW : FAST);
+    if (ax()) { const bt = c.beat ? { ...c.beat } : (() => { const sy = STYLES[c.style]; const o = {}; BEAT_ROWS.forEach(([k]) => { o[k] = sy[k] || EMPTY16; }); return o; })(); ['hat', 'open'].forEach(k => { if (typeof bt[k] === 'string' && bt[k].length === 16) bt[k] = bt[k].split('').map(ch => ch === '.' ? 'x' : '.').join(''); }); ['snare', 'cl'].forEach(k => { if (typeof bt[k] === 'string' && bt[k].length === 16) bt[k] = bt[k].slice(2) + bt[k].slice(0, 2); }); c.beat = bt; }
+    if (ax()) { const on = FXK.filter(k => p.fx && p.fx[k]), off = FXK.filter(k => !(p.fx && p.fx[k])); c.fx = { ...c.fx }; FXK.forEach(k => { c.fx[k] = false; }); for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) c.fx[pk(off)] = true; if (c.fx.half) c.fx.straight = false; }
+    if (ax()) c.world = (p.world || 0) === 0 ? pk(CLEAN.filter(w => w)) : 0;
+    if (ax()) { c.leadType = pk(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang'].filter(x => x !== p.leadType)); c.padWave = pk(['triangle', 'sawtooth', 'sine', 'square'].filter(x => x !== p.padWave)); }
+    c.seed = (Math.random() * 4294967295) >>> 0; c.melodyLock = false; c.live = [];
+    return c;
+  }
   function cross(a, b) {
     const pick = (k, g) => g ? a : b, c = JSON.parse(JSON.stringify(a)), g = () => Math.random() < 0.5;
     if (g()) { c.style = b.style; c.bpm = b.bpm; c.px = b.px; c.py = b.py; c.oct = b.oct; c.chaos = b.chaos; }
@@ -3463,7 +3478,7 @@ function setWorld(id, quiet, off) {
   const card = document.createElement('div'); card.className = 'card'; card.id = 'c-evo'; card.style.padding = '10px';
   card.innerHTML = '<div class="label"><span>🧬 Evolution (Song-Zucht)</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">So geht es: 1. Kinder erzeugen. 2. Ein Kind antippen und anhören. 3. Gefällt es dir, tippe wieder auf „Kinder erzeugen“. Dann entstehen sechs neue Varianten von genau diesem Song. So züchtest du Schritt für Schritt deinen Lieblingssound.</div>'
     + '<div class="grid-oct" id="evo-str" style="grid-template-columns:repeat(3,1fr);"><button class="oct-btn" data-s="0.3">Sanft</button><button class="oct-btn" data-s="0.6">Mittel</button><button class="oct-btn" data-s="1">Wild</button></div>'
-    + '<button id="evo-go" class="sunset-btn" style="width:100%;margin-top:8px;">🧬 6 Kinder erzeugen</button><div id="evo-kids" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;"></div>'
+    + '<button id="evo-go" class="sunset-btn" style="width:100%;margin-top:8px;">🧬 6 Kinder erzeugen</button><button id="evo-rev" class="oct-btn" style="width:100%;margin-top:6px;border-color:#ff5d73;">💥 Revolution: alles auf den Kopf stellen</button><div id="evo-kids" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;"></div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><select id="evo-slot" style="padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"></select><button id="evo-x" class="oct-btn">💞 Kreuzen</button></div><button id="evo-back" class="oct-btn" style="width:100%;margin-top:8px;" hidden>↩ Zurück zum Ausgangssong</button><div id="evo-msg" style="font-size:.78rem;margin-top:8px;color:var(--gold);min-height:1.2em;"></div>';
   const anchor = document.getElementById('c-world') || document.getElementById('c-sing'); anchor.parentNode.insertBefore(card, anchor);
   let S = 0.6, kids = [], parent = null, cur = -1;
@@ -3476,6 +3491,7 @@ function setWorld(id, quiet, off) {
     kids.forEach((k, i) => { const b = document.createElement('button'); b.className = 'oct-btn' + (i === cur ? ' active-pink' : ''); b.style.cssText = 'padding:10px 6px;font-size:.78rem;line-height:1.35;'; b.innerHTML = '<b>Kind ' + (i + 1) + '</b><br>' + tag(k); b.addEventListener('click', () => { undoPoint(); cur = i; applyDna(k); show(); if (!st.playing) document.getElementById('btn-play').click(); msg('Du hörst Kind ' + (i + 1) + '. Gefällt es dir? Dann tippe auf „Kinder erzeugen“ und züchte davon weiter.'); }); g.appendChild(b); });
   }
   document.getElementById('evo-go').addEventListener('click', () => { if (!parent) parent = dna(); document.getElementById('evo-back').hidden = false; const p = dna(); kids = Array.from({ length: 6 }, () => mutate(p, S)); cur = -1; show(); msg('Sechs neue Kinder von deinem aktuellen Song. Tippe eins an.'); });
+  document.getElementById('evo-rev').addEventListener('click', () => { if (!parent) parent = dna(); document.getElementById('evo-back').hidden = false; const p = dna(); kids = [revolt(p, true)].concat(Array.from({ length: 5 }, () => revolt(p, false))); cur = -1; show(); msg('💥 Revolution! Kind 1 ist das totale Gegenteil: Tempo, Tonart, Stil, Rhythmus, Lautstärken und Effekte sind umgekehrt. Kind 2 bis 6 drehen nur einen Teil um.'); });
   document.getElementById('evo-back').addEventListener('click', () => { if (!parent) return; undoPoint(); applyDna(parent); cur = -1; show(); msg('Zurück beim Ausgangssong.'); });
   const fillSlots = () => { const sel = document.getElementById('evo-slot'); sel.innerHTML = slots.map((s, i) => '<option value="' + i + '"' + (s ? '' : ' disabled') + '>' + (s ? '💾 Slot ' + (i + 1) + ' (' + STYLES[s.style].name.split(' ')[0] + ')' : 'Slot ' + (i + 1) + ' leer') + '</option>').join(''); const f = slots.findIndex(x => x); if (f >= 0) sel.value = f; };
   fillSlots(); document.getElementById('evo-slot').addEventListener('focus', fillSlots); document.getElementById('evo-slot').addEventListener('pointerdown', fillSlots);
