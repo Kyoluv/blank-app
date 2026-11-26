@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 80</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 81</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1055,6 +1055,12 @@ function buildChain(ctx) {
   const eqHP = ctx.createBiquadFilter(), eqMud = ctx.createBiquadFilter(), eqPres = ctx.createBiquadFilter(), eqAir = ctx.createBiquadFilter();
   eqHP.type = 'highpass'; eqHP.frequency.value = 30; eqMud.type = 'peaking'; eqMud.frequency.value = 280; eqMud.Q.value = 0.9; eqMud.gain.value = -3;
   eqPres.type = 'peaking'; eqPres.frequency.value = 2800; eqPres.Q.value = 0.8; eqPres.gain.value = 4.5; eqAir.type = 'highshelf'; eqAir.frequency.value = 5500; eqAir.gain.value = 2.5;
+  const bq = (t, f) => { const n = ctx.createBiquadFilter(); n.type = t; n.frequency.value = f; return n; };
+  const W = { in: mk(), hp: bq('highpass', 20), lo: bq('lowshelf', 200), hi: bq('highshelf', 4500), lp: bq('lowpass', 20000), pre: mk(), sat: ctx.createWaveShaper(), post: mk(), q: ctx.createWaveShaper(), qd: mk(), qw: mk(), sum: mk(), dl: ctx.createDelay(0.05), lfo: ctx.createOscillator(), lfoG: mk(), out: mk(), hissG: mk(), crG: mk() };
+  W.in.connect(W.hp); W.hp.connect(W.lo); W.lo.connect(W.hi); W.hi.connect(W.lp); W.lp.connect(W.pre); W.pre.connect(W.sat); W.sat.connect(W.post); W.post.connect(W.qd); W.post.connect(W.q); W.q.connect(W.qw); W.qd.connect(W.sum); W.qw.connect(W.sum); W.sum.connect(W.dl); W.dl.connect(W.out);
+  W.dl.delayTime.value = 0.012; W.lfo.type = 'sine'; W.lfo.frequency.value = 0.5; W.lfoG.gain.value = 0; W.lfo.connect(W.lfoG); W.lfoG.connect(W.dl.delayTime); W.lfo.start();
+  { const hb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), hd = hb.getChannelData(0); for (let i = 0; i < hd.length; i++) hd[i] = Math.random() * 2 - 1; const hs = ctx.createBufferSource(); hs.buffer = hb; hs.loop = true; const hf = bq('highpass', 2500); hs.connect(hf); hf.connect(W.hissG); W.hissG.connect(W.out); hs.start(0);
+    const cb = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate), cd = cb.getChannelData(0); for (let i = 0; i < 26; i++) { const p = Math.floor(Math.random() * cd.length), a = (Math.random() * 2 - 1) * (0.4 + Math.random() * 0.6); for (let k = 0; k < 6 && p + k < cd.length; k++) cd[p + k] = a * (1 - k / 6); } const cs = ctx.createBufferSource(); cs.buffer = cb; cs.loop = true; cs.connect(W.crG); W.crG.connect(W.out); cs.start(0); }
   const comp = ctx.createDynamicsCompressor(), drive = mk(), lim = ctx.createWaveShaper(), fade = mk(), master = mk();
   filt.type = 'lowpass'; filt.frequency.value = 18000; fb.gain.value = 0.45; wet.gain.value = 0; delay.delayTime.value = 0.36;
   comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.006; comp.release.value = 0.16;
@@ -1066,10 +1072,34 @@ function buildChain(ctx) {
   mixBus.connect(gate); gate.connect(crush); crush.connect(trem); trem.connect(phHP); phHP.connect(phLP); phLP.connect(filt); lfo.connect(lfoG); lfoG.connect(trem.gain); lfo.start(); filt.connect(dry); const pocket = ctx.createBiquadFilter(), duck = mk(); pocket.type = 'peaking'; pocket.frequency.value = 1900; pocket.Q.value = 0.9; pocket.gain.value = 0; dry.connect(pocket); pocket.connect(duck); duck.connect(comp);
   filt.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
   filt.connect(rvSend); rvSend.connect(rv); rv.connect(comp);
-  vox.connect(comp); comp.connect(eqHP); eqHP.connect(eqMud); eqMud.connect(eqPres); eqPres.connect(eqAir); eqAir.connect(drive); drive.connect(lim); lim.connect(fade); fade.connect(master);
-  const c = { pocket, duck, trem, phHP, phLP, lfo, lfoG, eqAir, dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
-  applyMix(c, st.mix, 0, false);
+  vox.connect(comp); comp.connect(eqHP); eqHP.connect(eqMud); eqMud.connect(eqPres); eqPres.connect(eqAir); eqAir.connect(W.in); W.out.connect(drive); drive.connect(lim); lim.connect(fade); fade.connect(master);
+  const c = { W, pocket, duck, trem, phHP, phLP, lfo, lfoG, eqAir, dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
+  applyMix(c, st.mix, 0, false); applyWorld(c, st.world || 0, false);
   return c;
+}
+/* ---------- Klangwelten: Klangcharakter der ganzen Mischung ---------- */
+const WORLDS = [
+  { n: 'Original', e: '🎛', d: 'Unverändert, so wie bisher.', hp: 20, lp: 20000, lo: 0, hi: 0, sat: 0, bits: 0, qw: 0, wow: 0, wowHz: 0.5, hiss: 0, crack: 0, hall: 0 },
+  { n: 'Lo-Fi Kassette', e: '📼', d: 'Warm, leicht eiernd, mit Rauschen.', hp: 60, lp: 4800, lo: 3, hi: -4, sat: 2, bits: 0, qw: 0, wow: 0.0035, wowHz: 0.6, hiss: 0.012, crack: 0, hall: 0.05 },
+  { n: 'Schallplatte', e: '💿', d: 'Knistern, gedämpfte Höhen.', hp: 80, lp: 7500, lo: 2, hi: -3, sat: 1.2, bits: 0, qw: 0, wow: 0.0012, wowHz: 0.55, hiss: 0.006, crack: 0.09, hall: 0 },
+  { n: '8-Bit Spielhalle', e: '👾', d: 'Harter, grober Computer-Klang.', hp: 140, lp: 9500, lo: -2, hi: 2, sat: 0.8, bits: 4, qw: 0.85, wow: 0, wowHz: 0.5, hiss: 0, crack: 0, hall: 0 },
+  { n: 'Radio / Telefon', e: '📻', d: 'Schmal und schnarrend.', hp: 480, lp: 3200, lo: 0, hi: 0, sat: 3.5, bits: 0, qw: 0, wow: 0.0008, wowHz: 2, hiss: 0.012, crack: 0.02, hall: 0 },
+  { n: 'Unter Wasser', e: '🌊', d: 'Dumpf und schwimmend.', hp: 40, lp: 700, lo: 4, hi: -8, sat: 0, bits: 0, qw: 0, wow: 0.007, wowHz: 0.25, hiss: 0, crack: 0, hall: 0.25 },
+  { n: 'Kathedrale', e: '⛪', d: 'Riesiger Hall, weich.', hp: 60, lp: 11000, lo: 0, hi: -3, sat: 0, bits: 0, qw: 0, wow: 0.0006, wowHz: 0.3, hiss: 0, crack: 0, hall: 0.8 },
+  { n: 'Glas & Luft', e: '✨', d: 'Dünn, glitzernd, ganz hell.', hp: 220, lp: 20000, lo: -6, hi: 8, sat: 0.4, bits: 0, qw: 0, wow: 0.0015, wowHz: 4.5, hiss: 0.004, crack: 0, hall: 0.3 },
+  { n: 'Industrial', e: '🔥', d: 'Verzerrt, hart und rau.', hp: 100, lp: 9000, lo: 2, hi: 3, sat: 9, bits: 7, qw: 0.5, wow: 0, wowHz: 0.5, hiss: 0.004, crack: 0, hall: 0 },
+  { n: 'Höhle', e: '🕳', d: 'Dunkel, dick, mit Hall.', hp: 30, lp: 1900, lo: 6, hi: -6, sat: 0.8, bits: 0, qw: 0, wow: 0.002, wowHz: 0.2, hiss: 0, crack: 0, hall: 0.65 },
+  { n: 'Super-8 Film', e: '🎞', d: 'Alter Film: eiernd, knisternd.', hp: 90, lp: 6000, lo: 2, hi: -2, sat: 1.5, bits: 0, qw: 0, wow: 0.005, wowHz: 0.45, hiss: 0.018, crack: 0.05, hall: 0.1 },
+  { n: 'Taschenradio', e: '📟', d: 'Winziger Lautsprecher, 6 Bit.', hp: 700, lp: 4200, lo: -4, hi: 2, sat: 5, bits: 6, qw: 0.7, wow: 0, wowHz: 0.5, hiss: 0.01, crack: 0, hall: 0 }
+];
+const _sc = {}, satCurve = k => _sc['s' + k] || (_sc['s' + k] = (() => { const c = new Float32Array(2048), t = Math.tanh(k); for (let i = 0; i < 2048; i++) { const x = i / 1023.5 - 1; c[i] = Math.tanh(k * x) / t; } return c; })()), qCurve = b => _sc['q' + b] || (_sc['q' + b] = (() => { const c = new Float32Array(4096), L = Math.pow(2, b - 1); for (let i = 0; i < 4096; i++) { const x = i / 2047.5 - 1; c[i] = Math.round(x * L) / L; } return c; })());
+function applyWorld(ch, id, ramp) {
+  const w = WORLDS[id] || WORLDS[0], W = ch.W; if (!W) return; const now = ch.master.context.currentTime, set = (p, v) => { if (ramp) p.setTargetAtTime(v, now, 0.04); else p.value = v; };
+  set(W.hp.frequency, w.hp); set(W.lp.frequency, Math.min(w.lp, 20000)); set(W.lo.gain, w.lo); set(W.hi.gain, w.hi);
+  W.sat.curve = w.sat > 0 ? satCurve(w.sat) : null; set(W.pre.gain, w.sat > 0 ? 1 + w.sat * 0.08 : 1); set(W.post.gain, w.sat > 0 ? 1 / (1 + w.sat * 0.04) : 1);
+  W.q.curve = w.bits ? qCurve(w.bits) : null; set(W.qw.gain, w.bits ? w.qw : 0); set(W.qd.gain, w.bits ? 1 - w.qw : 1);
+  set(W.lfoG.gain, w.wow); set(W.lfo.frequency, w.wowHz); set(W.hissG.gain, w.hiss); set(W.crG.gain, w.crack); ch.worldHall = w.hall;
+  set(ch.rvSend.gain, (st.mix.hall || 0) * 0.9 + w.hall);
 }
 function applyMix(ch, mix, now, ramp) {
   const set = (p, v) => { if (ramp) p.setTargetAtTime(v, now, 0.05); else p.value = v; };
@@ -1077,7 +1107,7 @@ function applyMix(ch, mix, now, ramp) {
   set(ch.eqAir.gain, -14 + 20 * (mix.tone == null ? 0.8 : mix.tone));
   set(ch.drums.gain, mix.drums); set(ch.bass.gain, mix.bass * 1.1); set(ch.lead.gain, mix.lead); set(ch.pad.gain, mix.pad * 0.75);
   set(ch.gtr.gain, (mix.gtr == null ? 0.75 : mix.gtr) * 1.1); set(ch.horn.gain, (mix.horn == null ? 0.75 : mix.horn) * 1.1); set(ch.tuba.gain, (mix.tuba == null ? 0.8 : mix.tuba) * 1.1); set(ch.bone.gain, (mix.bone == null ? 0.8 : mix.bone) * 1.1);
-  set(ch.rvSend.gain, mix.hall * 0.9); set(ch.vox.gain, (mix.vox == null ? 0.8 : mix.vox) * 1.3); set(ch.drive.gain, 0.8 + mix.loud * 1.6);
+  set(ch.rvSend.gain, mix.hall * 0.9 + (ch.worldHall || 0)); set(ch.vox.gain, (mix.vox == null ? 0.8 : mix.vox) * 1.3); set(ch.drive.gain, 0.8 + mix.loud * 1.6);
 }
 function duckAt(ch, t, S, dur) {
   const p = S.mix.pump; if (p <= 0.02) return;
@@ -1763,7 +1793,7 @@ async function exportWav(song) {
   setProg(0, 'Vorbereiten …');
   try {
     if (mp3 && typeof lamejs === 'undefined') throw new Error('Der MP3-Baustein ist nicht geladen. Bitte WAV wählen.');
-    const S = JSON.parse(JSON.stringify({ swingX: st.swingX, style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, chordsOff: st.chordsOff, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
+    const S = JSON.parse(JSON.stringify({ world: st.world || 0, swingX: st.swingX, style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, chordsOff: st.chordsOff, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
     S.build = null; S.fx.autodj = false; S.songMode = !!song; if (song) S.chill = false;
     const dur = 60 / st.bpm / 4, sr = 44100, secs = bars * 16 * dur + 3;
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -2284,6 +2314,7 @@ function megaHit() {
   T0(() => { st.scaleIdx = wPick(SCALES.map((_, i) => i), 'scale:'); st.scaleLock = true; });
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['triangle', 'triangle', 'sawtooth', 'sine', 'square']); });
   T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
+  T0(() => { if (typeof setWorld === 'function') setWorld(Math.random() < 0.4 ? 0 : 1 + Math.floor(Math.random() * (WORLDS.length - 1))); });
   T0(() => { const r = Math.round(rngR(0, 60)); $('#gen-rest').value = r; st.swingX = Math.random() < 0.45 ? rngR(0, 0.38) : null; });
   T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || styleBeat()), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
   ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
@@ -2478,7 +2509,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const sticky = $('#sticky');
   // 2) Sprungmarken
   const jump = document.createElement('div'); jump.id = 'jump';
-  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎤 Gesang', 'c-sing'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
     const b = document.createElement('button'); b.textContent = t;
     b.addEventListener('click', () => {
       const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
@@ -2827,7 +2858,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=80'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=81'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2872,7 +2903,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=80'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=81'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -2884,7 +2915,27 @@ const SING = (function () {
     }
     return id;
   }
-  async function TTSR(ev, tEnd, voice, cfg, lang, mode, rap) {
+  // ===== Vocoder: Sprache steuert einen Synthesizer-Klang (neue Klangfarben) =====
+  function buildVoc(oc, buf, ev, kind) {
+    const sp = oc.createBufferSource(); sp.buffer = buf; sp.start(0);
+    const out = oc.createGain(), car = oc.createGain(), srt = ev.slice().sort((a, b) => a.t - b.t);
+    const osc = (type, mul, det, g, lfo) => { const o = oc.createOscillator(), gg = oc.createGain(); o.type = type; o.detune.value = det; gg.gain.value = g; o.frequency.value = (srt.length ? srt[0].f : 150) * mul; srt.forEach(e => o.frequency.setTargetAtTime(Math.max(40, e.f * mul), Math.max(0, e.t - 0.01), 0.025)); if (lfo) lfo.connect(o.detune); o.connect(gg); gg.connect(car); o.start(0); };
+    if (kind === 'whisper') { const nb = oc.createBuffer(1, 44100 * 2, 44100), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const ns = oc.createBufferSource(); ns.buffer = nb; ns.loop = true; const g = oc.createGain(); g.gain.value = 1.2; ns.connect(g); g.connect(car); ns.start(0); }
+    else if (kind === 'choir') { const lf = oc.createOscillator(), lg = oc.createGain(); lf.frequency.value = 5.1; lg.gain.value = 9; lf.connect(lg); lf.start(0); osc('sawtooth', 1, 0, 0.45, lg); osc('sawtooth', 1, 11, 0.35, lg); osc('sawtooth', 1.498, -6, 0.3, lg); osc('sawtooth', 0.5, 4, 0.3, lg); osc('sawtooth', 2, 7, 0.15, lg); }
+    else if (kind === 'organ') { [[1, .5], [2, .42], [3, .28], [4, .2], [6, .1]].forEach(([m, g]) => osc('sine', m, 0, g)); osc('sine', 0.5, 0, 0.35); }
+    else { osc('sawtooth', 1, 0, 0.5); osc('sawtooth', 1, 13, 0.35); osc('square', 0.5, 0, 0.25); }
+    const N = 18, lo = 180, hi = 7500, Q = kind === 'whisper' ? 6 : 8, abs = new Float32Array([1, 0, 1]);
+    for (let i = 0; i < N; i++) {
+      const fc = lo * Math.pow(hi / lo, i / (N - 1)), a = oc.createBiquadFilter(); a.type = 'bandpass'; a.frequency.value = fc; a.Q.value = Q; sp.connect(a);
+      const ws = oc.createWaveShaper(); ws.curve = abs; a.connect(ws); const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 38; ws.connect(lp);
+      const eg = oc.createGain(); eg.gain.value = 9; lp.connect(eg);
+      const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = fc; b.Q.value = Q; car.connect(b);
+      const vg = oc.createGain(); vg.gain.value = 0; eg.connect(vg.gain); b.connect(vg); vg.connect(out);
+    }
+    const hpS = oc.createBiquadFilter(); hpS.type = 'highpass'; hpS.frequency.value = 5200; const gS = oc.createGain(); gS.gain.value = kind === 'whisper' ? 0.5 : 0.7; sp.connect(hpS); hpS.connect(gS); gS.connect(out);
+    const og = oc.createGain(); og.gain.value = 1.4; out.connect(og); return og;
+  }
+  async function TTSR(ev, tEnd, voice, cfg, lang, mode, rap, timbre) {
     let aiId = null, r = voice === 'female' ? 1.17 : voice === 'robot' ? 1 : 0.97; const SR = 22050;
     if (mode === 'ai') { try { aiId = await aiPrefetch(ev.map(e => e.s.word).filter(Boolean), lang, voice, SING.progress); r = 1; } catch (e) { console.warn(e); if (SING.progress) SING.progress('KI-Stimme nicht erreichbar (' + (e && e.message || e) + '). Ich nehme die einfache Sprachsynthese.'); aiId = null; SING.fell = true; } }
     if (!aiId) await esLoad();
@@ -2921,11 +2972,11 @@ const SING = (function () {
     // Pegel + Klangformung (Wärme, Präsenz, Kompressor, Hall)
     let pk = 0; for (let i = 0; i < out.length; i += 2) pk = Math.max(pk, Math.abs(out[i])); if (pk > 0) { const kk = 0.8 / pk; for (let i = 0; i < out.length; i++) out[i] *= kk; }
     const OA = OAC_(), oc = new OA(1, Math.ceil((tEnd + 1) * 44100), 44100), buf = oc.createBuffer(1, out.length, SR); buf.copyToChannel(out, 0);
-    const src = oc.createBufferSource(); src.buffer = buf; const dub = []; [[7, 0.017, 0.16], [-6, 0.031, 0.13]].forEach(([dc, dl, dg]) => { const s2 = oc.createBufferSource(); s2.buffer = buf; s2.detune.value = dc; const dd = oc.createDelay(0.1); dd.delayTime.value = dl; const g2 = oc.createGain(); g2.gain.value = dg; s2.connect(dd); dd.connect(g2); dub.push([s2, g2]); }); const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
+    const src = oc.createBufferSource(); src.buffer = buf; const vocN = timbre && timbre !== 'normal' ? buildVoc(oc, buf, ev, timbre) : null; const dub = []; [[7, 0.017, 0.16], [-6, 0.031, 0.13]].forEach(([dc, dl, dg]) => { const s2 = oc.createBufferSource(); s2.buffer = buf; s2.detune.value = dc; const dd = oc.createDelay(0.1); dd.delayTime.value = dl; const g2 = oc.createGain(); g2.gain.value = dg; s2.connect(dd); dd.connect(g2); dub.push([s2, g2]); }); const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
     const pres = oc.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3000; pres.gain.value = 2; pres.Q.value = 0.8; const air = oc.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 5000; air.gain.value = 0.5; const warm = oc.createBiquadFilter(); warm.type = 'lowshelf'; warm.frequency.value = 250; warm.gain.value = 3.5; const sf = oc.createBiquadFilter(); sf.type = 'peaking'; sf.frequency.value = 2700; sf.Q.value = 1.2; sf.gain.value = 1;
     const cmp = oc.createDynamicsCompressor(); cmp.threshold.value = -24; cmp.ratio.value = 3; cmp.attack.value = 0.004; cmp.release.value = 0.12;
     const fin = oc.createGain(), cv = oc.createConvolver(), irl = Math.floor(44100 * 0.4), ir = oc.createBuffer(1, irl, 44100), ird = ir.getChannelData(0); for (let i = 0; i < irl; i++) ird[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irl, 2.6); cv.buffer = ir;
-    const wg = oc.createGain(); wg.gain.value = 0.16; src.connect(hp); hp.connect(warm); warm.connect(sf); sf.connect(pres); pres.connect(air); const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5; air.connect(lp); lp.connect(cmp); cmp.connect(fin); fin.connect(oc.destination); fin.connect(cv); cv.connect(wg); wg.connect(oc.destination); src.start(0); dub.forEach(([s2, g2]) => { g2.connect(hp); s2.start(0); });
+    const wg = oc.createGain(); wg.gain.value = 0.16; (vocN || src).connect(hp); hp.connect(warm); warm.connect(sf); sf.connect(pres); pres.connect(air); const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5; air.connect(lp); lp.connect(cmp); cmp.connect(fin); fin.connect(oc.destination); fin.connect(cv); cv.connect(wg); wg.connect(oc.destination); src.start(0); if (!vocN) dub.forEach(([s2, g2]) => { g2.connect(hp); s2.start(0); });
     const rb = await oc.startRendering(), data = new Float32Array(rb.getChannelData(0)); let p2 = 0; for (let i = 0; i < data.length; i += 2) p2 = Math.max(p2, Math.abs(data[i])); if (p2 > 0) { const kk = 0.8 / p2; for (let i = 0; i < data.length; i++) data[i] *= kk; }
     return { data, sr: 44100, syl: ev.length, off: VOFF };
   }
@@ -2948,7 +2999,7 @@ const SING = (function () {
     });
     return { ev, tEnd: tEnd + 0.4, reps };
   }
-  async function render(text, lang, voice, notesDeg, sc, bpm, fit, tts, style) {
+  async function render(text, lang, voice, notesDeg, sc, bpm, fit, tts, style, timbre) {
     const sr = 44100, u0 = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
     const ev = []; let ni = 0, out_off = 0;
     const cfg = { male: { med: 135, fs: 0.9, vib: 14, port: 0.03 }, female: { med: 215, fs: 1.14, vib: 20, port: 0.03 }, robot: { med: 160, fs: 1, vib: 0, port: 0.002 } }[voice] || { med: 135, fs: 0.9, vib: 14, port: 0.03 };
@@ -2977,7 +3028,7 @@ const SING = (function () {
       });
       repNo++; return { t, ni: n, ri };
     };
-    if (tts && style === 'rap') { const rp = rapPlan(sy, bpm, fit, fDeg, cfg); if (fit) fit.reps = rp.reps; return await TTSR(rp.ev, rp.tEnd, voice, cfg, lang === 'auto' ? detect(text) : lang, tts, true); }
+    if (tts && style === 'rap') { const rp = rapPlan(sy, bpm, fit, fDeg, cfg); if (fit) fit.reps = rp.reps; return await TTSR(rp.ev, rp.tEnd, voice, cfg, lang === 'auto' ? detect(text) : lang, tts, true, timbre); }
     let t = VOFF;
     if (fit && fit.target > 0) {
       const probe = pass(1, 0, 0, 0); ev.length = 0; repNo = 0; const units = Math.max(1, probe.t), targetBars = Math.max(1, Math.floor(fit.target / barSec));
@@ -2988,7 +3039,7 @@ const SING = (function () {
       fit.reps = reps;
     } else { const o = pass(u0, t, 0, 0); t = o.t; }
     out_off = VOFF;
-    if (tts) return await TTSR(ev, t, voice, cfg, lang === 'auto' ? detect(text) : lang, tts);
+    if (tts) return await TTSR(ev, t, voice, cfg, lang === 'auto' ? detect(text) : lang, tts, false, timbre);
     const T = t + 0.6, oc = new (OAC_())(1, Math.ceil(T * sr), sr), mk = v => { const g = oc.createGain(); g.gain.value = v; return g; };
     const osc = oc.createOscillator(); osc.type = 'sawtooth'; const lfo = oc.createOscillator(), lg = mk(0); lfo.frequency.value = 5.3; lfo.connect(lg).connect(osc.detune); const dr = oc.createOscillator(), drg = mk(9), dr2 = oc.createOscillator(), drg2 = mk(4); dr.frequency.value = 0.7; dr2.frequency.value = 9.3; dr.connect(drg).connect(osc.detune); dr2.connect(drg2).connect(osc.detune); dr.start(0); dr2.start(0);
     const vamp = mk(0), out = mk(1), fl = [0, 1, 2, 3].map(k => { const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.Q.value = [5, 7, 9, 10][k]; if (k === 3) b.frequency.value = 3700; const g = mk([1, 1.5, 1.3, 0.5][k]); osc.connect(b); b.connect(g).connect(vamp); return b; });
@@ -3029,6 +3080,7 @@ const SING = (function () {
   <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;"><b>Schritt 1:</b> Text schreiben (oder Autotext). <b>Schritt 2:</b> Stil wählen. <b>Schritt 3:</b> Gesang erzeugen. Es bleibt eine Computerstimme.</div>
   <textarea id="sing-txt" rows="4" maxlength="400" placeholder="Zum Beispiel: Heute Nacht tanzen wir bis zum Morgen&#10;Oder: We dance all night under the stars" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;"></textarea>
   <div class="mixgrid" style="margin-top:8px;"><label>🎭 Stil</label><select id="sing-style" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="sing">🎶 Singen (wie vorher, am besten verständlich)</option><option value="rap">🗣 Rap / Sprechgesang (neu, Test)</option><option value="robot">🤖 Roboter</option></select>
+  <label>🎛 Klangfarbe</label><select id="sing-timbre" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="normal">Natürlich (Sprachsynthese)</option><option value="voc">🤖 Vocoder (Roboter-Pop)</option><option value="choir">👥 Chor (Engel-Vocoder)</option><option value="organ">⛪ Orgel-Stimme</option><option value="whisper">🌬 Flüstern</option></select>
   <label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
   <label>📏 Länge</label><select id="sing-fit" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="song">Über den ganzen Song strecken</option><option value="once">Nur einmal singen</option></select>
   <label>🔊 Klang</label><select id="sing-eng" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="ai">KI-Stimme (klingt wie ein Mensch, online, einmal ca. 60 MB)</option><option value="tts">Computerstimme (sofort, ohne Internet)</option><option value="old">Synthesizer (alt)</option></select>
@@ -3096,7 +3148,7 @@ const SING = (function () {
     try {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
       const lang = $('#sing-lang').value, fit = $('#sing-fit').value === 'song' ? (() => { const bar = 240 / st.bpm, P = FORMS[activeForm()].plan, a = P[0][2], z = P[P.length - 1][2]; return { lead: a * bar, target: Math.max(8, (SONG_BARS - a - z) * bar - 1), reps: 1 }; })() : null,
-        r = await SING.render(txt, lang, ($('#sing-style').value === 'robot' ? 'robot' : $('#sing-voice').value), notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', old: false })[$('#sing-eng').value], $('#sing-style').value === 'rap' ? 'rap' : 'sing');
+        r = await SING.render(txt, lang, ($('#sing-style').value === 'robot' ? 'robot' : $('#sing-voice').value), notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', old: false })[$('#sing-eng').value], $('#sing-style').value === 'rap' ? 'rap' : 'sing', $('#sing-timbre').value);
       if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; st.voiceOff = r.off || 0; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
       msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. ${SING.fell && $('#sing-eng').value === 'ai' ? ' ⚠️ Die KI-Stimme war nicht erreichbar (Internet oder Seite?). Ich habe die einfache Sprachsynthese genommen.' : ''} Du hörst ihn jetzt solo. Mit „🎵 Mit Song anhören“ hörst du ihn zur Musik. Er spielt auch bei „Ganzen Song spielen“ mit.`);
@@ -3253,6 +3305,24 @@ const SING = (function () {
   try { const raw = lsG('musify-last'); if (raw) { const o = JSON.parse(raw); if (o && o.s && Date.now() - o.t < 30 * 86400000) { rs.classList.add('on'); setTimeout(() => rs.classList.remove('on'), 16000); $('#rs-go').addEventListener('click', () => { try { applySlot(o.s); if (o.title && $('#proj-name')) $('#proj-name').value = o.title; } catch (e) {} rs.classList.remove('on'); }); } } } catch (e) {}
   $('#rs-x').addEventListener('click', () => rs.classList.remove('on'));
   let lastJ = ''; setInterval(() => { if (!touched || st.blank) return; try { const s = snapshotState(), j = JSON.stringify(s); if (j !== lastJ) { lastJ = j; localStorage.setItem('musify-last', JSON.stringify({ t: Date.now(), s, title: ($('#proj-name') && $('#proj-name').value) || '' })); } } catch (e) {} }, 4000);
+})();
+
+
+/* ---------- v81: Klangwelten-Karte ---------- */
+function setWorld(id, quiet) {
+  id = Math.max(0, Math.min(WORLDS.length - 1, id | 0)); st.world = id; try { localStorage.setItem('musify-world', String(id)); } catch (e) {}
+  try { if (chain) applyWorld(chain, id, true); } catch (e) {}
+  const w = WORLDS[id]; document.querySelectorAll('#world-grid button').forEach(b => b.classList.toggle('active-pink', +b.dataset.w === id));
+  const m = document.getElementById('world-msg'); if (m) m.textContent = w.e + ' ' + w.n + ': ' + w.d;
+}
+(function worldCard() {
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-world'; card.style.padding = '10px';
+  card.innerHTML = '<div class="label"><span>🌍 Klangwelt</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Verändert den Klangcharakter der ganzen Musik auf einmal: Kassette, Schallplatte, 8-Bit, Radio, Unterwasser, Kathedrale und mehr. Probiere sie beim Abspielen durch. Wirkt auch beim Export.</div><div class="grid-oct" id="world-grid" style="grid-template-columns:repeat(3,1fr);">' + WORLDS.map((w, i) => '<button class="oct-btn" data-w="' + i + '" style="font-size:.78rem;padding:10px 4px;">' + w.e + '<br>' + w.n + '</button>').join('') + '</div><button id="world-rnd" class="oct-btn" style="width:100%;margin-top:8px;">🎲 Zufällige Klangwelt</button><div id="world-msg" style="font-size:.78rem;margin-top:8px;color:var(--gold);min-height:1.2em;"></div>';
+  const anchor = document.getElementById('c-sing') || document.getElementById('c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  card.querySelectorAll('#world-grid button').forEach(b => b.addEventListener('click', () => setWorld(+b.dataset.w)));
+  document.getElementById('world-rnd').addEventListener('click', () => setWorld(1 + Math.floor(Math.random() * (WORLDS.length - 1))));
+  let w0 = 0; try { w0 = +localStorage.getItem('musify-world') || 0; } catch (e) {}
+  st.world = w0; setWorld(w0); const m = document.getElementById('world-msg'); if (m && !w0) m.textContent = '';
 })();
 
 </script>
