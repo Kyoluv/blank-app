@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 84</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 85</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1103,7 +1103,7 @@ const WORLDS = [
   { n: 'Unter Wasser', e: '🌊', d: 'Dumpf und schwimmend.', hp: 40, lp: 700, lo: 4, hi: -8, sat: 0, bits: 0, qw: 0, wow: 0.007, wowHz: 0.25, hiss: 0, crack: 0, hall: 0.25 },
   { n: 'Kathedrale', e: '⛪', d: 'Riesiger Hall, weich.', hp: 60, lp: 11000, lo: 0, hi: -3, sat: 0, bits: 0, qw: 0, wow: 0.0006, wowHz: 0.3, hiss: 0, crack: 0, hall: 0.8 },
   { n: 'Glas & Luft', e: '✨', d: 'Dünn, glitzernd, ganz hell.', hp: 220, lp: 20000, lo: -6, hi: 8, sat: 0.4, bits: 0, qw: 0, wow: 0.0015, wowHz: 4.5, hiss: 0.004, crack: 0, hall: 0.3 },
-  { n: 'Industrial', e: '🔥', d: 'Verzerrt, hart und rau.', hp: 100, lp: 9000, lo: 2, hi: 3, sat: 9, bits: 7, qw: 0.5, wow: 0, wowHz: 0.5, hiss: 0.004, crack: 0, hall: 0 },
+  { n: 'Industrial', e: '🔥', d: 'Dunkel, hart und metallisch, nur leicht angeraut.', hp: 100, lp: 9000, lo: 2, hi: 1, sat: 1.8, bits: 0, qw: 0, wow: 0, wowHz: 0.5, hiss: 0.004, crack: 0, hall: 0 },
   { n: 'Höhle', e: '🕳', d: 'Dunkel, dick, mit Hall.', hp: 30, lp: 1900, lo: 6, hi: -6, sat: 0.8, bits: 0, qw: 0, wow: 0.002, wowHz: 0.2, hiss: 0, crack: 0, hall: 0.65 },
   { n: 'Super-8 Film', e: '🎞', d: 'Alter Film: eiernd, knisternd.', hp: 90, lp: 6000, lo: 2, hi: -2, sat: 1.5, bits: 0, qw: 0, wow: 0.005, wowHz: 0.45, hiss: 0.018, crack: 0.05, hall: 0.1 },
   { n: 'Taschenradio', e: '📟', d: 'Winziger Lautsprecher, 6 Bit.', hp: 700, lp: 4200, lo: -4, hi: 2, sat: 5, bits: 6, qw: 0.7, wow: 0, wowHz: 0.5, hiss: 0.01, crack: 0, hall: 0 }
@@ -2324,7 +2324,7 @@ const RECIPES = [
   { n: 'Lo-Fi Chill', e: '🌙', styles: ['lofi', 'summer', 'disco70', 'sw30'], bpm: [70, 88], mix: { drums: [0.5, 0.7], hat: [0.2, 0.5], pad: [0.25, 0.45], hall: [0.35, 0.55], pump: [0, 0.2], lead: [0.5, 0.75], tone: [0.2, 0.45] }, fx: [['echo'], ['echo', 'vocal'], []], world: [1, 2, 10], lead: ['marimba', 'bell', 'pluck'], scales: [4, 11, 0, 7], tracks: 'few', live: [['dull'], [], ['wash']] },
   { n: 'Episch-Filmisch', e: '🏛', styles: ['synth80', 'big40', 'dance'], bpm: [72, 100], mix: { drums: [0.65, 0.85], pad: [0.4, 0.55], hall: [0.65, 0.85], pump: [0, 0.15], tom: [0.9, 1], horn: [0.7, 0.9], vary: [0.2, 0.45] }, fx: [[], ['half']], world: [6, 6, 9], lead: ['brass', 'bell'], pad: ['sawtooth'], scales: [7, 4, 5, 14], tracks: 'brass', live: [['wash'], []] },
   { n: 'Chiptune-Spielhalle', e: '👾', styles: ['euro90', 'dance', 'techno'], bpm: [118, 160], mix: { pad: [0.05, 0.18], hall: [0.05, 0.2], lead: [0.8, 1], drums: [0.7, 0.9] }, fx: [['arp'], ['arp', 'stutter'], ['arp', 'gate']], world: [3, 3, 11], lead: ['square', 'square', 'pluck'], pad: ['square'], scales: [1, 9, 8, 12], tracks: 'none', live: [['crush'], []] },
-  { n: 'Industrial-Dunkel', e: '⚙️', styles: ['techno', 'berlin', 'phonk', 'dnb'], bpm: [128, 150], mix: { drums: [0.9, 1], pump: [0.7, 0.9], hall: [0.2, 0.4], pad: [0.08, 0.25], tone: [0.3, 0.6], loud: [0.7, 0.9] }, fx: [['gate', 'stutter'], ['phone', 'sub'], ['acid', 'gate']], world: [8, 9, 4], lead: ['square', 'supersaw'], scales: [3, 0, 7, 14], tracks: 'none', live: [['ring'], ['wobble'], ['crush']] },
+  { n: 'Industrial-Dunkel', e: '⚙️', styles: ['techno', 'berlin', 'phonk', 'dnb'], bpm: [128, 150], mix: { drums: [0.9, 1], pump: [0.7, 0.9], hall: [0.2, 0.4], pad: [0.08, 0.25], tone: [0.3, 0.6], loud: [0.45, 0.65] }, fx: [['gate', 'stutter'], ['sub', 'gate'], ['acid', 'gate']], world: [8, 9, 9], lead: ['square', 'supersaw'], scales: [3, 0, 7, 14], tracks: 'none', live: [[], ['wobble'], ['flange']] },
   { n: 'Live-Band', e: '🎷', styles: ['tw20', 'sw30', 'big40', 'rock50', 'disco70', 's60'], mix: { drums: [0.6, 0.85], gtr: [0.7, 0.95], horn: [0.7, 0.95], hall: [0.15, 0.35], pump: [0, 0.1], pad: [0.08, 0.2] }, fx: [[]], world: [0, 2, 10], lead: ['brass', 'twang', 'marimba'], tracks: 'band', live: [[]] },
   { n: 'Ambient-Traum', e: '☁️', styles: ['lofi', 'summer', 'synth80'], bpm: [70, 90], mix: { drums: [0.1, 0.3], hat: [0, 0.2], pad: [0.45, 0.58], hall: [0.75, 0.9], pump: [0, 0.1], lead: [0.45, 0.7], vary: [0.7, 1] }, fx: [['echo'], ['echo', 'trem']], world: [6, 7, 5], lead: ['bell', 'marimba'], pad: ['sine', 'triangle'], scales: [1, 13, 9, 2], tracks: 'few', live: [['wash'], ['wash', 'pan']] },
   { n: 'Maximal-Chaos', e: '🎪', styles: ['dance', 'phonk', 'euro90', 'y2010', 'trap', 'reggaeton'], mix: { vary: [0.8, 1], hall: [0.2, 0.6] }, fx: [['acid', 'arp', 'stutter', 'echo'], ['gate', 'vocal', 'arp', 'phone'], ['sub', 'acid', 'trem', 'stutter']], world: [11, 8, 5, 3, 10, 4], lead: ['supersaw', 'bell', 'twang', 'brass'], tracks: 'all', chaos: true, live: [['flange', 'pan'], ['ring', 'crush'], ['wobble', 'wash']] },
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=84'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=85'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=84'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=85'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
