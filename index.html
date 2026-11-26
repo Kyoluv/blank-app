@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 79</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 80</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1325,7 +1325,7 @@ function play(song) {
   chain.fade.gain.cancelScheduledValues(0); chain.fade.gain.setValueAtTime(1, ctx.currentTime);
   if (!song) chain.filt.frequency.setTargetAtTime(st.chill ? 700 : baseCut(st), ctx.currentTime, 0.1);
   stepN = 0; nextT = ctx.currentTime + 0.08; songT0 = nextT; st.playing = true;
-  if (song && st.voiceWet && !rec.active) {
+  if (song && st.voiceWet && !st.voiceMute && !rec.active) {
     voiceSrc = ctx.createBufferSource(); voiceSrc.buffer = st.voiceWet; voiceSrc.connect(chain.vox); try { const vr = ctx.createGain(); vr.gain.value = 0.45; voiceSrc.connect(vr); vr.connect(chain.rvSend); } catch (e) {} voiceSrc.start(songT0, Math.min(st.nudge / 1000 + (st.voiceOff || 0), st.voiceWet.duration - 0.01)); try { applyPocket(chain, ctx, songT0, st.voiceWet, st.nudge / 1000 + (st.voiceOff || 0)); } catch (e) {}
   }
   timer = setInterval(tick, 25); tick();
@@ -1770,7 +1770,7 @@ async function exportWav(song) {
     const octx = new OAC(2, Math.ceil(secs * sr), sr), ch = buildChain(octx);
     applyMix(ch, S.mix, 0, false);
     ch.master.connect(octx.destination);
-    const withVoice = !!(song && st.voiceWet);
+    const withVoice = !!(song && st.voiceWet && !st.voiceMute);
     if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); try { const vr = octx.createGain(); vr.gain.value = 0.45; vs.connect(vr); vr.connect(ch.rvSend); } catch (e) {} vs.start(0.05, Math.min(st.nudge / 1000 + (st.voiceOff || 0), st.voiceWet.duration - 0.01)); try { applyPocket(ch, octx, 0.05, st.voiceWet, st.nudge / 1000 + (st.voiceOff || 0)); } catch (e) {} }
     ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = S.chill ? 700 : baseCut(S); applyFxNodes(ch, S, 0, false);
     const total = bars * 16;
@@ -2827,7 +2827,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=79'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=80'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2872,7 +2872,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=79'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=80'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3037,6 +3037,7 @@ const SING = (function () {
   <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
   <button id="sing-auto" class="oct-btn" style="width:100%;margin-top:8px;">✍️ Autotext: Die App schreibt den Text</button>
   <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎤 Gesang erzeugen</button>
+  <button id="sing-mute" class="oct-btn" style="width:100%;margin-top:8px;">🔊 Gesang ist AN (tippen zum Ausschalten)</button>
   <div style="display:flex;gap:8px;margin-top:8px;"><button id="sing-solo" class="oct-btn" style="flex:1;">▶ Nur Gesang anhören</button><button id="sing-song" class="oct-btn" style="flex:1;">🎵 Mit Song anhören</button></div>
   <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
@@ -3080,6 +3081,11 @@ const SING = (function () {
     const d0 = st.voiceWet.getChannelData(0); let fs = 0; while (fs < d0.length && Math.abs(d0[fs]) < 0.02) fs++; const off = Math.max(0, fs / st.voiceWet.sampleRate - 0.15);
     src.onended = () => { if (soloSrc === src) soloStop(); }; src.start(0, off); soloSrc = src; $('#sing-solo').textContent = '⏹ Stopp';
   }
+  function syncMute() { const m = !!st.voiceMute; $('#sing-mute').textContent = m ? '🔇 Gesang ist AUS (tippen zum Einschalten)' : '🔊 Gesang ist AN (tippen zum Ausschalten)'; $('#sing-mute').style.borderColor = m ? '#ff5d73' : ''; const b2 = document.getElementById('btn-vmute'); if (b2) b2.textContent = m ? '🔇 Gesang AUS' : '🔊 Gesang AN'; }
+  window.toggleVoiceMute = () => { st.voiceMute = !st.voiceMute; soloStop(); syncMute(); const again = st.playing && st.songMode; if (again) { stop(); setTimeout(() => { try { document.getElementById('btn-song').click(); } catch (e) {} }, 200); } $('#sing-msg').textContent = st.voiceMute ? 'Gesang ist aus. Der Song spielt nur mit Musik, auch beim Export als WAV oder MP3.' : 'Gesang ist wieder an.'; };
+  $('#sing-mute').addEventListener('click', window.toggleVoiceMute);
+  const vb = document.getElementById('btn-vplay'); if (vb && !document.getElementById('btn-vmute')) { const nb = document.createElement('button'); nb.id = 'btn-vmute'; nb.addEventListener('click', window.toggleVoiceMute); vb.parentNode.insertBefore(nb, vb.nextSibling); }
+  syncMute();
   $('#sing-solo').addEventListener('click', soloPlay);
   $('#sing-song').addEventListener('click', () => { soloStop(); $('#btn-vplay').click(); });
   $$('#sing-tune button').forEach(b => b.addEventListener('click', () => setTune(b.dataset.tune)));
