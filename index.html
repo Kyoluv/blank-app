@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 57</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 58</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2460,7 +2460,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const sticky = $('#sticky');
   // 2) Sprungmarken
   const jump = document.createElement('div'); jump.id = 'jump';
-  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎤 Gesang', 'c-sing'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
     const b = document.createElement('button'); b.textContent = t;
     b.addEventListener('click', () => {
       const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
@@ -2696,6 +2696,172 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
     msg('✍️ Wie wäre es mit: „' + t + '“'); $('#ki-useTitle').style.display = ''; $('#ki-useTitle').dataset.t = t;
   });
   $('#ki-useTitle').addEventListener('click', () => { const t = $('#ki-useTitle').dataset.t; const p = $('#proj-name'); if (p) { p.value = t; p.dispatchEvent(new Event('input', { bubbles: true })); } msg('📝 Übernommen: „' + t + '“ (steht jetzt bei „Speichern“ als Name).'); });
+})();
+
+/* ---------- Text zu Gesang (Formant-Synthese, offline) ---------- */
+const SING = (function () {
+  const V = { a: [800, 1200, 2800], e: [500, 1900, 2600], i: [300, 2300, 3000], o: [500, 900, 2600], u: [320, 800, 2500], ae: [650, 1700, 2600], oe: [450, 1500, 2500], ue: [300, 1700, 2300], sw: [500, 1500, 2500], uh: [700, 1200, 2600] };
+  const isV = c => 'aeiouäöüy'.includes(c);
+  const NOISE = { s: [6800, 1, 0.5], sh: [3500, 1.2, 0.45], f: [5200, 0.5, 0.22], ch: [4300, 1, 0.35], h: [1800, 0.7, 0.15], th: [5500, 0.5, 0.18] };
+  const PLO = { p: 900, t: 4500, k: 2200 };
+  const VC = { m: [[250, 1000, 2400], 0.5], n: [[250, 1500, 2500], 0.5], ng: [[250, 1900, 2600], 0.5], l: [[350, 1100, 2900], 0.7], r: [[400, 1300, 1700], 0.7], j: [[300, 2300, 3000], 0.7], w: [[300, 800, 2300], 0.6], v: [[300, 900, 2300], 0.5], z: [[250, 1200, 2500], 0.4] };
+  function detect(t) {
+    const x = ' ' + t.toLowerCase() + ' ', de = (x.match(/[äöüß]|sch|ei|eu|ich | und | der | die | das | nicht | du | ein |ung /g) || []).length, en = (x.match(/ the | and | you | i | is | to | my | love |th|ough|ing /g) || []).length;
+    return de >= en ? 'de' : 'en';
+  }
+  function g2p(w, lang) {
+    const de = lang === 'de'; w = w.toLowerCase().replace(/ß/g, 'ss').replace(/[^a-zäöü]/g, ''); const out = []; let i = 0;
+    const T = (k, o) => out.push(Object.assign({ k }, o));
+    const nv = s => i + s.length <= w.length && w.substr(i, s.length) === s;
+    if (!de) { if (w.startsWith('kn')) w = w.slice(1); if (w.startsWith('wr')) w = w.slice(1); }
+    if (!de && w.length > 2 && w.endsWith('e') && !isV(w[w.length - 2]) && /[aeiouy]/.test(w.slice(0, -1))) w = w.slice(0, -1);
+    while (i < w.length) {
+      const c = w[i], nx = w[i + 1] || '';
+      let m;
+      if (nv('sch')) { T('n', { n: 'sh' }); i += 3; continue; }
+      if (nv('tsch')) { T('p', { p: 't' }); T('n', { n: 'sh' }); i += 4; continue; }
+      if (nv('tion') && !de) { T('n', { n: 'sh' }); T('v', { f: V.sw }); T('c', { c: 'n' }); i += 4; continue; }
+      if (nv('ch')) { if (de) T('n', { n: 'ch' }); else { T('p', { p: 't' }); T('n', { n: 'sh' }); } i += 2; continue; }
+      if (nv('sh')) { T('n', { n: 'sh' }); i += 2; continue; }
+      if (nv('ck')) { T('p', { p: 'k' }); i += 2; continue; }
+      if (nv('ph')) { T('n', { n: 'f' }); i += 2; continue; }
+      if (nv('th')) { if (de) T('p', { p: 't' }); else T('n', { n: 'th' }); i += 2; continue; }
+      if (nv('qu')) { T('p', { p: 'k' }); T('c', { c: 'w' }); i += 2; continue; }
+      if (nv('ng')) { T('c', { c: 'ng' }); i += 2; continue; }
+      if (nv('gh') && !de) { i += 2; continue; }
+      if (nv('wh') && !de) { T('c', { c: 'w' }); i += 2; continue; }
+      if (c === 'h' && i > 0 && isV(w[i - 1])) { i++; continue; }
+      if (i === 0 && de && (nv('sp') || nv('st'))) { T('n', { n: 'sh' }); i++; continue; }
+      // Selbstlaute
+      if (de) {
+        if (nv('ei') || nv('ai') || nv('ey') || nv('ay')) { T('v', { f: V.a, f2: V.i }); i += 2; continue; }
+        if (nv('eu') || nv('äu') || nv('oi')) { T('v', { f: V.o, f2: V.ue }); i += 2; continue; }
+        if (nv('au')) { T('v', { f: V.a, f2: V.u }); i += 2; continue; }
+        if (nv('ie') || nv('ee') || nv('aa') || nv('oo') || nv('uu')) { T('v', { f: V[c === 'i' ? 'i' : c] }); i += 2; continue; }
+        if (c === 'e' && (i === w.length - 1 && w.length > 2 || (nv('er') && i === w.length - 2) || (nv('en') && i === w.length - 2) || (nv('el') && i === w.length - 2))) { T('v', { f: V.sw }); i++; if (nv('r')) { i++; } continue; }
+        if (c === 'e') { T('v', { f: V.e }); i++; continue; } if (c === 'a') { T('v', { f: V.a }); i++; continue; } if (c === 'i') { T('v', { f: V.i }); i++; continue; }
+        if (c === 'o') { T('v', { f: V.o }); i++; continue; } if (c === 'u') { T('v', { f: V.u }); i++; continue; }
+        if (c === 'ä') { T('v', { f: V.ae }); i++; continue; } if (c === 'ö') { T('v', { f: V.oe }); i++; continue; } if (c === 'ü' || c === 'y') { T('v', { f: V.ue }); i++; continue; }
+      } else {
+        if (nv('ee') || nv('ea') || nv('ie')) { T('v', { f: V.i }); i += 2; continue; }
+        if (nv('oo')) { T('v', { f: V.u }); i += 2; continue; }
+        if (nv('ou') || nv('ow')) { T('v', { f: V.a, f2: V.u }); i += 2; continue; }
+        if (nv('oa') || nv('oe')) { T('v', { f: V.o }); i += 2; continue; }
+        if (nv('ai') || nv('ay') || nv('ei') || nv('ey')) { T('v', { f: V.e, f2: V.i }); i += 2; continue; }
+        if (nv('oi') || nv('oy')) { T('v', { f: V.o, f2: V.i }); i += 2; continue; }
+        if (nv('igh')) { T('v', { f: V.a, f2: V.i }); i += 3; continue; }
+        if (nv('ir') || nv('er') || nv('ur')) { T('v', { f: V.sw }); i += 2; continue; }
+        if (c === 'a') { T('v', { f: V.ae }); i++; continue; } if (c === 'e') { T('v', { f: V.e }); i++; continue; } if (c === 'i') { T('v', { f: V.i }); i++; continue; }
+        if (c === 'o') { T('v', { f: V.o }); i++; continue; } if (c === 'u') { T('v', { f: V.uh }); i++; continue; }
+        if (c === 'y') { if (i === 0) T('c', { c: 'j' }); else T('v', { f: V.i }); i++; continue; }
+      }
+      // Mitlaute
+      if (c === nx && 'bcdfgklmnprstz'.includes(c)) { i++; continue; }
+      if ('bdg'.includes(c)) { T('p', { p: c === 'b' ? 'p' : c === 'd' ? 't' : 'k', vc: true }); }
+      else if ('ptk'.includes(c)) T('p', { p: c });
+      else if (c === 'c') { if (!de && 'eiy'.includes(nx)) T('n', { n: 's' }); else T('p', { p: 'k' }); }
+      else if (c === 'f') T('n', { n: 'f' });
+      else if (c === 'v') { if (de) T('n', { n: 'f' }); else T('c', { c: 'v' }); }
+      else if (c === 'w') T('c', { c: de ? 'v' : 'w' });
+      else if (c === 's') { if (isV(nx) && (i === 0 || isV(w[i - 1]) || !de)) T('n', { n: 's', vc: true }); else T('n', { n: 's' }); }
+      else if (c === 'z') { if (de) { T('p', { p: 't' }); T('n', { n: 's' }); } else T('n', { n: 's', vc: true }); }
+      else if (c === 'x') { T('p', { p: 'k' }); T('n', { n: 's' }); }
+      else if (c === 'j') { if (de) T('c', { c: 'j' }); else { T('p', { p: 't' }); T('n', { n: 'sh' }); } }
+      else if (c === 'h') T('n', { n: 'h' });
+      else if ('mnlr'.includes(c)) T('c', { c });
+      i++;
+    }
+    return out;
+  }
+  function syllables(text, lang) {
+    const syl = [], lines = text.replace(/\r/g, '').split(/(\n|[.!?;,:])/);
+    lines.forEach(seg => {
+      if (seg === '\n' || /^[.!?;:]$/.test(seg)) { syl.push({ pause: 2 }); return; } if (seg === ',') { syl.push({ pause: 1 }); return; }
+      const words = seg.split(/\s+/).filter(w => /[a-zA-ZäöüÄÖÜß]/.test(w));
+      words.forEach((w, wi) => {
+        const l = lang === 'auto' ? detect(text) : lang, tk = g2p(w, l); if (!tk.length) return;
+        const vi = []; tk.forEach((t, k) => { if (t.k === 'v') vi.push(k); });
+        if (!vi.length) { tk.push({ k: 'v', f: V.sw }); vi.push(tk.length - 1); }
+        const parts = vi.map(() => ({ on: [], nuc: null, coda: [] }));
+        const first = tk.slice(0, vi[0]); parts[0].on = first;
+        for (let s = 0; s < vi.length; s++) {
+          parts[s].nuc = tk[vi[s]];
+          const run = tk.slice(vi[s] + 1, s + 1 < vi.length ? vi[s + 1] : tk.length);
+          if (s + 1 === vi.length) { parts[s].coda = run; }
+          else if (run.length <= 1) { parts[s + 1].on = run; }
+          else { const a = run[run.length - 2], b = run[run.length - 1], two = (a.k === 'p' && b.k === 'c' && 'lr'.includes(b.c)) || (a.k === 'n' && (a.n === 'sh' || a.n === 's') && b.k === 'p'); const cut = two ? run.length - 2 : run.length - 1; parts[s].coda = run.slice(0, cut); parts[s + 1].on = run.slice(cut); }
+        }
+        parts.forEach((p, pi) => { p.wordEnd = pi === parts.length - 1; syl.push(p); });
+      });
+      if (words.length) syl.push({ lineEnd: true });
+    });
+    return syl.filter((s, i, a) => !(s.lineEnd && false));
+  }
+  async function render(text, lang, voice, notesDeg, sc, bpm) {
+    const sr = 44100, u = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
+    const ev = []; let t = 0.15, ni = 0, ri = 0, lastWordEnd = null;
+    const cfg = { male: { med: 135, fs: 0.9, vib: 14, port: 0.03 }, female: { med: 260, fs: 1.14, vib: 20, port: 0.03 }, robot: { med: 160, fs: 1, vib: 0, port: 0.002 } }[voice] || { med: 135, fs: 0.9, vib: 14, port: 0.03 };
+    const freqs = notesDeg.map(d => noteFreq(sc, d, 0)), srt = freqs.slice().sort((a, b) => a - b), med = srt[srt.length >> 1], sh = Math.pow(2, Math.round(Math.log2(cfg.med / med)));
+    const fOf = k => { let f = freqs[k % freqs.length] * sh; while (f > 700) f /= 2; while (f < 70) f *= 2; return f; };
+    sy.forEach((s, idx) => {
+      if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
+      let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
+      const d = units * u; ev.push({ s, t, d, f: fOf(ni++) }); t += d;
+    });
+    const T = t + 0.6, oc = new (OAC_())(1, Math.ceil(T * sr), sr), mk = v => { const g = oc.createGain(); g.gain.value = v; return g; };
+    const osc = oc.createOscillator(); osc.type = 'sawtooth'; const lfo = oc.createOscillator(), lg = mk(cfg.vib); lfo.frequency.value = 5.3; lfo.connect(lg).connect(osc.detune);
+    const vamp = mk(0), out = mk(1), fl = [0, 1, 2].map(k => { const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.Q.value = [9, 11, 13][k]; const g = mk([1, 0.7, 0.4][k]); osc.connect(b); b.connect(g).connect(vamp); return b; });
+    vamp.connect(out); out.connect(oc.destination);
+    const nbuf = oc.createBuffer(1, sr * 2, sr), nd = nbuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = oc.createBufferSource(); ns.buffer = nbuf; ns.loop = true; const nbp = oc.createBiquadFilter(); nbp.type = 'bandpass'; const ng = mk(0); ns.connect(nbp).connect(ng).connect(out);
+    osc.frequency.value = 130; osc.start(0); lfo.start(0); ns.start(0);
+    const setF = (F, at, tc) => F.forEach((v, k) => fl[k].frequency.setTargetAtTime(v * cfg.fs, at, tc));
+    ev.forEach(e => {
+      const on = e.s.on, co = e.s.coda; let cons = 0; const dur = x => (x.k === 'n' ? 0.08 : x.k === 'p' ? 0.045 : 0.05);
+      on.concat(co).forEach(x => { cons += dur(x); }); const sc2 = Math.min(1, (e.d * 0.5) / Math.max(0.001, cons)); let pos = e.t;
+      osc.frequency.setTargetAtTime(e.f, Math.max(0, e.t - 0.02), cfg.port);
+      const unv = (x, at, d2) => {
+        if (x.k === 'n') { const [fr, q, a] = NOISE[x.n]; nbp.frequency.setValueAtTime(fr, at); nbp.Q.setValueAtTime(q, at); ng.gain.setTargetAtTime(a * (x.vc ? 0.6 : 1), at, 0.005); ng.gain.setTargetAtTime(0, at + d2, 0.008); if (x.vc) { setF([250, 1200, 2500], at, 0.01); vamp.gain.setTargetAtTime(0.25, at, 0.01); vamp.gain.setTargetAtTime(0, at + d2, 0.01); } }
+        else { const clo = d2 * 0.55; nbp.frequency.setValueAtTime(PLO[x.p], at + clo); nbp.Q.setValueAtTime(1.2, at + clo); ng.gain.setTargetAtTime(0.5, at + clo, 0.002); ng.gain.setTargetAtTime(0, at + d2, 0.006); if (x.vc) { setF([250, 900, 2400], at, 0.01); vamp.gain.setTargetAtTime(0.22, at, 0.008); vamp.gain.setTargetAtTime(0, at + clo, 0.006); } }
+      };
+      const voc = (x, at, d2) => { const [F, a] = VC[x.c] || VC.n; setF(F, at, 0.012); vamp.gain.setTargetAtTime(a, at, 0.01); };
+      on.forEach(x => { const d2 = dur(x) * sc2; if (x.k === 'c') voc(x, pos, d2); else unv(x, pos, d2); pos += d2; });
+      let cEnd = e.t + e.d; const codaD = co.reduce((a, x) => a + dur(x) * sc2, 0), nEnd = cEnd - codaD - 0.01;
+      const nucD = Math.max(0.06, nEnd - pos); setF(e.s.nuc.f, pos, 0.015); vamp.gain.setTargetAtTime(1, pos, 0.02);
+      if (e.s.nuc.f2) { setF(e.s.nuc.f2, pos + nucD * 0.45, 0.07); }
+      let p2 = nEnd; vamp.gain.setTargetAtTime(co.length ? 0.5 : 0, nEnd, 0.025);
+      co.forEach(x => { const d2 = dur(x) * sc2; if (x.k === 'c') { voc(x, p2, d2); } else unv(x, p2, d2); p2 += d2; });
+      vamp.gain.setTargetAtTime(0, Math.min(cEnd - 0.012, p2), 0.012);
+    });
+    const buf = await oc.startRendering(), data = new Float32Array(buf.getChannelData(0)); let pk = 0; for (let i = 0; i < data.length; i += 2) pk = Math.max(pk, Math.abs(data[i])); if (pk > 0) { const k = 0.8 / pk; for (let i = 0; i < data.length; i++) data[i] *= k; }
+    return { data, sr, syl: ev.length };
+  }
+  return { render, detect, syllables };
+})();
+(function singCard() {
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-sing'; card.style.padding = '10px';
+  card.innerHTML = `<div class="label"><span>🎤 Text zu Gesang</span></div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Schreibe einen Text auf Deutsch oder Englisch. Die App singt ihn zur Melodie deines Songs. Das klingt wie eine Computerstimme.</div>
+  <textarea id="sing-txt" rows="4" maxlength="400" placeholder="Zum Beispiel: Heute Nacht tanzen wir bis zum Morgen&#10;Oder: We dance all night under the stars" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;"></textarea>
+  <div class="mixgrid" style="margin-top:8px;"><label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
+  <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option><option value="robot">Roboter</option></select></div>
+  <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎶 Text singen lassen</button>
+  <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
+  const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  $('#sing-go').addEventListener('click', async () => {
+    const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
+    if (!txt) { msg('Schreibe zuerst einen Text.'); return; }
+    msg('🎤 Ich übe den Text …'); $('#sing-go').disabled = true; await new Promise(r => setTimeout(r, 30));
+    try {
+      let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
+      const lang = $('#sing-lang').value, r = await SING.render(txt, lang, $('#sing-voice').value, notes, SCALES[st.scaleIdx], st.bpm);
+      if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; await renderVoice(); refreshVoiceUI();
+      const l = lang === 'auto' ? SING.detect(txt) : lang;
+      msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}. Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. Er spielt bei „Ganzen Song spielen“ mit.`);
+      $('#btn-vplay').click();
+    } catch (e) { msg('Das hat nicht geklappt: ' + e.message); }
+    $('#sing-go').disabled = false;
+  });
 })();
 
 </script>
