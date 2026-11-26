@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 98</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 99</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -525,10 +525,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 </div>
 
 <div class="card" id="c-clear" style="padding:10px;margin-top:8px;">
+  <div class="label"><span>🗑 Aufräumen (löschen / zurücksetzen)</span></div>
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 98</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -3699,7 +3699,8 @@ function setWorld(id, quiet, off) {
   css.textContent = `
   .card { scroll-margin-top: 112px; }
   body.dense .card { margin-bottom: 8px; }
-  body.dense .card > .label { padding: 9px 12px; font-size: .78rem; }
+  body.dense .card > .label { padding: 6px 12px; min-height: 36px; font-size: .76rem; letter-spacing: .4px; }
+  body.dense .card { margin-bottom: 5px; }
   body.dense .card:not(.shut) > .label { margin-bottom: 6px; }
   body.dense .card > .cbody { padding: 0 10px 10px; }
   body.dense .cbody > div[style*="font-size:.72rem"], body.dense .cbody > .help, body.dense .cbody > p.hint { display: none; }
@@ -3708,7 +3709,11 @@ function setWorld(id, quiet, off) {
   body.dense .sec { margin: 12px 0 6px; }
   body.dense .sec small { display: none; }
   #cbar { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
-  #cbar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } #cbar button { padding: 8px 4px; font-size: .74rem; }
+  #cbar { display: grid; grid-template-columns: .7fr .7fr 1.3fr 1.3fr; gap: 5px; margin: 4px 0; } #cbar button { padding: 6px 2px; font-size: .68rem; min-height: 34px; white-space: nowrap; }
+  body.dense #c-style .cbody button, body.dense #c-pad .cbody button, body.dense #c-song .cbody button, body.dense #c-save .cbody button, body.dense #c-clear .cbody button { min-height: 36px; padding-top: 6px; padding-bottom: 6px; }
+  body.dense #c-style .cbody > div { margin-top: 4px; }
+  body.dense #pagehead { padding-bottom: 0; } body.dense #pagehead header { margin-bottom: 4px; }
+  body.dense #topbar { margin: 4px 0 !important; } body.dense #topbar button { padding: 5px !important; }
   #mini { font-size: .72rem; color: var(--muted); padding: 0 4px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   `;
   document.head.appendChild(css);
@@ -3736,12 +3741,12 @@ function setWorld(id, quiet, off) {
   const onScroll = () => { mini.style.display = window.scrollY > 110 ? 'block' : 'none'; }; window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
   // Leiste mit Schaltern: Kompakt-Modus und "nur eine Karte offen"
   const bar = document.createElement('div'); bar.id = 'cbar'; bar.innerHTML = '<button id="t-dense"></button><button id="t-acc"></button>';
-  const fb = document.getElementById('fold-all'), fn = document.getElementById('fold-none'); if (fb) { const old = fb.parentNode; old.after(bar); bar.prepend(fb, fn); fb.textContent = '▾ Alle auf'; fn.textContent = '▸ Alle zu'; old.remove(); } else document.getElementById('c-clear').before(bar);
+  const fb = document.getElementById('fold-all'), fn = document.getElementById('fold-none'); if (fb) { const old = fb.parentNode; old.after(bar); bar.prepend(fb, fn); fb.textContent = '▾ Auf'; fn.textContent = '▸ Zu'; old.remove(); } else document.getElementById('c-clear').before(bar);
   let dense = lsGet('musify-dense') !== '0', acc = lsGet('musify-acc') !== '0';
-  const paint = () => { document.body.classList.toggle('dense', dense); document.getElementById('t-dense').textContent = dense ? '📏 Kompakt: AN' : '📏 Kompakt: aus'; document.getElementById('t-acc').textContent = acc ? '☝ Eine Karte offen: AN' : '☝ Eine Karte offen: aus'; document.getElementById('t-dense').classList.toggle('active-pink', dense); document.getElementById('t-acc').classList.toggle('active-pink', acc); };
+  const paint = () => { document.body.classList.toggle('dense', dense); document.getElementById('t-dense').textContent = dense ? '📏 Kompakt AN' : '📏 Kompakt aus'; document.getElementById('t-acc').textContent = acc ? '☝ 1 Karte offen' : '☝ Alle frei'; document.getElementById('t-dense').classList.toggle('active-pink', dense); document.getElementById('t-acc').classList.toggle('active-pink', acc); };
   document.getElementById('t-dense').addEventListener('click', () => { dense = !dense; lsSet('musify-dense', dense ? '1' : '0'); paint(); });
   document.getElementById('t-acc').addEventListener('click', () => { acc = !acc; lsSet('musify-acc', acc ? '1' : '0'); paint(); });
-  { const cl = document.getElementById('c-clear'); if (cl) bar.after(cl); }
+  foldify('c-clear', 'save', true);
   paint();
   // Akkordeon: beim Öffnen einer Karte werden die anderen im selben Abschnitt zugeklappt
   const _so = setOpen;
