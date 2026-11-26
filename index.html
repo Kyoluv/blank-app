@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 93</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 94</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 93</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 94</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2571,7 +2571,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const sticky = $('#sticky');
   // 2) Sprungmarken
   const jump = document.createElement('div'); jump.id = 'jump';
-  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🧬 Evolution', 'c-evo'], ['🎚 Regler', 'c-sliders'], ['🎛 Live-FX', 'c-fx'], ['🎧 DJ', 'c-dj'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🎭 Stimmung', 'c-mood'], ['🎹 Jam', 'c-jam'], ['🎙 Beatbox', 'c-bbox'], ['🧬 Evolution', 'c-evo'], ['🎚 Regler', 'c-sliders'], ['🎛 Live-FX', 'c-fx'], ['🎧 DJ', 'c-dj'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
     const b = document.createElement('button'); b.textContent = t;
     b.addEventListener('click', () => {
       const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=93'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=94'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=93'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=94'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3496,6 +3496,117 @@ function setWorld(id, quiet, off) {
   const fillSlots = () => { const sel = document.getElementById('evo-slot'); sel.innerHTML = slots.map((s, i) => '<option value="' + i + '"' + (s ? '' : ' disabled') + '>' + (s ? '💾 Slot ' + (i + 1) + ' (' + STYLES[s.style].name.split(' ')[0] + ')' : 'Slot ' + (i + 1) + ' leer') + '</option>').join(''); const f = slots.findIndex(x => x); if (f >= 0) sel.value = f; };
   fillSlots(); document.getElementById('evo-slot').addEventListener('focus', fillSlots); document.getElementById('evo-slot').addEventListener('pointerdown', fillSlots);
   document.getElementById('evo-x').addEventListener('click', () => { fillSlots(); const i = +document.getElementById('evo-slot').value, b = slots[i]; if (!b) { msg('Speichere zuerst einen Song in einem Slot (Slot-Knopf lange drücken). Dann kannst du ihn mit dem aktuellen Song kreuzen.'); return; } if (!parent) parent = dna(); document.getElementById('evo-back').hidden = false; const a = dna(); kids = Array.from({ length: 6 }, () => cross(a, b)); cur = -1; show(); msg('Sechs Mischungen aus deinem Song und Slot ' + (i + 1) + '. Tippe eins an.'); });
+})();
+
+
+/* ---------- v94: Stimmung & Geschichte, Jam-Pad, Beatbox ---------- */
+(function v94() {
+  const pk = a => a[Math.floor(Math.random() * a.length)], clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const FASTS = ['techno', 'berlin', 'dnb', 'phonk', 'y2010'], BRIGHT = ['dance', 'euro90', 'y2000'], WARM = ['summer', 'afro', 'y2020', 'reggaeton'], SLOWS = ['lofi', 'synth80', 'schlager', 's60'];
+  const MINOR = [4, 5, 7, 0, 6], MIDS = [11, 12, 0, 6], MAJOR = [1, 9, 8, 2, 13];
+  function applyMood(v, e, extra) {
+    extra = extra || {}; undoPoint();
+    const pool = v < 0.34 ? MINOR : v < 0.67 ? MIDS : MAJOR;
+    const sty = extra.style || (v < 0.45 ? (e > 0.6 ? pk(FASTS) : pk(SLOWS)) : (e > 0.6 ? pk(BRIGHT) : pk(WARM)));
+    setStyle(STYLES[sty] ? sty : 'dance', true);
+    st.bpm = Math.round(clamp(72 + e * 58 + v * 14, 70, 165)); $('#bpm-slider').value = st.bpm; $('#bpm-val').textContent = st.bpm;
+    st.scaleIdx = pk(pool); st.scaleLock = true; st.chordA = null; st.chordB = null; st.beat = null; st.melodyLock = false; st.seed = (Math.random() * 4294967295) >>> 0;
+    const M = { drums: 0.25 + 0.7 * e, bass: 0.5 + 0.4 * e, pad: clamp(0.52 - 0.28 * e, 0.12, 0.55), hall: clamp(0.8 - 0.5 * e - 0.15 * v, 0.1, 0.9), pump: 0.1 + 0.7 * e * (0.5 + v * 0.5), tone: 0.25 + 0.65 * (v * 0.6 + e * 0.4), lead: 0.5 + 0.35 * v, vary: 0.3 + 0.4 * e };
+    Object.keys(M).forEach(k => setMix(k, clamp(M[k], 0, 1)));
+    st.leadType = extra.lead || (v < 0.3 ? pk(['bell', 'marimba']) : v < 0.6 ? pk(['pluck', 'brass', 'marimba']) : e > 0.6 ? pk(['supersaw', 'square', 'pluck']) : pk(['pluck', 'bell']));
+    st.padWave = v < 0.4 ? pk(['sine', 'triangle']) : pk(['sawtooth', 'triangle']);
+    const fx = extra.fx || (v < 0.3 && e < 0.6 ? ['echo'] : e > 0.75 ? [pk(['gate', 'arp'])] : v > 0.7 && e > 0.5 ? ['arp'] : []);
+    ['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, fx.includes(k)); });
+    if (typeof setWorld === 'function' && !st.worldOff) setWorld(extra.world != null ? extra.world : (v < 0.25 && e < 0.4 ? 1 : v > 0.75 && e < 0.5 ? 7 : 0));
+    try { setLive([]); } catch (x) {}
+    if (extra.form) { st.form = extra.form; const sf = $('#song-form'); if (sf) sf.value = extra.form; if (!(st.playing && st.songMode)) setForm(activeForm()); }
+    regen(); renderBeat(); renderChords(); renderAllRolls(); renderEditor(); updateStatus(); refreshNotesMsg();
+  }
+  const moodName = (v, e) => (v < 0.25 ? 'traurig' : v < 0.45 ? 'wehmütig' : v < 0.65 ? 'neutral' : v < 0.85 ? 'fröhlich' : 'euphorisch') + ', ' + (e < 0.3 ? 'sehr ruhig' : e < 0.55 ? 'ruhig' : e < 0.8 ? 'kraftvoll' : 'explosiv');
+  // ===== Karte Stimmung & Geschichte =====
+  const STORY = [
+    [/regen|tr(ä|ae)ne|weinen|traurig|einsam|allein|abschied|vermiss|rain|tears|lonely|sad|goodbye/, 0.12, 0.25, 'sad'], [/nacht|dunkel|mond|schatten|night|dark|moon/, 0.3, 0.35, 'night'],
+    [/sommer|sonne|strand|urlaub|meer|summer|sun|beach|holiday/, 0.88, 0.6, 'sun'], [/party|tanz|feier|club|disco|dance|celebrat/, 0.85, 0.9, 'party'], [/liebe|herz|kuss|verliebt|love|heart|kiss/, 0.7, 0.45, 'love'],
+    [/weltall|raum|stern|galaxie|planet|space|star|galaxy|cosmos/, 0.5, 0.35, 'space'], [/roboter|zukunft|maschine|computer|cyber|robot|future|machine/, 0.45, 0.7, 'robot'],
+    [/held|kampf|krieg|schlacht|drache|sieg|epic|hero|battle|war|dragon|victory/, 0.4, 0.85, 'epic'], [/wald|natur|berg|fluss|see|forest|nature|mountain|river|lake/, 0.62, 0.3, 'nature'],
+    [/stadt|auto|nacht.*stadt|neon|city|street|neon|taxi/, 0.45, 0.6, 'city'], [/retro|80er|achtziger|nostalg|vintage|oldschool|80s/, 0.6, 0.55, 'retro'], [/traum|schlaf|wolke|ruhe|entspann|dream|sleep|cloud|calm|relax/, 0.55, 0.15, 'dream'],
+    [/wut|hass|angst|gefahr|rage|hate|fear|danger/, 0.15, 0.9, 'rage'], [/gl(ü|ue)ck|freude|lachen|frei|happy|joy|laugh|free/, 0.92, 0.65, 'joy'], [/zirkus|jahrmarkt|clown|circus|fair/, 0.8, 0.6, 'circus']
+  ];
+  const TAGX = { space: { world: 7, fx: ['echo'], style: 'synth80', lead: 'bell' }, robot: { world: 3, fx: ['arp'], style: 'techno', lead: 'square' }, epic: { world: 6, form: 'bridge', lead: 'brass' }, retro: { style: 'synth80', world: 10 }, dream: { world: 6, fx: ['echo'], lead: 'bell' }, rage: { world: 9, style: 'phonk' }, sad: { world: 1 }, party: { style: 'dance', fx: ['gate'] }, sun: { style: 'summer', lead: 'marimba' }, circus: { style: 'tw20', lead: 'brass' }, nature: { world: 2, lead: 'marimba' }, night: { world: 9 }, city: { style: 'y2000' }, love: { style: 'disco70' }, joy: { fx: ['arp'] } };
+  function story(text) {
+    const t = text.toLowerCase(); let sv = 0, se = 0, n = 0; const tags = [];
+    STORY.forEach(([re, v, e, tag]) => { if (re.test(t)) { sv += v; se += e; n++; tags.push(tag); } });
+    const v = n ? sv / n : 0.5, e = n ? se / n : 0.5, extra = {}; tags.forEach(g => { const x = TAGX[g]; if (x) Object.keys(x).forEach(k => { if (extra[k] == null) extra[k] = x[k]; }); });
+    if (extra.style && !STYLES[extra.style]) delete extra.style;
+    applyMood(v, e, extra);
+    const sl = document.getElementById('md-v'), el = document.getElementById('md-e'); if (sl) sl.value = Math.round(v * 100); if (el) el.value = Math.round(e * 100);
+    const title = text.trim().replace(/\s+/g, ' ').replace(/^./, c => c.toUpperCase()), tx = document.getElementById('sing-txt'); if (tx && !tx.value.trim() && title) tx.value = title + '\n' + title;
+    return { v, e, tags, title, n };
+  }
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-mood'; card.style.padding = '10px';
+  card.innerHTML = '<div class="label"><span>🎭 Stimmung & Geschichte</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Schiebe die Regler oder erzähle eine Geschichte. Die App baut Tonart, Tempo, Klang und Effekte passend dazu.</div>'
+    + '<div class="mixgrid"><label>😢 ↔ 🤩 Stimmung</label><input type="range" id="md-v" min="0" max="100" value="50"><label>😴 ↔ 💥 Energie</label><input type="range" id="md-e" min="0" max="100" value="50"></div><div id="md-now" style="font-size:.78rem;color:var(--gold);margin:4px 0 8px;min-height:1.2em;"></div>'
+    + '<input id="st-in" type="text" maxlength="80" placeholder="Eine Geschichte, z. B. Regen in der Stadt, Strandparty, Raumschiff im Weltall" style="width:100%;padding:12px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;user-select:text;"><button id="st-go" class="sunset-btn" style="width:100%;margin-top:8px;">📖 Song zur Geschichte bauen</button><div id="st-msg" style="font-size:.78rem;margin-top:8px;line-height:1.4;"></div>';
+  const anchor = document.getElementById('c-evo') || document.getElementById('c-world'); anchor.parentNode.insertBefore(card, anchor);
+  const mv = document.getElementById('md-v'), me = document.getElementById('md-e'), now = document.getElementById('md-now');
+  const run = () => { const v = +mv.value / 100, e = +me.value / 100; applyMood(v, e); now.textContent = 'Jetzt: ' + moodName(v, e) + ' · ' + Math.round(st.bpm) + ' BPM · ' + SCALES[st.scaleIdx].name + ' · ' + STYLES[st.style].name; if (!st.playing) document.getElementById('btn-play').click(); };
+  mv.addEventListener('change', run); me.addEventListener('change', run);
+  document.getElementById('st-go').addEventListener('click', () => { const txt = document.getElementById('st-in').value.trim(), m = document.getElementById('st-msg'); if (!txt) { m.textContent = 'Schreibe zuerst eine kurze Geschichte oder ein Thema.'; return; } const r = story(txt);
+    m.innerHTML = r.n ? 'Erkannt: <b>' + r.tags.join(', ') + '</b>. Das klingt ' + moodName(r.v, r.e) + '. Die App hat ' + Math.round(st.bpm) + ' BPM, ' + SCALES[st.scaleIdx].name + ' und den Stil ' + STYLES[st.style].name + ' gewählt. Dein Titel steht als Refrain auf der Gesangskarte.' : 'Ich kenne keines dieser Wörter, deshalb ist es neutral geworden. Probiere Wörter wie Regen, Nacht, Sommer, Party, Liebe, Weltall, Roboter, Held, Wald, Traum.';
+    now.textContent = 'Jetzt: ' + moodName(r.v, r.e); if (!st.playing) document.getElementById('btn-play').click(); });
+  window.__story = story;
+  // ===== Jam-Pad =====
+  const jc = document.createElement('div'); jc.className = 'card'; jc.id = 'c-jam'; jc.style.padding = '10px';
+  jc.innerHTML = '<div class="label"><span>🎹 Jam-Pad (live spielen)</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Tippe die Felder wie ein Instrument. Die Töne passen immer zur Tonart des Songs. Mehrere Finger gehen gleichzeitig.</div><label style="display:flex;gap:8px;align-items:center;font-size:.8rem;margin-bottom:8px;"><input type="checkbox" id="jam-q" checked> Im Takt einrasten (wenn der Song läuft)</label><div id="jam-grid"></div>';
+  anchor.parentNode.insertBefore(jc, anchor);
+  const ROWS = [['🎵 Melodie', 'lead', [7, 6, 5, 4, 3, 2, 1, 0, 7]], ['🎼 Akkorde', 'chord', [0, 1, 2, 3, 4, 5, 6]], ['🔊 Bass', 'bass', [0, 1, 2, 3, 4, 5, 6, 7]]];
+  const jg = document.getElementById('jam-grid'); jg.style.cssText = 'display:grid;gap:6px;touch-action:none;';
+  const degName = d => { const sc = SCALES[st.scaleIdx], i = ((d % 7) + 7) % 7; return NOTE_NAMES[(sc.rs + sc.notes[i]) % 12]; };
+  ROWS.forEach(([lbl, kind, degs]) => { const lab = document.createElement('div'); lab.style.cssText = 'font-size:.7rem;color:var(--muted);'; lab.textContent = lbl; jg.appendChild(lab); const row = document.createElement('div'); row.style.cssText = 'display:grid;gap:5px;grid-template-columns:repeat(' + (kind === 'chord' ? 7 : 8) + ',1fr);';
+    (kind === 'lead' ? [0, 1, 2, 3, 4, 5, 6, 7] : degs).forEach(d0 => { const b = document.createElement('button'); b.className = 'oct-btn jam'; b.dataset.k = kind; b.dataset.d = kind === 'lead' ? d0 : d0; b.style.cssText = 'padding:16px 0;font-weight:700;touch-action:none;user-select:none;' + (kind === 'chord' ? 'border-color:#7c5cff;' : kind === 'bass' ? 'border-color:#ff7a45;' : 'border-color:#18d4ff;'); row.appendChild(b); }); jg.appendChild(row); });
+  const relabel = () => { jg.querySelectorAll('.jam').forEach(b => { const d = +b.dataset.d; b.textContent = degName(d) + (b.dataset.k === 'chord' ? ['', 'm', 'm', '', '', 'm', '°'][d] ? '' : '' : ''); }); };
+  setInterval(relabel, 1500); relabel();
+  const grid = t0 => { if (!document.getElementById('jam-q').checked || !st.playing || typeof songT0 === 'undefined') return t0; const step = 60 / st.bpm / 4, k = Math.ceil((t0 - songT0) / step - 0.2); return Math.max(t0, songT0 + k * step); };
+  function hit(b) {
+    initAudio(); try { ctx.resume(); } catch (e) {} const sc = SCALES[st.scaleIdx], d = +b.dataset.d, t = grid(ctx.currentTime + 0.01), beat = 60 / st.bpm;
+    if (b.dataset.k === 'lead') V.lead(ctx, chain.lead, t, noteFreq(sc, d, 1), beat * 0.9, st.leadType || STYLES[st.style].leadType, leadCut(st), 0.2);
+    else if (b.dataset.k === 'chord') V.pad(ctx, chain.pad, t, [0, 2, 4].map(k => noteFreq(sc, d + k, 0)), beat * 2, 0.11, leadCut(st), st.padWave || 'sawtooth');
+    else V.bass(ctx, chain.bass, t, noteFreq(sc, d, -1), beat * 0.8, STYLES[st.style].bassType || 'saw', 0.5);
+    b.classList.add('active-pink'); setTimeout(() => b.classList.remove('active-pink'), 160); if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
+  }
+  jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); hit(b); });
+  // ===== Beatbox =====
+  const bc = document.createElement('div'); bc.className = 'card'; bc.id = 'c-bbox'; bc.style.padding = '10px';
+  bc.innerHTML = '<div class="label"><span>🎙 Beatbox-Beat</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Mach mit dem Mund einen Beat: tiefes „Bumm“ = Kick, „Tss“ = Hi-Hat, „Pff“ oder „Kah“ = Snare. Du hast 2 Takte Zeit. Fange auf dem ersten Schlag an. Stelle vorher das Tempo ein und halte das Gerät nah an den Mund.</div><button id="bb-go" class="sunset-btn" style="width:100%;">🎙 Beatbox aufnehmen (2 Takte)</button><div id="bb-msg" style="font-size:.78rem;margin-top:8px;line-height:1.4;min-height:1.2em;"></div>';
+  anchor.parentNode.insertBefore(bc, anchor);
+  function bbAnalyze(x, sr, bpm) {
+    const hop = Math.round(sr * 0.004), env = []; for (let i = 0; i + hop <= x.length; i += hop) { let sum = 0; for (let j = i; j < i + hop; j++) sum += x[j] * x[j]; env.push(Math.sqrt(sum / hop)); }
+    let mxe = 0; env.forEach(v => { if (v > mxe) mxe = v; }); if (mxe < 0.01) return { ok: false, why: 'quiet' };
+    const on = []; let last = -100, th = mxe * 0.22; for (let i = 2; i < env.length; i++) { const rise = env[i] - env[i - 2]; if (env[i] > th && rise > th * 0.6 && i - last > 12) { on.push(i); last = i; } }
+    if (on.length < 2) return { ok: false, why: 'few' };
+    const feat = on.map(i => { const a = i * hop, n = 1024, seg = x.subarray(a, Math.min(x.length, a + n)); let lo = 0, mi = 0, hi = 0, nl = 0, nm = 0, nh = 0; const bins = [70, 110, 160, 240, 400, 800, 1500, 2500, 4000, 6000, 8500];
+      bins.forEach(f => { if (f > sr / 2.2) return; let re = 0, im = 0; const w = 2 * Math.PI * f / sr; for (let k = 0; k < seg.length; k++) { const wn = 0.5 - 0.5 * Math.cos(2 * Math.PI * k / seg.length); re += seg[k] * wn * Math.cos(w * k); im -= seg[k] * wn * Math.sin(w * k); } const m = Math.hypot(re, im); if (f < 260) { lo += m; nl++; } else if (f < 3000) { mi += m; nm++; } else { hi += m; nh++; } });
+      lo /= Math.max(1, nl); mi /= Math.max(1, nm); hi /= Math.max(1, nh); return { lo, mi, hi, amp: env[i] }; });
+    const step = 60 / bpm / 4, t0 = on[0] * hop / sr, kick = Array(16).fill('.'), snare = Array(16).fill('.'), hat = Array(16).fill('.'); const cnt = { kick: 0, snare: 0, hat: 0 };
+    on.forEach((i, n) => { const q = Math.round((i * hop / sr - t0) / step); if (q < 0 || q > 31) return; const p = q % 16, f = feat[n], kind = f.lo > 5 * Math.max(f.mi, f.hi) ? 'kick' : (f.lo < 2 * Math.max(f.mi, f.hi) && f.hi >= 0.5 * f.mi) ? 'hat' : 'snare'; (kind === 'kick' ? kick : kind === 'snare' ? snare : hat)[p] = 'x'; cnt[kind]++; });
+    return { ok: true, kick: kick.join(''), snare: snare.join(''), hat: hat.join(''), cnt, n: on.length };
+  }
+  window.__bbAnalyze = bbAnalyze;
+  function bbApply(r) { undoPoint(); const b0 = curBeat(); st.beat = { ...b0 }; if (r.cnt.kick) st.beat.kick = r.kick; if (r.cnt.snare) st.beat.snare = r.snare; if (r.cnt.hat) st.beat.hat = r.hat; renderBeat(); }
+  document.getElementById('bb-go').addEventListener('click', async () => {
+    const msg = t => { document.getElementById('bb-msg').textContent = t; }, btn = document.getElementById('bb-go');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg('Dieses Gerät erlaubt keine Mikrofonaufnahme.'); return; }
+    let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); } catch (e) { msg('Kein Zugriff auf das Mikrofon. Erlaube es in den Browser-Einstellungen und probiere es noch mal.'); return; }
+    btn.disabled = true; if (st.playing) stop();
+    const mr = new MediaRecorder(stream), chunks = []; mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    const secs = 480 / st.bpm * 1, dur = Math.min(14, secs) + 0.4; for (let i = 3; i > 0; i--) { msg('Gleich geht es los … ' + i); await new Promise(r => setTimeout(r, 700)); }
+    mr.start(); msg('🔴 Los! Beatboxe jetzt (' + Math.round(dur) + ' Sekunden) …'); await new Promise(r => setTimeout(r, dur * 1000)); const done = new Promise(r => { mr.onstop = r; }); mr.stop(); await done; stream.getTracks().forEach(t => t.stop());
+    try { const ac = new (window.AudioContext || window.webkitAudioContext)(), buf = await ac.decodeAudioData(await new Blob(chunks).arrayBuffer()), x = buf.getChannelData(0), r = bbAnalyze(x, buf.sampleRate, st.bpm); try { ac.close(); } catch (e) {}
+      if (!r.ok) msg(r.why === 'quiet' ? 'Ich habe fast nichts gehört. Halte das Gerät näher an den Mund und sei lauter.' : 'Ich habe nur sehr wenige Schläge erkannt. Mach deutlichere, kürzere Laute.');
+      else { bbApply(r); msg('✔ ' + r.n + ' Laute erkannt: ' + r.cnt.kick + ' Kick, ' + r.cnt.snare + ' Snare, ' + r.cnt.hat + ' Hi-Hat. Dein Beat läuft jetzt. Unter „Editoren“ siehst du ihn und kannst ihn ändern.'); if (!st.playing) document.getElementById('btn-play').click(); }
+    } catch (e) { msg('Die Aufnahme konnte nicht ausgewertet werden: ' + e.message); }
+    btn.disabled = false;
+  });
 })();
 
 </script>
