@@ -223,7 +223,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 <body>
 <div id="vsb"><i></i></div>
 
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 8px;"><button id="btn-reload" style="flex:1;padding:12px;border-radius:12px;font-weight:700;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 86</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 8px;"><button id="btn-reload" style="flex:1;padding:12px;border-radius:12px;font-weight:700;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 87</span></div>
 <div id="sticky">
 <header>
   <div class="brand-box">
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 86</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 87</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1051,7 +1051,7 @@ function makeImpulse(ctx) {
   for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
   return b;
 }
-const LIMIT = (() => { const c = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; c[i] = Math.tanh(x * 1.6) / Math.tanh(1.6); } return c; })();
+const LIMIT = (() => { const c = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; c[i] = Math.tanh(x * 1.0) / Math.tanh(1.0); } return c; })();
 function buildChain(ctx) {
   const mk = () => ctx.createGain();
   const vox = mk(), drums = mk(), bass = mk(), lead = mk(), pad = mk(), fx = mk(), dB = mk(), dL = mk(), dP = mk(), mixBus = mk(), gtr = mk(), horn = mk(), tuba = mk(), bone = mk(), dG = mk(), dH = mk();
@@ -1081,7 +1081,7 @@ function buildChain(ctx) {
   filt.type = 'lowpass'; filt.frequency.value = 18000; fb.gain.value = 0.45; wet.gain.value = 0; delay.delayTime.value = 0.36;
   comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.006; comp.release.value = 0.16;
   lim.curve = LIMIT; try { lim.oversample = '2x'; } catch (e) {}
-  master.gain.value = 0.82;
+  master.gain.value = 0.9;
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
   const dk = {}, PAN = { hat: 0.32, open: -0.3, tom: -0.22, cl: 0.14 }; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); if (PAN[k]) { const pn = ctx.createStereoPanner(); pn.pan.value = PAN[k]; dk[k].connect(pn); pn.connect(drums); } else dk[k].connect(drums); });
   drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.6); pad.connect(dP); widen(dP, 19, 0.6); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.55); horn.connect(dH); widen(dH, 15, 0.5);
@@ -1129,7 +1129,7 @@ function applyMix(ch, mix, now, ramp) {
   set(ch.eqAir.gain, -14 + 20 * (mix.tone == null ? 0.8 : mix.tone));
   set(ch.drums.gain, mix.drums); set(ch.bass.gain, mix.bass * 1.1); set(ch.lead.gain, mix.lead); set(ch.pad.gain, mix.pad * 0.75);
   set(ch.gtr.gain, (mix.gtr == null ? 0.75 : mix.gtr) * 1.1); set(ch.horn.gain, (mix.horn == null ? 0.75 : mix.horn) * 1.1); set(ch.tuba.gain, (mix.tuba == null ? 0.8 : mix.tuba) * 1.1); set(ch.bone.gain, (mix.bone == null ? 0.8 : mix.bone) * 1.1);
-  set(ch.rvSend.gain, mix.hall * 0.9 + (ch.worldHall || 0)); set(ch.vox.gain, (mix.vox == null ? 0.8 : mix.vox) * 1.3); set(ch.drive.gain, 0.8 + mix.loud * 1.6);
+  set(ch.rvSend.gain, mix.hall * 0.9 + (ch.worldHall || 0)); set(ch.vox.gain, (mix.vox == null ? 0.8 : mix.vox) * 1.3); set(ch.drive.gain, 0.6 + mix.loud * 0.95);
 }
 function duckAt(ch, t, S, dur) {
   const p = S.mix.pump; if (p <= 0.02) return;
@@ -2920,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=86'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=87'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2965,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=86'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=87'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
