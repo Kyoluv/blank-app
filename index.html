@@ -330,7 +330,8 @@
     <button id="btn-sub">🔊 Sub-Punch</button>
     <button id="btn-echo">🌌 Space-Echo</button>
     <button id="btn-gate">✂️ Trance-Gate</button>
-    <button id="btn-crush">👾 Bit-Crush</button>
+    <button id="btn-trem">🌀 Tremolo (Zittern)</button>
+    <button id="btn-phone">📞 Telefon-Sound</button>
     <button id="btn-siren">🚨 Rave-Sirene</button>
     <button id="btn-laser">🔫 Laser-Zap</button>
     <button id="btn-half">🐢 Half-Time</button>
@@ -498,7 +499,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 50</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 51</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -681,14 +682,14 @@ const STYLES = {
     kick:'x...x...x...x...', snare:'....x.......x...', clap:false, hat:'x.x.x.x.x.x.x.x.', open:'..x...x...x...x.',
     bass:'.xx.xx.xx.xx.xx.', bassType:'saw', lead:'x.x.x..x.x.x..x.', leadType:'square', stab:'x.....x.......x.' }
 };
-const FX_NAMES = ['autodj','acid','vocal','arp','sub','echo','gate','crush','siren','laser','half','straight','build','scratch','stutter'];
+const FX_NAMES = ['autodj','acid','vocal','arp','sub','echo','gate','trem','phone','siren','laser','half','straight','build','scratch','stutter'];
 const FX_BUTTONS = { autodj:'btn-autodj', acid:'btn-acid', vocal:'btn-vocal', arp:'btn-arp', sub:'btn-sub', echo:'btn-echo',
-  gate:'btn-gate', crush:'btn-crush', half:'btn-half', straight:'btn-groove', stutter:'btn-stutter' };
+  gate:'btn-gate', trem:'btn-trem', phone:'btn-phone', half:'btn-half', straight:'btn-groove', stutter:'btn-stutter' };
 
 /* ---------- Zustand ---------- */
 const st = {
   style: 'dance', bpm: 122, px: 0.65, py: 0.28, oct: '0', chaos: false,
-  fx: { autodj:false, acid:false, vocal:false, arp:false, sub:false, echo:false, gate:false, crush:false, half:false, straight:false, stutter:false },
+  fx: { autodj:false, acid:false, vocal:false, arp:false, sub:false, echo:false, gate:false, trem:false, phone:false, half:false, straight:false, stutter:false },
   chill: false, seed: 20261120, playing: false, build: null,
   scaleIdx: 0, prog: [0,5,3,4], prog2: [0,3,4,3], melody: [], acidLine: [], vox: [], autoOff: {},
   songMode: false, songDone: false, melodyLock: false, scaleLock: false, form: 'standard', formPick: null, beat: null, chordA: null, chordB: null, leadType: null, padWave: 'sawtooth', melodyB: [], voiceRaw: null, voiceWet: null, voiceFx: 'hall', nudge: 40,
@@ -1008,6 +1009,8 @@ const LIMIT = (() => { const c = new Float32Array(2048); for (let i = 0; i < 204
 function buildChain(ctx) {
   const mk = () => ctx.createGain();
   const vox = mk(), drums = mk(), bass = mk(), lead = mk(), pad = mk(), fx = mk(), dB = mk(), dL = mk(), dP = mk(), mixBus = mk(), gtr = mk(), horn = mk(), tuba = mk(), bone = mk(), dG = mk(), dH = mk();
+  const trem = mk(), phHP = ctx.createBiquadFilter(), phLP = ctx.createBiquadFilter(), lfo = ctx.createOscillator(), lfoG = mk();
+  phHP.type = 'highpass'; phHP.frequency.value = 20; phLP.type = 'lowpass'; phLP.frequency.value = 20000; lfo.frequency.value = 6; lfoG.gain.value = 0;
   const gate = mk(), crush = ctx.createWaveShaper(), filt = ctx.createBiquadFilter(), dry = mk();
   const delay = ctx.createDelay(1.5), fb = mk(), wet = mk();
   const rvSend = mk(), rv = ctx.createConvolver(); rv.buffer = makeImpulse(ctx);
@@ -1022,11 +1025,11 @@ function buildChain(ctx) {
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
   const dk = {}; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); dk[k].connect(drums); });
   drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.45); pad.connect(dP); widen(dP, 19, 0.4); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.4); horn.connect(dH); widen(dH, 15, 0.35);
-  mixBus.connect(gate); gate.connect(crush); crush.connect(filt); filt.connect(dry); dry.connect(comp);
+  mixBus.connect(gate); gate.connect(crush); crush.connect(trem); trem.connect(phHP); phHP.connect(phLP); phLP.connect(filt); lfo.connect(lfoG); lfoG.connect(trem.gain); lfo.start(); filt.connect(dry); dry.connect(comp);
   filt.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
   filt.connect(rvSend); rvSend.connect(rv); rv.connect(comp);
   vox.connect(comp); comp.connect(eqHP); eqHP.connect(eqMud); eqMud.connect(eqPres); eqPres.connect(eqAir); eqAir.connect(drive); drive.connect(lim); lim.connect(fade); fade.connect(master);
-  const c = { eqAir, dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
+  const c = { trem, phHP, phLP, lfo, lfoG, eqAir, dk, vox, bus: fx, drums, bass, lead, pad, fx, gtr, horn, tuba, bone, dG, dH, dB, dL, dP, gate, crush, filt, delay, wet, rvSend, drive, fade, master };
   applyMix(c, st.mix, 0, false);
   return c;
 }
@@ -1245,12 +1248,18 @@ function initAudio() {
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
+function applyFxNodes(ch, S, now, ramp) {
+  const f = S.fx || {}, set = (p, v) => { if (ramp) p.setTargetAtTime(v, now, 0.04); else p.value = v; };
+  set(ch.trem.gain, f.trem ? 0.55 : 1); set(ch.lfoG.gain, f.trem ? 0.42 : 0);
+  if (ramp) ch.lfo.frequency.setTargetAtTime(Math.max(2, (S.bpm || st.bpm) / 60 * 2), now, 0.04); else ch.lfo.frequency.value = Math.max(2, (S.bpm || st.bpm) / 60 * 2);
+  set(ch.phHP.frequency, f.phone ? 550 : 20); set(ch.phLP.frequency, f.phone ? 3200 : 20000);
+}
 function applyChainSettings() {
   if (!chain) return;
   const now = ctx.currentTime;
   chain.wet.gain.setTargetAtTime(echoAmount(st), now, 0.1);
   if (!st.songMode) chain.filt.frequency.setTargetAtTime(st.chill ? 700 : baseCut(st), now, 0.35);
-  chain.crush.curve = st.fx.crush ? STEPCURVE : null;
+  applyFxNodes(chain, st, now, true);
   if (!st.fx.gate) { chain.gate.gain.cancelScheduledValues(now); chain.gate.gain.setValueAtTime(1, now); }
 }
 function tick() {
@@ -1604,7 +1613,7 @@ function autoDJ(bar) {
     setOct(pick(['0', '0', '1', '-1', '2', 'jump', 'wave']));
     const name = pick(['acid', 'vocal', 'arp', 'sub', 'echo', 'gate', 'half']);
     setFx(name, !st.fx[name]);
-    const quick = pick(['crush', 'stutter']); setFx(quick, true); st.autoOff[quick] = bar + 1;
+    const quick = pick(['trem', 'stutter']); setFx(quick, true); st.autoOff[quick] = bar + 1;
   }
   if (bar % 8 === 0) newHit(true);
   if (bar % 32 === 0) setStyle(pick(Object.keys(STYLES)));
@@ -1716,7 +1725,7 @@ async function exportWav(song) {
     ch.master.connect(octx.destination);
     const withVoice = !!(song && st.voiceWet);
     if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); vs.start(0.05, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01)); }
-    ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = S.chill ? 700 : baseCut(S); ch.crush.curve = S.fx.crush ? STEPCURVE : null;
+    ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = S.chill ? 700 : baseCut(S); applyFxNodes(ch, S, 0, false);
     const total = bars * 16;
     for (let n = 0; n < total; n++) { scheduleStep(octx, ch, S, n, 0.05 + n * dur, dur, false); if (n % 48 === 47) { setProg(0.02 + 0.18 * n / total, 'Vorbereiten …'); await yieldUI(); } }
     const N = 20;
@@ -2066,7 +2075,7 @@ pad.addEventListener('pointermove', ev => { if (pad.hasPointerCapture(ev.pointer
 
 $('#bpm-slider').addEventListener('input', ev => { st.bpm = +ev.target.value; $('#bpm-val').textContent = Math.round(st.bpm); updateStatus(); });
 
-['autodj', 'acid', 'vocal', 'arp', 'sub', 'echo', 'gate', 'crush', 'half', 'straight', 'stutter'].forEach(name =>
+['autodj', 'acid', 'vocal', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter'].forEach(name =>
   $('#' + FX_BUTTONS[name]).addEventListener('click', () => { setFx(name, !st.fx[name]); if (name === 'autodj' && !st.fx.autodj) st.autoOff = {}; }));
 $('#btn-siren').addEventListener('click', () => oneShot(t => V.siren(ctx, chain.bus, t)));
 $('#btn-laser').addEventListener('click', () => oneShot(t => V.laser(ctx, chain.bus, t)));
@@ -2198,7 +2207,7 @@ function megaHit() {
   Object.keys(M).forEach(k => setMix(k, M[k])); ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => setMix(k, rngR(0.8, 1)));
   setPad(Math.random(), rngR(0.08, 0.55)); setOct(pickR(['0', '0', '1', '-1']));
   const on = []; while (on.length < pickR([0, 1, 2])) { const f = pickR(['acid', 'arp', 'sub', 'echo', 'gate']); if (!on.includes(f)) on.push(f); }
-  ['acid', 'arp', 'sub', 'echo', 'gate', 'crush', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, on.includes(k)); });
+  ['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, on.includes(k)); });
   st.seed = (Math.random() * 4294967295) >>> 0; regen();
   if (Math.random() < 0.4) st.beat = randomBeat();
   st.melodyLock = false;
