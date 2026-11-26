@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 97</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 98</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 97</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 98</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -3555,32 +3555,109 @@ function setWorld(id, quiet, off) {
     m.innerHTML = r.n ? 'Erkannt: <b>' + r.tags.join(', ') + '</b>. Das klingt ' + moodName(r.v, r.e) + '. Die App hat ' + Math.round(st.bpm) + ' BPM, ' + SCALES[st.scaleIdx].name + ' und den Stil ' + STYLES[st.style].name + ' gewählt. Dein Titel steht als Refrain auf der Gesangskarte.' : 'Ich kenne keines dieser Wörter, deshalb ist es neutral geworden. Probiere Wörter wie Regen, Nacht, Sommer, Party, Liebe, Weltall, Roboter, Held, Wald, Traum.';
     now.textContent = 'Jetzt: ' + moodName(r.v, r.e); if (!st.playing) document.getElementById('btn-play').click(); });
   window.__story = story;
-  // ===== Jam-Pad =====
+  // ===== Jam-Pad 2.0 (gehaltene Töne, Klangfarben, Loop) =====
   const jc = document.createElement('div'); jc.className = 'card'; jc.id = 'c-jam'; jc.style.padding = '10px';
-  jc.innerHTML = '<div class="label"><span>🎹 Jam-Pad (live spielen)</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Tippe die Felder wie ein Instrument. Die Töne passen immer zur Tonart des Songs. Mehrere Finger gehen gleichzeitig.</div><label style="display:flex;gap:8px;align-items:center;font-size:.8rem;margin-bottom:8px;"><input type="checkbox" id="jam-q" checked> Im Takt einrasten (wenn der Song läuft)</label><div id="jam-grid"></div>';
+  jc.innerHTML = '<div class="label"><span>🎹 Jam-Pad (live spielen)</span></div>'
+    + '<div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;line-height:1.4;">Finger <b>halten</b> = Ton klingt weiter. Mit dem Finger <b>über die Tasten wischen</b> = Töne gleiten. <b style="color:#3ddc84">Grüne Tasten</b> passen gerade perfekt zum Akkord.</div>'
+    + '<div id="jam-pre" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;"></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button id="jam-bg" class="oct-btn" style="flex:1;min-width:120px;">▶ Begleitung</button><button id="jam-new" class="oct-btn" style="flex:1;min-width:120px;">🎲 Neuer Song</button></div>'
+    + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-help" checked> 🎯 Hilfe: nur passende Töne (springt zum nächsten Akkordton)</label>'
+    + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:8px;"><input type="checkbox" id="jam-q" checked> Im Takt einrasten (wenn der Song läuft)</label>'
+    + '<div id="jam-grid"></div>'
+    + '<div style="margin-top:10px;border-top:1px solid #2a3046;padding-top:8px;"><div style="font-size:.74rem;color:var(--muted);margin-bottom:6px;">🔁 Loop-Aufnahme: spiele eine Melodie, sie läuft dann im Kreis weiter und du spielst darüber.</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><select id="jam-len" style="padding:10px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="1">1 Takt</option><option value="2" selected>2 Takte</option><option value="4">4 Takte</option></select><button id="jam-rec" class="oct-btn" style="flex:1;min-width:130px;">⏺ Aufnehmen</button><button id="jam-clr" class="oct-btn" style="flex:1;min-width:110px;">🗑 Loop löschen</button></div><div id="jam-msg" style="font-size:.74rem;margin-top:6px;color:var(--muted);min-height:1em;"></div></div>';
   anchor.parentNode.insertBefore(jc, anchor);
-  const ROWS = [['🎵 Melodie', 'lead', [7, 6, 5, 4, 3, 2, 1, 0, 7]], ['🎼 Akkorde', 'chord', [0, 1, 2, 3, 4, 5, 6]], ['🔊 Bass', 'bass', [0, 1, 2, 3, 4, 5, 6, 7]]];
-  const jg = document.getElementById('jam-grid'); jg.style.cssText = 'display:grid;gap:6px;touch-action:none;';
-  const degName = d => { const sc = SCALES[st.scaleIdx], i = ((d % 7) + 7) % 7; return NOTE_NAMES[(sc.rs + sc.notes[i]) % 12]; };
-  ROWS.forEach(([lbl, kind, degs]) => { const lab = document.createElement('div'); lab.style.cssText = 'font-size:.7rem;color:var(--muted);'; lab.textContent = lbl; jg.appendChild(lab); const row = document.createElement('div'); row.style.cssText = 'display:grid;gap:5px;grid-template-columns:repeat(' + (kind === 'chord' ? 7 : 8) + ',1fr);';
-    (kind === 'lead' ? [0, 1, 2, 3, 4, 5, 6, 7] : degs).forEach(d0 => { const b = document.createElement('button'); b.className = 'oct-btn jam'; b.dataset.k = kind; b.dataset.d = kind === 'lead' ? d0 : d0; b.style.cssText = 'padding:16px 0;font-weight:700;touch-action:none;user-select:none;' + (kind === 'chord' ? 'border-color:#7c5cff;' : kind === 'bass' ? 'border-color:#ff7a45;' : 'border-color:#18d4ff;'); row.appendChild(b); }); jg.appendChild(row); });
-  const relabel = () => { jg.querySelectorAll('.jam').forEach(b => { const d = +b.dataset.d; b.textContent = degName(d) + (b.dataset.k === 'chord' ? ['', 'm', 'm', '', '', 'm', '°'][d] ? '' : '' : ''); }); };
-  setInterval(relabel, 1500); relabel();
-  const grid = t0 => { if (!document.getElementById('jam-q').checked || !st.playing || typeof songT0 === 'undefined') return t0; const step = 60 / st.bpm / 4, k = Math.ceil((t0 - songT0) / step - 0.2); return Math.max(t0, songT0 + k * step); };
-  function hit(b) {
-    initAudio(); try { ctx.resume(); } catch (e) {} const sc = SCALES[st.scaleIdx], d = +b.dataset.d, t = grid(ctx.currentTime + 0.01), beat = 60 / st.bpm;
-    if (b.dataset.k === 'lead') V.lead(ctx, chain.lead, t, noteFreq(sc, d, 1), beat * 0.9, st.leadType || STYLES[st.style].leadType, leadCut(st), 0.2);
-    else if (b.dataset.k === 'chord') V.pad(ctx, chain.pad, t, [0, 2, 4].map(k => noteFreq(sc, d + k, 0)), beat * 2, 0.11, leadCut(st), st.padWave || 'sawtooth');
-    else V.bass(ctx, chain.bass, t, noteFreq(sc, d, -1), beat * 0.8, STYLES[st.style].bassType || 'saw', 0.5);
-    b.classList.add('active-pink'); setTimeout(() => b.classList.remove('active-pink'), 160); if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
+  const PRE = {
+    'Synth': { o: [['sawtooth', 1, -7, .5], ['sawtooth', 1, 7, .5], ['square', 0.5, 0, .3]], cut: 3200, a: .01, r: .35, v: .13, vr: 5.5, vd: 8 },
+    'Orgel': { o: [['sine', 1, 0, .6], ['sine', 2, 0, .4], ['sine', 3, 0, .25], ['sine', 4, 0, .15]], cut: 6000, a: .02, r: .12, v: .15, vr: 6, vd: 3 },
+    'Streicher': { o: [['sawtooth', 1, -9, .4], ['sawtooth', 1, 0, .4], ['sawtooth', 1, 9, .4]], cut: 2200, a: .35, r: .7, v: .11, vr: 5, vd: 10 },
+    'Flöte': { o: [['sine', 1, 0, .7], ['triangle', 2, 0, .12]], cut: 5000, a: .08, r: .25, v: .2, vr: 5.2, vd: 14 },
+    'Chor': { o: [['triangle', 1, -6, .5], ['triangle', 1, 6, .5], ['sine', 0.5, 0, .35]], cut: 1800, a: .5, r: 1.0, v: .16, vr: 4.5, vd: 6 },
+    'Glocke': { o: [['sine', 1, 0, .5], ['sine', 2.76, 0, .25], ['sine', 5.4, 0, .1]], cut: 7000, a: .005, r: 1.6, v: .16, vr: 0, vd: 0, decay: 1.2 }
+  };
+  const PBASS = { o: [['sawtooth', 1, 0, .5], ['sine', 1, 0, .6]], cut: 700, a: .02, r: .25, v: .2, vr: 0, vd: 0 };
+  const PCHORD = { o: [['sawtooth', 1, -8, .3], ['sawtooth', 1, 8, .3], ['triangle', 1, 0, .3]], cut: 1900, a: .12, r: .8, v: .06, vr: 0, vd: 0 };
+  let curPre = 'Synth';
+  function jv(freq, t, P, out) {
+    const g = ctx.createGain(), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.7; lp.frequency.setValueAtTime(Math.min(P.cut, freq * 12 + 400), t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.setTargetAtTime(P.v, t, Math.max(0.004, P.a / 3));
+    if (P.decay) g.gain.setTargetAtTime(P.v * 0.35, t + 0.05, P.decay / 3);
+    const oscs = [], lfo = P.vr ? ctx.createOscillator() : null, lg = lfo ? ctx.createGain() : null;
+    if (lfo) { lfo.frequency.value = P.vr; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(P.vd, t + 0.6); lfo.connect(lg); lfo.start(t); }
+    P.o.forEach(([w, m, det, gn]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = w; o.frequency.setValueAtTime(freq * m, t); o.detune.value = det; og.gain.value = gn; o.connect(og); og.connect(lp); if (lg) lg.connect(o.detune); o.start(t); oscs.push([o, m]); });
+    lp.connect(g); g.connect(out); let done = false;
+    return {
+      glide(f) { if (done) return; const n = ctx.currentTime; oscs.forEach(([o, m]) => o.frequency.setTargetAtTime(f * m, n, 0.03)); },
+      rel(tr) { if (done) return; done = true; const n = Math.max(tr, ctx.currentTime); g.gain.cancelScheduledValues(n); g.gain.setTargetAtTime(0, n, P.r / 3); const e = n + P.r * 1.6 + 0.1; oscs.forEach(([o]) => { try { o.stop(e); } catch (x) {} }); if (lfo) try { lfo.stop(e); } catch (x) {}; setTimeout(() => { try { g.disconnect(); } catch (x) {} }, (e - ctx.currentTime) * 1000 + 200); }
+    };
   }
-  // Chrome auf Tablets gibt den Ton erst nach einem echten Tippen frei (pointerup/click), nicht schon bei pointerdown
-  let pend = null;
-  const unlock = () => { try { initAudio(); if (ctx.state !== 'running') return ctx.resume(); } catch (e) {} return Promise.resolve(); };
+  const sc0 = () => SCALES[st.scaleIdx];
+  const degName = d => { const sc = sc0(), i = ((d % 7) + 7) % 7; return NOTE_NAMES[(sc.rs + sc.notes[i]) % 12]; };
+  const curChord = () => { try { if (!st.playing || !ctx) return fixDeg(sc0(), 0) % 7; const bar = Math.floor((ctx.currentTime - songT0) / (240 / st.bpm)); return ((chordAt(bar) % 7) + 7) % 7; } catch (e) { return 0; } };
+  const chordTones = () => { const r = curChord(); return [r, (r + 2) % 7, (r + 4) % 7]; };
+  const snap = d => { if (!document.getElementById('jam-help').checked) return d; const ct = chordTones(); let best = d, bd = 99; for (let k = -3; k <= 3; k++) { const c = d + k; if (ct.includes(((c % 7) + 7) % 7) && Math.abs(k) < bd) { bd = Math.abs(k); best = c; } } return best; };
+  // Klangfarben-Chips
+  const pre = document.getElementById('jam-pre');
+  Object.keys(PRE).forEach(n => { const b = document.createElement('button'); b.className = 'oct-btn' + (n === curPre ? ' active' : ''); b.textContent = n; b.style.cssText = 'padding:8px 12px;'; b.dataset.pre = n; b.addEventListener('click', () => { curPre = n; pre.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.pre === n)); }); pre.appendChild(b); });
+  // Tasten
+  const ROWS = [['🎵 Melodie hoch', 'lead', [7, 8, 9, 10, 11, 12, 13], 2], ['🎵 Melodie tief', 'lead', [0, 1, 2, 3, 4, 5, 6], 1], ['🎼 Akkorde (halten)', 'chord', [0, 1, 2, 3, 4, 5, 6], 0], ['🔊 Bass (halten)', 'bass', [0, 1, 2, 3, 4, 5, 6], -1]];
+  const jg = document.getElementById('jam-grid'); jg.style.cssText = 'display:grid;gap:5px;touch-action:none;user-select:none;-webkit-user-select:none;';
+  ROWS.forEach(([lbl, kind, degs]) => { const lab = document.createElement('div'); lab.style.cssText = 'font-size:.7rem;color:var(--muted);margin-top:2px;'; lab.textContent = lbl; jg.appendChild(lab); const row = document.createElement('div'); row.style.cssText = 'display:grid;gap:5px;grid-template-columns:repeat(7,1fr);';
+    degs.forEach(d => { const b = document.createElement('button'); b.className = 'oct-btn jam'; b.dataset.k = kind; b.dataset.d = d; b.style.cssText = 'padding:15px 0;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;border-width:2px;' + (kind === 'chord' ? 'border-color:#7c5cff;' : kind === 'bass' ? 'border-color:#ff7a45;' : 'border-color:#18d4ff;'); row.appendChild(b); }); jg.appendChild(row); });
+  const relabel = () => { const ct = chordTones(); jg.querySelectorAll('.jam').forEach(b => { const d = +b.dataset.d, i = ((d % 7) + 7) % 7, k = b.dataset.k; b.textContent = degName(d); const good = k === 'chord' ? i === ct[0] : ct.includes(i); b.style.background = good ? 'rgba(61,220,132,.22)' : ''; if (k !== 'chord') b.style.boxShadow = good ? '0 0 0 1px #3ddc84 inset' : ''; else b.style.boxShadow = good ? '0 0 0 1px #3ddc84 inset' : ''; }); };
+  setInterval(relabel, 400); relabel();
+  const grid = t0 => { if (!document.getElementById('jam-q').checked || !st.playing || typeof songT0 === 'undefined') return t0; const step = 60 / st.bpm / 4, k = Math.ceil((t0 - songT0) / step - 0.2); return Math.max(t0, songT0 + k * step); };
+  // Ton starten / spielen
+  function startNote(kind, d, oct, t, P) {
+    const sc = sc0();
+    if (kind === 'lead') return { vs: [jv(noteFreq(sc, d, oct), t, P || PRE[curPre], chain.lead)] };
+    if (kind === 'bass') return { vs: [jv(noteFreq(sc, d, oct), t, PBASS, chain.bass)] };
+    return { vs: [0, 2, 4].map(k => jv(noteFreq(sc, d + k, 0), t, PCHORD, chain.pad)) };
+  }
+  const relNote = (n, t) => n.vs.forEach(v => v.rel(t));
+  const glideNote = (n, kind, d, oct) => { const sc = sc0(); if (kind === 'chord') n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + [0, 2, 4][i], 0))); else n.vs[0].glide(noteFreq(sc, d, oct)); };
+  // Loop-Recorder
+  const L = { rec: false, ev: [], len: 0, t0: 0, play: false, it: 0, timer: null, open: {} };
+  const msg = t => { document.getElementById('jam-msg').textContent = t; };
+  const barLen = () => 240 / st.bpm;
+  function logOn(id, kind, d, oct, t) { if (L.rec && t >= L.t0 && t < L.t0 + L.len) L.open[id] = { kind, d, oct, off: t - L.t0 }; }
+  function logOff(id, t) { const o = L.open[id]; if (!o) return; delete L.open[id]; L.ev.push({ kind: o.kind, d: o.d, oct: o.oct, off: o.off, dur: Math.max(0.08, Math.min(t - L.t0, L.len) - o.off), pre: curPre }); }
+  function schedLoop() {
+    if (!L.play || !ctx || !L.ev.length) return; const now = ctx.currentTime, ahead = now + 0.35;
+    for (let it = Math.max(0, Math.floor((now - L.t0) / L.len)); it < Math.floor((ahead - L.t0) / L.len) + 1; it++) {
+      L.ev.forEach((e, i) => { const t = L.t0 + it * L.len + e.off; if (t >= now - 0.02 && t < ahead && !(e._s && e._s[it])) { e._s = e._s || {}; e._s[it] = 1; const n = startNote(e.kind, e.d, e.oct, Math.max(t, now), PRE[e.pre] || PRE.Synth); relNote(n, Math.max(t, now) + e.dur); } });
+    }
+  }
+  function startLoopPlay() { L.play = true; clearInterval(L.timer); L.timer = setInterval(schedLoop, 100); const b = document.getElementById('jam-rec'); b.textContent = '⏺ Neu aufnehmen'; msg('🔁 Dein Loop läuft. Spiele darüber oder nimm neu auf.'); }
+  document.getElementById('jam-rec').addEventListener('click', () => {
+    initAudio(); try { ctx.resume(); } catch (e) {}
+    if (L.rec) return;
+    const bars = +document.getElementById('jam-len').value; L.len = bars * barLen(); L.ev = []; L.play = false; clearInterval(L.timer);
+    const now = ctx.currentTime + 0.1; let start = now;
+    if (st.playing) { const k = Math.ceil((now - songT0) / barLen()); start = songT0 + k * barLen(); } else start = now + 1.5;
+    L.t0 = start; L.rec = true; L.open = {}; const b = document.getElementById('jam-rec');
+    const tick = () => { const n = ctx.currentTime; if (n < L.t0) { msg('Gleich geht es los … ' + Math.ceil(L.t0 - n) + ' (spiele ab dem Start)'); b.textContent = '⏺ Gleich …'; } else if (n < L.t0 + L.len) { msg('🔴 Aufnahme läuft … spiele jetzt!'); b.textContent = '🔴 Nimmt auf'; } else { Object.keys(L.open).forEach(id => logOff(id, L.t0 + L.len)); L.rec = false; clearInterval(L.rt); if (L.ev.length) { L.t0 += L.len; startLoopPlay(); } else { b.textContent = '⏺ Aufnehmen'; msg('Nichts aufgenommen. Versuche es nochmal.'); } } };
+    clearInterval(L.rt); L.rt = setInterval(tick, 120); tick();
+  });
+  document.getElementById('jam-clr').addEventListener('click', () => { L.play = false; L.rec = false; L.ev = []; clearInterval(L.timer); clearInterval(L.rt); document.getElementById('jam-rec').textContent = '⏺ Aufnehmen'; msg('Loop gelöscht.'); });
+  document.getElementById('jam-bg').addEventListener('click', () => { document.getElementById('btn-play').click(); });
+  document.getElementById('jam-new').addEventListener('click', () => { document.getElementById('btn-newhit').click(); });
+  setInterval(() => { document.getElementById('jam-bg').textContent = st.playing ? '⏹ Begleitung aus' : '▶ Begleitung'; }, 500);
+  // Finger: halten, gleiten
+  const held = new Map(); let pend = null; window.__jam = { held, L, jv, PRE };
+  const keyOf = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.jam') : null; };
+  const eff = b => { const k = b.dataset.k; let d = +b.dataset.d; const oct = k === 'lead' ? (d >= 7 ? 2 : 1) : k === 'bass' ? -1 : 0; if (k === 'lead') d = snap(d); else if (k === 'chord') d = d; return [k, d, oct]; };
+  function press(id, b) {
+    const [k, d, oct] = eff(b); const t = grid(ctx.currentTime + 0.01), n = startNote(k, d, oct, t);
+    held.set(id, { n, b, k, d, oct }); logOn(id, k, d, oct, t); b.classList.add('active-pink'); if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+  }
+  function lift(id) { const h = held.get(id); if (!h) return; held.delete(id); relNote(h.n, ctx.currentTime); logOff(id, ctx.currentTime); h.b.classList.remove('active-pink'); }
+  jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); try { initAudio(); } catch (e) {} try { jg.setPointerCapture(ev.pointerId); } catch (e) {}
+    if (ctx.state === 'running') press(ev.pointerId, b); else pend = { id: ev.pointerId, b }; });
+  jg.addEventListener('pointermove', ev => { const h = held.get(ev.pointerId); if (!h) return; const b = keyOf(ev.clientX, ev.clientY); if (!b || b === h.b || b.dataset.k !== h.k) return; const [k, d, oct] = eff(b); h.b.classList.remove('active-pink'); b.classList.add('active-pink'); glideNote(h.n, k, d, oct); h.b = b; h.d = d; });
+  const up = ev => { if (pend && pend.id === ev.pointerId) { const p = pend; pend = null; const go = () => { press(p.id, p.b); setTimeout(() => lift(p.id), 450); }; try { initAudio(); if (ctx.state !== 'running') ctx.resume().then(go); else go(); } catch (e) {} return; } lift(ev.pointerId); };
+  jg.addEventListener('pointerup', up); jg.addEventListener('pointercancel', up); jg.addEventListener('lostpointercapture', up);
   ['pointerup', 'click', 'touchend'].forEach(n => document.addEventListener(n, () => { if (typeof ctx !== 'undefined' && ctx && ctx.state === 'running') return; try { if (ctx) ctx.resume(); } catch (e) {} }, true));
-  jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); try { initAudio(); } catch (e) {} if (ctx.state === 'running') hit(b); else pend = b; });
-  const fire = ev => { const b = pend || ev.target.closest('.jam'); if (!pend) return; pend = null; unlock().then(() => hit(b)); };
-  jg.addEventListener('pointerup', fire); jg.addEventListener('click', fire);
+  window.addEventListener('blur', () => { [...held.keys()].forEach(lift); });
   // ===== Beatbox =====
   const bc = document.createElement('div'); bc.className = 'card'; bc.id = 'c-bbox'; bc.style.padding = '10px';
   bc.innerHTML = '<div class="label"><span>🎙 Beatbox-Beat</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Mach mit dem Mund einen Beat: tiefes „Bumm“ = Kick, „Tss“ = Hi-Hat, „Pff“ oder „Kah“ = Snare. Du hast 2 Takte Zeit. Fange auf dem ersten Schlag an. Stelle vorher das Tempo ein und halte das Gerät nah an den Mund.</div><button id="bb-go" class="sunset-btn" style="width:100%;">🎙 Beatbox aufnehmen (2 Takte)</button><div id="bb-msg" style="font-size:.78rem;margin-top:8px;line-height:1.4;min-height:1.2em;"></div>';
