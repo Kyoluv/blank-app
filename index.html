@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 61</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 62</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1310,7 +1310,7 @@ function play(song) {
   if (!song) chain.filt.frequency.setTargetAtTime(st.chill ? 700 : baseCut(st), ctx.currentTime, 0.1);
   stepN = 0; nextT = ctx.currentTime + 0.08; songT0 = nextT; st.playing = true;
   if (song && st.voiceWet && !rec.active) {
-    voiceSrc = ctx.createBufferSource(); voiceSrc.buffer = st.voiceWet; voiceSrc.connect(chain.vox); voiceSrc.start(songT0, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01));
+    voiceSrc = ctx.createBufferSource(); voiceSrc.buffer = st.voiceWet; voiceSrc.connect(chain.vox); try { const vr = ctx.createGain(); vr.gain.value = 0.45; voiceSrc.connect(vr); vr.connect(chain.rvSend); } catch (e) {} voiceSrc.start(songT0, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01));
   }
   timer = setInterval(tick, 25); tick();
   const b = $('#btn-play'), sb = $('#btn-song');
@@ -1755,7 +1755,7 @@ async function exportWav(song) {
     applyMix(ch, S.mix, 0, false);
     ch.master.connect(octx.destination);
     const withVoice = !!(song && st.voiceWet);
-    if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); vs.start(0.05, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01)); }
+    if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); try { const vr = octx.createGain(); vr.gain.value = 0.45; vs.connect(vr); vr.connect(ch.rvSend); } catch (e) {} vs.start(0.05, Math.min(st.nudge / 1000, st.voiceWet.duration - 0.01)); }
     ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = S.chill ? 700 : baseCut(S); applyFxNodes(ch, S, 0, false);
     const total = bars * 16;
     for (let n = 0; n < total; n++) { scheduleStep(octx, ch, S, n, 0.05 + n * dur, dur, false); if (n % 48 === 47) { setProg(0.02 + 0.18 * n / total, 'Vorbereiten …'); await yieldUI(); } }
@@ -2801,16 +2801,28 @@ const SING = (function () {
     const sr = 44100, u0 = 60 / bpm / 2, sy = syllables(text, lang), RHY = [1, 1, 2, 1, 1, 1, 2, 1];
     const ev = []; let ni = 0;
     const cfg = { male: { med: 135, fs: 0.9, vib: 14, port: 0.03 }, female: { med: 260, fs: 1.14, vib: 20, port: 0.03 }, robot: { med: 160, fs: 1, vib: 0, port: 0.002 } }[voice] || { med: 135, fs: 0.9, vib: 14, port: 0.03 };
-    const freqs = notesDeg.map(d => noteFreq(sc, d, 0)), srt = freqs.slice().sort((a, b) => a - b), med = srt[srt.length >> 1], sh = Math.pow(2, Math.round(Math.log2(cfg.med / med)));
-    const fOf = k => { let f = freqs[k % freqs.length] * sh; while (f > 700) f /= 2; while (f < 70) f *= 2; return f; };
+    const sh = Math.pow(2, Math.round(Math.log2(cfg.med / (noteFreq(sc, 2, 0) * 1))));
+    const fDeg = d => { let f = noteFreq(sc, d, 0) * sh; while (f > cfg.med * 2.7) f /= 2; while (f < cfg.med * 0.6) f *= 2; return f; };
+    // Zeilen-Info: Position der Silbe in ihrer Zeile
+    const lineOf = []; { let cur = [], all = []; sy.forEach((s, i) => { if (s.pause || s.lineEnd) { if (cur.length) all.push(cur); cur = []; } else cur.push(i); }); if (cur.length) all.push(cur); all.forEach((ln, li) => ln.forEach((i, p) => { lineOf[i] = { li, p, n: ln.length }; })); }
+    const BASE = [1, 3, 2, 4, 0, 3, 2, 5], CT = [0, 2, 4, 7, 9, -3, -1];
+    let prevDeg = 2, lineCount = 0;
+    const degFor = (idx, rep) => {
+      const L = lineOf[idx]; if (!L) return prevDeg; const first = L.p === 0, last = L.p === L.n - 1, ph = L.n > 1 ? L.p / (L.n - 1) : 0;
+      const base = BASE[(L.li + rep * 3) % BASE.length] + (rep % 2 ? 1 : 0); let d;
+      if (last) { d = CT.reduce((b, c) => Math.abs(c + (L.li % 2 ? 0 : 0) - (base + 1)) < Math.abs(b - (base + 1)) ? c : b, 0); if (L.li % 2 === 1) d = [0, 7].reduce((b, c) => Math.abs(c - prevDeg) < Math.abs(b - prevDeg) ? c : b, 0); }
+      else { const arc = Math.round(3.2 * Math.sin(Math.PI * ph)); d = base + arc + (Math.random() < 0.35 ? (Math.random() < 0.5 ? -1 : 1) : 0) + (Math.random() < 0.12 ? (Math.random() < 0.5 ? -3 : 3) : 0); }
+      if (first && Math.random() < 0.4) d = base - 1; d = Math.max(-3, Math.min(9, d)); if (!last && d === prevDeg && Math.random() < 0.6) d += Math.random() < 0.5 ? 1 : -1; prevDeg = d; return d;
+    };
+    let repNo = 0;
     const pass = (u, t0, ni0, ri0) => {
       let t = t0, ri = ri0, n = ni0;
       sy.forEach((s, idx) => {
         if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
         let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
-        const d = units * u; ev.push({ s, t, d, f: fOf(n++) }); t += d;
+        const d = units * u; ev.push({ s, t, d, f: fDeg(degFor(idx, repNo)) }); n++; t += d;
       });
-      return { t, ni: n, ri };
+      repNo++; return { t, ni: n, ri };
     };
     let t = 0.15;
     if (fit && fit.target > 0) {
@@ -2822,20 +2834,24 @@ const SING = (function () {
       fit.reps = reps;
     } else { const o = pass(u0, t, 0, 0); t = o.t; }
     const T = t + 0.6, oc = new (OAC_())(1, Math.ceil(T * sr), sr), mk = v => { const g = oc.createGain(); g.gain.value = v; return g; };
-    const osc = oc.createOscillator(); osc.type = 'sawtooth'; const lfo = oc.createOscillator(), lg = mk(cfg.vib); lfo.frequency.value = 5.3; lfo.connect(lg).connect(osc.detune);
-    const vamp = mk(0), out = mk(1), fl = [0, 1, 2].map(k => { const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.Q.value = [9, 11, 13][k]; const g = mk([1, 0.7, 0.4][k]); osc.connect(b); b.connect(g).connect(vamp); return b; });
-    vamp.connect(out); out.connect(oc.destination);
+    const osc = oc.createOscillator(); osc.type = 'sawtooth'; const lfo = oc.createOscillator(), lg = mk(0); lfo.frequency.value = 5.3; lfo.connect(lg).connect(osc.detune); const dr = oc.createOscillator(), drg = mk(9), dr2 = oc.createOscillator(), drg2 = mk(4); dr.frequency.value = 0.7; dr2.frequency.value = 9.3; dr.connect(drg).connect(osc.detune); dr2.connect(drg2).connect(osc.detune); dr.start(0); dr2.start(0);
+    const vamp = mk(0), out = mk(1), fl = [0, 1, 2, 3].map(k => { const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.Q.value = [5, 7, 9, 10][k]; if (k === 3) b.frequency.value = 3700; const g = mk([1, 1.5, 1.3, 0.5][k]); osc.connect(b); b.connect(g).connect(vamp); return b; });
+    vamp.connect(out);
+    const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90; const pres = oc.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3200; pres.Q.value = 0.8; pres.gain.value = 3.5;
+    const lpf = oc.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = 9500; const cmp = oc.createDynamicsCompressor(); cmp.threshold.value = -26; cmp.ratio.value = 3.5; cmp.attack.value = 0.004; cmp.release.value = 0.12;
+    const fin = mk(1), cv = oc.createConvolver(), irl = Math.floor(sr * 0.45), ir = oc.createBuffer(1, irl, sr), ird = ir.getChannelData(0); for (let i = 0; i < irl; i++) ird[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irl, 2.6); cv.buffer = ir;
+    out.connect(hp); hp.connect(pres); pres.connect(lpf); lpf.connect(cmp); cmp.connect(fin); fin.connect(oc.destination); fin.connect(cv); cv.connect(mk(0.2)).connect(oc.destination);
     const nbuf = oc.createBuffer(1, sr * 2, sr), nd = nbuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-    const ns = oc.createBufferSource(); ns.buffer = nbuf; ns.loop = true; const nbp = oc.createBiquadFilter(); nbp.type = 'bandpass'; const ng = mk(0); ns.connect(nbp).connect(ng).connect(out);
+    const nmix = mk(1.8), ns = oc.createBufferSource(); ns.buffer = nbuf; ns.loop = true; const nbp = oc.createBiquadFilter(); nbp.type = 'bandpass'; const ng = mk(0); ns.connect(nbp).connect(ng).connect(nmix).connect(out);
     osc.frequency.value = 130; osc.start(0); lfo.start(0); ns.start(0);
     const setF = (F, at, tc) => F.forEach((v, k) => fl[k].frequency.setTargetAtTime(v * cfg.fs, at, tc));
     ev.forEach(e => {
-      const on = e.s.on, co = e.s.coda; let cons = 0; const dur = x => (x.k === 'n' ? 0.08 : x.k === 'p' ? 0.045 : 0.05);
-      on.concat(co).forEach(x => { cons += dur(x); }); const sc2 = Math.min(1, (e.d * 0.5) / Math.max(0.001, cons)); let pos = e.t;
-      osc.frequency.setTargetAtTime(e.f, Math.max(0, e.t - 0.02), cfg.port);
+      const on = e.s.on, co = e.s.coda; let cons = 0; const dur = x => (x.k === 'n' ? 0.11 : x.k === 'p' ? 0.06 : 0.07);
+      on.concat(co).forEach(x => { cons += dur(x); }); const sc2 = Math.min(1, (e.d * 0.5) / Math.max(0.001, cons)); let pos = Math.max(0.005, e.t - on.reduce((a, x) => a + dur(x) * sc2, 0));
+      osc.frequency.setTargetAtTime(e.f * Math.pow(2, (Math.random() - 0.5) * 0.012), Math.max(0, e.t - 0.03), cfg.port * 1.4); lg.gain.setValueAtTime(0, Math.max(0, e.t)); lg.gain.linearRampToValueAtTime(cfg.vib * Math.min(1, e.d / 0.45), e.t + Math.min(0.45, e.d * 0.95));
       const unv = (x, at, d2) => {
         if (x.k === 'n') { const [fr, q, a] = NOISE[x.n]; nbp.frequency.setValueAtTime(fr, at); nbp.Q.setValueAtTime(q, at); ng.gain.setTargetAtTime(a * (x.vc ? 0.6 : 1), at, 0.005); ng.gain.setTargetAtTime(0, at + d2, 0.008); if (x.vc) { setF([250, 1200, 2500], at, 0.01); vamp.gain.setTargetAtTime(0.25, at, 0.01); vamp.gain.setTargetAtTime(0, at + d2, 0.01); } }
-        else { const clo = d2 * 0.55; nbp.frequency.setValueAtTime(PLO[x.p], at + clo); nbp.Q.setValueAtTime(1.2, at + clo); ng.gain.setTargetAtTime(0.5, at + clo, 0.002); ng.gain.setTargetAtTime(0, at + d2, 0.006); if (x.vc) { setF([250, 900, 2400], at, 0.01); vamp.gain.setTargetAtTime(0.22, at, 0.008); vamp.gain.setTargetAtTime(0, at + clo, 0.006); } }
+        else { const clo = d2 * 0.55; nbp.frequency.setValueAtTime(PLO[x.p], at + clo); nbp.Q.setValueAtTime(1.2, at + clo); ng.gain.setTargetAtTime(0.9, at + clo, 0.002); ng.gain.setTargetAtTime(0, at + d2, 0.006); if (x.vc) { setF([250, 900, 2400], at, 0.01); vamp.gain.setTargetAtTime(0.22, at, 0.008); vamp.gain.setTargetAtTime(0, at + clo, 0.006); } }
       };
       const voc = (x, at, d2) => { const [F, a] = VC[x.c] || VC.n; setF(F, at, 0.012); vamp.gain.setTargetAtTime(a, at, 0.01); };
       on.forEach(x => { const d2 = dur(x) * sc2; if (x.k === 'c') voc(x, pos, d2); else unv(x, pos, d2); pos += d2; });
