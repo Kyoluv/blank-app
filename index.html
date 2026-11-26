@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 58</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 59</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1458,7 +1458,7 @@ async function renderVoice() {
 }
 function recMsg(t) { $('#rec-msg').textContent = t; }
 function refreshVoiceUI() {
-  $$('#tune-grid button').forEach(b => b.classList.toggle('active-pink', b.dataset.tune === st.tune)); $('#tune-key').textContent = 'Tonart: ' + SCALES[st.scaleIdx].name;
+  $$('#tune-grid button,#sing-tune button').forEach(b => b.classList.toggle('active-pink', b.dataset.tune === st.tune)); $('#tune-key').textContent = 'Tonart: ' + SCALES[st.scaleIdx].name;
   $$('#vfx-grid button').forEach(b => b.classList.toggle('active-pink', b.dataset.vfx === st.voiceFx));
   const has = !!st.voiceWet;
   $('#btn-vdel').disabled = !has; $('#btn-wav-voice').disabled = !has;
@@ -2845,9 +2845,12 @@ const SING = (function () {
   <textarea id="sing-txt" rows="4" maxlength="400" placeholder="Zum Beispiel: Heute Nacht tanzen wir bis zum Morgen&#10;Oder: We dance all night under the stars" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;"></textarea>
   <div class="mixgrid" style="margin-top:8px;"><label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
   <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option><option value="robot">Roboter</option></select></div>
+  <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;">🎯 Auto-Tune (zieht den Gesang auf die Töne der Tonart)</div>
+  <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
   <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎶 Text singen lassen</button>
   <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  $$('#sing-tune button').forEach(b => b.addEventListener('click', () => setTune(b.dataset.tune)));
   $('#sing-go').addEventListener('click', async () => {
     const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
     if (!txt) { msg('Schreibe zuerst einen Text.'); return; }
