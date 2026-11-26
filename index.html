@@ -332,7 +332,8 @@
     <button id="btn-gate">✂️ Trance-Gate</button>
     <button id="btn-trem">🌀 Tremolo (Zittern)</button>
     <button id="btn-phone">📞 Telefon-Sound</button>
-    <button id="btn-siren">🚨 Rave-Sirene</button>
+    <button id="btn-siren">🌊 Riser (Aufbau)</button>
+    <button id="btn-boom">💥 Bass-Boom</button>
     <button id="btn-laser">🔫 Laser-Zap</button>
     <button id="btn-half">🐢 Half-Time</button>
     <button id="btn-groove">🥁 Straight</button>
@@ -499,7 +500,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 51</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 52</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -682,7 +683,7 @@ const STYLES = {
     kick:'x...x...x...x...', snare:'....x.......x...', clap:false, hat:'x.x.x.x.x.x.x.x.', open:'..x...x...x...x.',
     bass:'.xx.xx.xx.xx.xx.', bassType:'saw', lead:'x.x.x..x.x.x..x.', leadType:'square', stab:'x.....x.......x.' }
 };
-const FX_NAMES = ['autodj','acid','vocal','arp','sub','echo','gate','trem','phone','siren','laser','half','straight','build','scratch','stutter'];
+const FX_NAMES = ['autodj','acid','vocal','arp','sub','echo','gate','trem','phone','sweep','boom','laser','half','straight','build','scratch','stutter'];
 const FX_BUTTONS = { autodj:'btn-autodj', acid:'btn-acid', vocal:'btn-vocal', arp:'btn-arp', sub:'btn-sub', echo:'btn-echo',
   gate:'btn-gate', trem:'btn-trem', phone:'btn-phone', half:'btn-half', straight:'btn-groove', stutter:'btn-stutter' };
 
@@ -942,12 +943,19 @@ const V = {
     [f1, f2].forEach(fc => { const b = ctx.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = fc; b.Q.value = 7; o.connect(b).connect(g); });
     g.connect(out); o.start(t); o.stop(t + 0.2);
   },
-  siren(ctx, out, t) {
-    const o = ctx.createOscillator(), lfo = ctx.createOscillator(), lg = ctx.createGain(), g = ctx.createGain();
-    o.type = 'sawtooth'; o.frequency.value = 900; lfo.frequency.value = 1.6; lg.gain.value = 380;
-    lfo.connect(lg).connect(o.frequency);
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.16, t + 0.1); g.gain.setValueAtTime(0.16, t + 2.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
-    o.connect(g).connect(out); o.start(t); lfo.start(t); o.stop(t + 2.9); lfo.stop(t + 2.9);
+  sweep(ctx, out, t) {
+    const n = noiseSrc(ctx, t, 3.2), f = ctx.createBiquadFilter(), g = ctx.createGain(), o = ctx.createOscillator(), og = ctx.createGain();
+    f.type = 'bandpass'; f.Q.value = 2.5; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(7500, t + 3);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 2.9); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
+    n.connect(f).connect(g).connect(out);
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(880, t + 3); og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.07, t + 2.9); og.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
+    o.connect(og).connect(out); o.start(t); o.stop(t + 3.3);
+  },
+  boom(ctx, out, t) {
+    const o = ctx.createOscillator(), g = envGain(ctx, t, 0.003, 0.9, 1.6); o.type = 'sine';
+    o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(34, t + 0.7); o.connect(g).connect(out); o.start(t); o.stop(t + 1.7);
+    const n = noiseSrc(ctx, t, 0.6), f = ctx.createBiquadFilter(), ng = envGain(ctx, t, 0.002, 0.35, 0.55); f.type = 'lowpass'; f.frequency.setValueAtTime(5000, t); f.frequency.exponentialRampToValueAtTime(200, t + 0.5);
+    n.connect(f).connect(ng).connect(out);
   },
   laser(ctx, out, t) {
     const o = ctx.createOscillator(), g = envGain(ctx, t, 0.002, 0.22, 0.3); o.type = 'sawtooth';
@@ -2077,7 +2085,8 @@ $('#bpm-slider').addEventListener('input', ev => { st.bpm = +ev.target.value; $(
 
 ['autodj', 'acid', 'vocal', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'half', 'straight', 'stutter'].forEach(name =>
   $('#' + FX_BUTTONS[name]).addEventListener('click', () => { setFx(name, !st.fx[name]); if (name === 'autodj' && !st.fx.autodj) st.autoOff = {}; }));
-$('#btn-siren').addEventListener('click', () => oneShot(t => V.siren(ctx, chain.bus, t)));
+$('#btn-siren').addEventListener('click', () => oneShot(t => V.sweep(ctx, chain.bus, t)));
+$('#btn-boom').addEventListener('click', () => oneShot(t => V.boom(ctx, chain.bus, t)));
 $('#btn-laser').addEventListener('click', () => oneShot(t => V.laser(ctx, chain.bus, t)));
 $('#btn-scratch').addEventListener('click', () => oneShot(t => V.scratch(ctx, chain.bus, t)));
 $('#btn-build').addEventListener('click', () => {
