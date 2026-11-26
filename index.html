@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 67</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 68</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2803,7 +2803,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=67'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=68'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2975,18 +2975,31 @@ const SING = (function () {
   <div id="sing-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
   const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(card, anchor);
   const AUTO = {
-    de: { th: [['Nacht','Stadt','Licht','Herz','Traum','Welt'],['tanzen','fliegen','leuchten','brennen','träumen','singen'],['Sterne','Lichter','Träume','Wolken','Farben','Flammen'],['heute','immer','jetzt','wieder','nie mehr','zusammen']],
-      L: [a => `Heute ${a.v[0]} wir in der ${a.n[0]}`, a => `Dein ${a.n[1]} ist mein ${a.n[2]}`, a => `Wir ${a.v[1]} durch die ${a.s[0]}`, a => `Alle ${a.s[1]} ${a.v[2]} für uns`, a => `${a.t[0]} ${a.v[3]} wir zusammen`, a => `Oh oh ${a.t[1]} für dich`, a => `Die ${a.n[3]} gehört uns`, a => `Lass uns ${a.v[4]} bis zum Morgen`] },
-    en: { th: [['night','city','light','heart','dream','world'],['dance','fly','shine','burn','run','sing'],['stars','lights','dreams','clouds','colors','flames'],['tonight','forever','right now','once again','together','all day']],
-      L: [a => `Tonight we ${a.v[0]} in the ${a.n[0]}`, a => `Your ${a.n[1]} is my ${a.n[2]}`, a => `We ${a.v[1]} through the ${a.s[0]}`, a => `All the ${a.s[1]} ${a.v[2]} for us`, a => `${a.t[0]} we ${a.v[3]} together`, a => `Oh oh ${a.t[1]} for you`, a => `The ${a.n[3]} is ours`, a => `Let us ${a.v[4]} till the morning`] }
+    de: {
+      'Liebe': { hook: 'Du und ich, nur du und ich', c: [['Dein Lächeln macht den Tag so hell', 'Mein Herz schlägt laut und es schlägt schnell'], ['Ich seh dich an und bin zu Haus', 'Die ganze Welt da draußen ist aus'], ['Halt mich fest in dieser Nacht', 'Du hast mich zum Träumen gebracht'], ['Wo du bist, da will ich sein', 'Du und ich, wir sind nicht allein'], ['Deine Hand in meiner Hand', 'Wir sind frei in jedem Land'], ['Alles was ich will, bist du', 'Komm und hör mir einmal zu']] },
+      'Party': { hook: 'Lauter, lauter, lass uns tanzen', c: [['Die Lichter gehen an im Saal', 'Wir tanzen heut zum ersten Mal'], ['Der Bass geht tief in Herz und Bein', 'Heute Nacht darf alles sein'], ['Hände hoch und lasst es krachen', 'Wir bringen alle Welt zum Lachen'], ['Alle singen laut mit mir', 'Diese Nacht gehört nur dir'], ['Wir tanzen bis die Sonne scheint', 'Und keiner hier hat je geweint'], ['Die Musik ist unser Feuer', 'Jeder Schritt ein Abenteuer']] },
+      'Sommer': { hook: 'Sommer, Sonne, wir sind frei', c: [['Die Sonne taucht ins Wasser ein', 'Der Sommer soll für immer sein'], ['Barfuß laufen wir durch den Sand', 'Dein Lachen hält mich an der Hand'], ['Der Himmel brennt in Rot und Gold', 'Genau so hab ich es gewollt'], ['Wir fahren los mit offenem Dach', 'Der ganze Tag ist hellwach'], ['Das Meer singt leise unser Lied', 'Und alles, was uns heute blieb']] },
+      'Freiheit': { hook: 'Wir sind frei, wir sind frei', c: [['Ich werfe alle Sorgen fort', 'Wir fliegen an den fernen Ort'], ['Hoch am Himmel, weit und frei', 'Fliegen wir an allem vorbei'], ['Jeder Traum ist nur ein Schritt', 'Komm, ich nehm dich einfach mit'], ['Heute fang ich einfach an', 'Weil ich alles schaffen kann'], ['Kein Weg ist mir zu weit', 'Ich bin bereit, ich bin bereit']] },
+      'Nacht': { hook: 'Heute Nacht, heute Nacht', c: [['Die Stadt schläft nie, sie leuchtet hell', 'Und wir sind unterwegs, ganz schnell'], ['Neonlicht auf nassem Stein', 'Heute Nacht bin ich nicht allein'], ['Sterne zählen wir zu zweit', 'Die Nacht hat heute alle Zeit'], ['Der Mond schaut still auf uns herab', 'Wir geben alles, was ich hab']] },
+      'Hoffnung': { hook: 'Ich geb nicht auf, ich geb nicht auf', c: [['Auch wenn der Regen fällt und fällt', 'Ich glaub an uns und diese Welt'], ['Nach jedem Sturm kommt wieder Licht', 'Und ich geb niemals auf, ich nicht'], ['Ich geh den Weg, auch wenn er weit', 'Ich hab für dich noch immer Zeit']] }
+    },
+    en: {
+      'Love': { hook: 'Just you and me, only you and me', c: [['Your smile can light the darkest sky', 'With you I feel like I can fly'], ['Hold me close and don\'t let go', 'You are all I need to know'], ['Every moment feels so right', 'Dancing in the pale moonlight'], ['Take my hand and stay with me', 'Where you are is where I\'ll be']] },
+      'Party': { hook: 'Turn it up, let\'s dance tonight', c: [['The lights go down, the bass is loud', 'We are dancing with the crowd'], ['Hands up high, feel the beat', 'Nothing can stop our feet'], ['All night long we\'re on our feet', 'Moving to the rhythm and the beat'], ['Sing it with me, sing it loud', 'We are young and we are proud']] },
+      'Summer': { hook: 'Summer sun, we are free', c: [['Sun is sinking in the sea', 'Summer\'s waiting just for me'], ['Barefoot running on the shore', 'Who could ask for something more'], ['Windows down, the road is long', 'Singing every single song'], ['Golden light and ocean air', 'Summer days beyond compare']] },
+      'Freedom': { hook: 'We are free, we are free', c: [['I throw my worries to the wind', 'A brand new day is set to begin'], ['High above the clouds we ride', 'With the whole wide world inside'], ['Every dream is just a start', 'Follow me and trust your heart'], ['Today I rise, I\'m standing tall', 'Nothing\'s gonna make me fall']] },
+      'Night': { hook: 'Tonight, tonight, tonight', c: [['The city never sleeps tonight', 'Neon signs and silver light'], ['Stars are counting out the time', 'Tonight the whole world is mine'], ['Moon above the quiet street', 'Every heart begins to beat']] },
+      'Hope': { hook: 'I won\'t give up, I won\'t give up', c: [['Even when the rain falls down', 'We will rise and turn around'], ['After every storm there\'s light', 'We will make it through the night'], ['I will walk the road with you', 'Whatever comes, we\'ll see it through']] }
+    }
   };
   const pk = arr => arr[Math.floor(Math.random() * arr.length)], shuf = arr => arr.slice().sort(() => Math.random() - 0.5);
-  function autoText() {
-    let l = $('#sing-lang').value; if (l === 'auto') l = (navigator.language || 'de').startsWith('en') ? 'en' : 'de';
-    const D = AUTO[l], mk = () => { const a = { n: shuf(D.th[0]), v: shuf(D.th[1]), s: shuf(D.th[2]), t: shuf(D.th[3]) }; return shuf(D.L).slice(0, 4).map(f => f(a)).join('\n'); };
-    const verse = mk(), chorus = mk(); return [verse, chorus, mk(), chorus].join('\n\n');
+  let lastTheme = '';
+  function autoText(l) {
+    const D = AUTO[l], names = Object.keys(D).filter(n => n !== lastTheme), th = pk(names); lastTheme = th; const T = D[th], cs = shuf(T.c);
+    const v1 = cs[0].concat(cs[1 % cs.length]), ch = [T.hook].concat(cs[2 % cs.length], [T.hook]), v2 = cs[3 % cs.length].concat(cs[4 % cs.length] || cs[0]);
+    return { th, text: [v1.join('\n'), ch.join('\n'), v2.join('\n'), ch.join('\n')].join('\n\n') };
   }
-  $('#sing-auto').addEventListener('click', () => { $('#sing-txt').value = autoText(); if ($('#sing-lang').value === 'auto') $('#sing-lang').value = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-msg').textContent = '✍️ Text geschrieben. Tippe auf „Text singen lassen“ oder noch mal auf Autotext für einen neuen.'; });
+  $('#sing-auto').addEventListener('click', () => { let l = $('#sing-lang').value; if (l === 'auto') { l = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-lang').value = l; } const r = autoText(l); $('#sing-txt').value = r.text; $('#sing-msg').textContent = '✍️ Neuer Text zum Thema „' + r.th + '“. Tippe auf „Text singen lassen“ oder noch mal auf Autotext für ein anderes Thema.'; });
   let soloCtx = null, soloSrc = null;
   function soloStop() { try { if (soloSrc) { soloSrc.onended = null; soloSrc.stop(); } } catch (e) {} soloSrc = null; $('#sing-solo').textContent = '▶ Nur Gesang anhören'; }
   async function soloPlay() {
