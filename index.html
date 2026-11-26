@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 73</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 74</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -750,8 +750,8 @@ function regen() {
 regen();
 
 /* ---------- Hilfsfunktionen ---------- */
-const hit = (str, s) => str[s] === 'x';
-const countBefore = (str, s) => { let c = 0; for (let i = 0; i < s; i++) if (str[i] === 'x') c++; return c; };
+const hit = (str, s) => !!str && str[s] === 'x';
+const countBefore = (str, s) => { let c = 0; if (!str) return 0; for (let i = 0; i < s; i++) if (str[i] === 'x') c++; return c; };
 const countAll = str => countBefore(str, 16);
 function noteFreq(sc, deg, oct) {
   const semi = sc.notes[((deg % 7) + 7) % 7] + 12 * Math.floor(deg / 7);
@@ -1061,8 +1061,8 @@ function buildChain(ctx) {
   lim.curve = LIMIT; try { lim.oversample = '2x'; } catch (e) {}
   master.gain.value = 0.82;
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
-  const dk = {}; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); dk[k].connect(drums); });
-  drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.45); pad.connect(dP); widen(dP, 19, 0.4); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.4); horn.connect(dH); widen(dH, 15, 0.35);
+  const dk = {}, PAN = { hat: 0.32, open: -0.3, tom: -0.22, cl: 0.14 }; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); if (PAN[k]) { const pn = ctx.createStereoPanner(); pn.pan.value = PAN[k]; dk[k].connect(pn); pn.connect(drums); } else dk[k].connect(drums); });
+  drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.6); pad.connect(dP); widen(dP, 19, 0.6); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.55); horn.connect(dH); widen(dH, 15, 0.5);
   mixBus.connect(gate); gate.connect(crush); crush.connect(trem); trem.connect(phHP); phHP.connect(phLP); phLP.connect(filt); lfo.connect(lfoG); lfoG.connect(trem.gain); lfo.start(); filt.connect(dry); const pocket = ctx.createBiquadFilter(), duck = mk(); pocket.type = 'peaking'; pocket.frequency.value = 1900; pocket.Q.value = 0.9; pocket.gain.value = 0; dry.connect(pocket); pocket.connect(duck); duck.connect(comp);
   filt.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(comp);
   filt.connect(rvSend); rvSend.connect(rv); rv.connect(comp);
@@ -1111,7 +1111,7 @@ function playTrack(ctx, ch, k, tr, s, tt, dur, nf, chordDeg) {
   else V.horn(ctx, ch.horn, tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.95, tr.type, 0.12);
 }
 function scheduleStep(ctx, ch, S, n, t, dur, live) {
-  const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat || sty;
+  const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat ? { ...sty, ...S.beat } : sty;
   const s = n % 16, bar = Math.floor(n / 16);
   const tt = t + ((s % 2 === 1 && !S.fx.straight) ? (S.swingX != null ? S.swingX : sty.swing) * dur : 0);
   const B = !!S.blank, cut = leadCut(S) * ((STYLES[S.style] || {}).dark || 1), vary = B ? 0 : (S.mix.vary == null ? 0.6 : S.mix.vary), seed = S.seed || 1, rr = (a, b) => H(seed, a, b);
@@ -1200,7 +1200,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   }
   if (snareOn && !inBuild) {
     const sn = S.fx.half ? s === 8 : hit(pat.snare, s);
-    if (sn && !(inFill && fillType === 0 && s >= 12)) V.snare(ctx, ch.dk.snare, tt, 0.9, sty.clap);
+    if (sn && !(inFill && fillType === 0 && s >= 12)) V.snare(ctx, ch.dk.snare, tt + (rr(n, 72) - 0.5) * 0.006 * vary, 0.9 * (1 - 0.08 * vary * rr(n, 73)), sty.clap);
     if (sty.clap && !B && !S.fx.half && !hit(pat.snare, s) && pat.snare === '................' && (s === 4 || s === 12) && !inFill) V.snare(ctx, ch.dk.cl, tt, 0.8, true);
     if (vary > 0.2 && (s === 7 || s === 15) && !hit(pat.snare, s) && !inFill && rr(n, 51) < vary * 0.25) V.snare(ctx, ch.dk.snare, tt, 0.25, false);
     if (inFill) {
@@ -1214,7 +1214,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
     if (chill) { if (s % 4 === 2) V.hat(ctx, ch.dk.hat, tt, 0.12, false); }
     else {
       const hv = 1 - vary * 0.35 + vary * 0.7 * rr(n, 61);
-      if (hit(pat.hat, s)) V.hat(ctx, ch.dk.hat, tt, (s % 4 === 2 ? 0.26 : 0.16) * 1.25 * hv, false);
+      const hj = (rr(n, 71) - 0.5) * 0.011 * vary; if (hit(pat.hat, s)) V.hat(ctx, ch.dk.hat, tt + hj, (s % 4 === 2 ? 0.26 : 0.16) * 1.25 * hv, false);
       if (hit(pat.open, s) && !(song && (K === 'intro' || K === 'outro')) || (inFill && fillType === 2 && (s === 12 || s === 14))) V.hat(ctx, ch.dk.open, tt, 0.28, true);
       if (vary > 0.25 && s % 4 === 3 && rr(n, 62) < vary * 0.18) V.hat(ctx, ch.dk.hat, tt + dur / 2, 0.14, false);
     }
@@ -2285,7 +2285,7 @@ function megaHit() {
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['triangle', 'triangle', 'sawtooth', 'sine', 'square']); });
   T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
   T0(() => { const r = Math.round(rngR(0, 60)); $('#gen-rest').value = r; st.swingX = Math.random() < 0.45 ? rngR(0, 0.38) : null; });
-  T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || {}), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
+  T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || styleBeat()), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
   ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
     if (Math.random() > 0.55) return; const t = emptyTrack(k), s = $('#tp-' + k);
     t.n = Array.from({ length: 16 }, (_, i) => (Math.random() < (i % 4 === 0 ? 0.6 : 0.22) ? pickR([0, 0, 2, 4, 4, 7]) : -1));
@@ -2583,7 +2583,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const msg = t => { $('#ki-msg').textContent = t; };
   const setBpmK = v => { v = Math.round(Math.max(70, Math.min(175, v))); const e = $('#bpm-slider'); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
   const setScaleK = i => { st.scaleIdx = i; st.scaleLock = true; };
-  const smartInto = () => { st.melody = smartMelody(MAX_NOTES, 0.15, -3, 10); st.melodyLock = true; if (!/x/.test((st.beat && st.beat.lead) || '')) { st.beat = st.beat || {}; if (!st.beat.lead || !/x/.test(st.beat.lead)) st.beat.lead = STYLES[st.style].lead; } if ((st.mix.lead || 0) < 0.3) setMix('lead', 1); };
+  const smartInto = () => { st.melody = smartMelody(MAX_NOTES, 0.15, -3, 10); st.melodyLock = true; if (!/x/.test((st.beat && st.beat.lead) || '')) { st.beat = st.beat || styleBeat(); if (!st.beat.lead || !/x/.test(st.beat.lead)) st.beat.lead = STYLES[st.style].lead; } if ((st.mix.lead || 0) < 0.3) setMix('lead', 1); };
   const allRender = () => { renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor(); };
 
   // 1) Stimmungen
@@ -2827,7 +2827,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=73'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=74'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2871,7 +2871,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=73'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=74'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3152,18 +3152,22 @@ const SING = (function () {
   }
   stageLoop(); document.addEventListener('visibilitychange', () => { cancelAnimationFrame(raf); if (!document.hidden) stageLoop(); });
 
-  // ===== 3) Neigungs-Steuerung =====
-  const pad = $('#c-pad .cbody') || $('#c-pad'); const tb = document.createElement('button'); tb.id = 'btn-tilt'; tb.style.cssText = 'width:100%;margin-top:8px;'; tb.textContent = '📱 Neigungs-Steuerung: Aus'; pad.appendChild(tb);
-  const tmsg = document.createElement('div'); tmsg.style.cssText = 'font-size:.72rem;color:var(--muted);margin-top:4px;'; tmsg.textContent = 'Kippe dein Tablet: Links und Rechts steuert Hell und Echo, Vor und Zurück steuert die Energie.'; pad.appendChild(tmsg);
-  let tiltOn = false, lastT = 0, got = false;
-  function onTilt(e) { got = true; const now = performance.now(); if (now - lastT < 40 || e.gamma == null) return; lastT = now; const gx = Math.max(-35, Math.min(35, e.gamma)), by = Math.max(-35, Math.min(35, (e.beta || 0) - 40)); setPad(0.5 + gx / 70, 0.5 + by / 70); }
-  async function tiltToggle() {
-    if (tiltOn) { window.removeEventListener('deviceorientation', onTilt); tiltOn = false; tb.textContent = '📱 Neigungs-Steuerung: Aus'; tb.classList.remove('active-pink'); return; }
-    try { if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') { tmsg.textContent = 'Erlaubnis verweigert.'; return; } } } catch (e) {}
-    got = false; window.addEventListener('deviceorientation', onTilt); tiltOn = true; tb.textContent = '📱 Neigungs-Steuerung: AN (tippen zum Beenden)'; tb.classList.add('active-pink');
-    setTimeout(() => { if (tiltOn && !got) tmsg.textContent = 'Dein Gerät meldet keine Neigung. Probiere es auf dem Tablet.'; }, 2000);
-  }
-  tb.addEventListener('click', tiltToggle);
+  // ===== 3) Magic-Pad: Alternativen (Regler / Szenen) =====
+  const padBody = $('#c-pad .cbody') || $('#c-pad'), padEl = $('#pad');
+  const seg = document.createElement('div'); seg.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;';
+  seg.innerHTML = '<button data-v="pad">🎯 Pad</button><button data-v="sl">🎚 Regler</button><button data-v="sc">🎬 Szenen</button>';
+  const slP = document.createElement('div'); slP.style.display = 'none'; slP.innerHTML = '<div class="mixgrid"><label>⚡ Energie <b id="pe-v"></b></label><input type="range" id="pe-e" min="0" max="100"><label>✨ Hell &amp; Echo <b id="pe-v2"></b></label><input type="range" id="pe-h" min="0" max="100"></div><div style="font-size:.7rem;color:var(--muted);margin-top:6px;">Energie: unten sanft, oben voller Drop. Hell &amp; Echo: links dunkel und trocken, rechts hell mit Echo.</div>';
+  const scP = document.createElement('div'); scP.style.display = 'none';
+  const SC = [['😴 Intro', 0.2, 0.92], ['🌙 Chill', 0.35, 0.72], ['🎶 Groove', 0.5, 0.45], ['🔥 Drop', 0.6, 0.15], ['🚀 Rave', 0.9, 0.05], ['🫧 Echo-Welt', 0.97, 0.55]];
+  scP.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' + SC.map((x, i) => `<button data-i="${i}" style="padding:14px 4px;">${x[0]}</button>`).join('') + '</div><div style="font-size:.7rem;color:var(--muted);margin-top:6px;">Tippe eine Szene, die Energie und Klang setzt. Du kannst danach mit Pad oder Reglern nachjustieren.</div>';
+  padEl.before(seg); padEl.after(slP, scP);
+  const padSync = () => { const e = $('#pe-e'), h = $('#pe-h'); if (!e) return; e.value = Math.round((1 - st.py) * 100); h.value = Math.round(st.px * 100); $('#pe-v').textContent = e.value + ' %'; $('#pe-v2').textContent = h.value + ' %'; let bi = -1, bd = 9; SC.forEach((x, i) => { const d = Math.hypot(x[1] - st.px, x[2] - st.py); if (d < bd) { bd = d; bi = i; } }); scP.querySelectorAll('button').forEach(b => b.classList.toggle('active-pink', +b.dataset.i === bi && bd < 0.16)); };
+  const _setPad = setPad; setPad = function (px, py) { _setPad(px, py); padSync(); };
+  const showPadView = v => { padEl.style.display = v === 'pad' ? '' : 'none'; slP.style.display = v === 'sl' ? '' : 'none'; scP.style.display = v === 'sc' ? '' : 'none'; seg.querySelectorAll('button').forEach(b => b.classList.toggle('active-pink', b.dataset.v === v)); try { localStorage.setItem('musify-padview', v); } catch (e) {} padSync(); };
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => showPadView(b.dataset.v)));
+  $('#pe-e').addEventListener('input', e => setPad(st.px, 1 - e.target.value / 100)); $('#pe-h').addEventListener('input', e => setPad(e.target.value / 100, st.py));
+  scP.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const x = SC[+b.dataset.i]; setPad(x[1], x[2]); }));
+  showPadView(lsG('musify-padview') || 'pad');
 
   // ===== 4) Tap-Tempo =====
   const bs = $('#bpm-slider'); if (bs) { const tt = document.createElement('button'); tt.id = 'btn-tap'; tt.textContent = '👆 Tempo antippen'; tt.style.cssText = 'width:100%;margin-top:2px;grid-column:1/-1;'; bs.after(tt);
