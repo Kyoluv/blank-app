@@ -482,6 +482,7 @@
   <div class="label"><span>🎹 Akkorde</span><span id="ce-state" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;"><button id="ce-A">Refrain / Live</button><button id="ce-B">Strophe / Break</button></div>
+  <button id="ce-off" style="width:100%;margin-bottom:8px;">🔇 Akkorde ausschalten</button>
   <button id="ce-rand" class="sunset-btn" style="width:100%;margin-bottom:8px;">🎲 Zufalls-Flächen (Akkorde + Klang)</button>
   <div id="ce-row" class="ce-row"></div>
   <div class="label" style="margin-bottom:5px;"><span>Akkord wählen</span></div>
@@ -497,7 +498,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 49</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 50</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1147,8 +1148,8 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   // Akkorde
   const inv = rr(bar, 5) < vary * 0.45;
   const triad = (inv ? [2, 4, 7] : [0, 2, 4]).map(k => nf(chordDeg + k, 0));
-  if (s === 0 && (!B || S.chordA)) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
-  if (stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.11 * (sty.quiet || 1));
+  if (!S.chordsOff && s === 0 && (!B || S.chordA)) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
+  if (!S.chordsOff && stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.11 * (sty.quiet || 1));
 
   // Schlagzeug
   if (kickOn) {
@@ -1706,7 +1707,7 @@ async function exportWav(song) {
   setProg(0, 'Vorbereiten …');
   try {
     if (mp3 && typeof lamejs === 'undefined') throw new Error('Der MP3-Baustein ist nicht geladen. Bitte WAV wählen.');
-    const S = JSON.parse(JSON.stringify({ style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
+    const S = JSON.parse(JSON.stringify({ style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, chordsOff: st.chordsOff, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
     S.build = null; S.fx.autodj = false; S.songMode = !!song; if (song) S.chill = false;
     const dur = 60 / st.bpm / 4, sr = 44100, secs = bars * 16 * dur + 3;
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -2109,7 +2110,7 @@ $('#btn-clearall').addEventListener('click', () => {
   T(() => undoPoint());
   T(() => { if (st.playing) stop(); });
   T(() => { if (chain && ctx) { const now = ctx.currentTime, g = chain.master.gain; g.cancelScheduledValues(now); g.setValueAtTime(0, now); g.setValueAtTime(0, now + 1.6); g.setTargetAtTime(0.82, now + 1.6, 0.04); } });
-  T(() => resetSettings());
+  T(() => resetSettings()); T(() => setChordsOff(false));
   T(() => { Object.keys(st.mix).forEach(k => setMix(k, 0)); setPad(0, 1); });
   T(() => { st.nudge = 0; $('#nudge').value = 0; $('#nudge-val').textContent = '0 ms'; $('#gen-rest').value = 0; st.bpm = 85; $('#bpm-slider').value = 85; $('#bpm-val').textContent = '85'; $('#song-form').value = 'standard'; st.form = 'standard'; });
   st.blank = true;
@@ -2190,7 +2191,7 @@ $('#ce-rand').addEventListener('click', () => {
 });
 function T0(f) { try { f(); } catch (e) {} }
 function megaHit() {
-  undoPoint(); stopIfNeeded();
+  undoPoint(); stopIfNeeded(); setChordsOff(false);
   st.blank = false; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.beat = null; st.melodyLock = false; st.scaleLock = false;
   setStyle(pickR(Object.keys(STYLES)));
   const M = { drums: rngR(0.75, 0.95), bass: rngR(0.55, 0.85), lead: rngR(0.6, 1), pad: rngR(0.3, 0.7), pump: rngR(0.2, 0.7), hall: rngR(0.1, 0.5), tone: rngR(0.6, 0.95), loud: rngR(0.65, 0.85), vox: 0.8, vary: rngR(0.3, 0.9), gtr: rngR(0.5, 0.8), horn: rngR(0.5, 0.8), tuba: rngR(0.5, 0.8), bone: rngR(0.5, 0.8) };
@@ -2384,6 +2385,9 @@ $('#btn-reload').addEventListener('click', async () => {
   new MutationObserver(upd).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'open'] });
   setInterval(upd, 1000); upd();
 })();
+
+function setChordsOff(on) { st.chordsOff = !!on; const b = $('#ce-off'); if (!b) return; b.classList.toggle('active-pink', !!on); b.textContent = on ? '🔊 Akkorde sind AUS – antippen zum Einschalten' : '🔇 Akkorde ausschalten'; }
+$('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
 
 </script>
 </body>
