@@ -520,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 81</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 82</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2314,7 +2314,7 @@ function megaHit() {
   T0(() => { st.scaleIdx = wPick(SCALES.map((_, i) => i), 'scale:'); st.scaleLock = true; });
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['triangle', 'triangle', 'sawtooth', 'sine', 'square']); });
   T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
-  T0(() => { if (typeof setWorld === 'function') setWorld(Math.random() < 0.4 ? 0 : 1 + Math.floor(Math.random() * (WORLDS.length - 1))); });
+  T0(() => { if (typeof setWorld === 'function' && !st.worldOff) setWorld(Math.random() < 0.4 ? 0 : 1 + Math.floor(Math.random() * (WORLDS.length - 1))); });
   T0(() => { const r = Math.round(rngR(0, 60)); $('#gen-rest').value = r; st.swingX = Math.random() < 0.45 ? rngR(0, 0.38) : null; });
   T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || styleBeat()), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
   ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
@@ -2858,7 +2858,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=81'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=82'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2903,7 +2903,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=81'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=82'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
@@ -3309,20 +3309,23 @@ const SING = (function () {
 
 
 /* ---------- v81: Klangwelten-Karte ---------- */
-function setWorld(id, quiet) {
+function setWorld(id, quiet, off) {
+  st.worldOff = !!off; try { localStorage.setItem('musify-worldoff', off ? '1' : ''); } catch (e) {}
   id = Math.max(0, Math.min(WORLDS.length - 1, id | 0)); st.world = id; try { localStorage.setItem('musify-world', String(id)); } catch (e) {}
   try { if (chain) applyWorld(chain, id, true); } catch (e) {}
   const w = WORLDS[id]; document.querySelectorAll('#world-grid button').forEach(b => b.classList.toggle('active-pink', +b.dataset.w === id));
-  const m = document.getElementById('world-msg'); if (m) m.textContent = w.e + ' ' + w.n + ': ' + w.d;
+  const m = document.getElementById('world-msg'); if (m) m.textContent = off ? '⛔ Klangwelt ist aus. Auch der Shuffle-Knopf ändert sie nicht mehr.' : w.e + ' ' + w.n + ': ' + w.d;
+  const ob = document.getElementById('world-off'); if (ob) { ob.classList.toggle('active-pink', !!off); ob.textContent = off ? '⛔ Klangwelt ist AUS' : '⛔ Klangwelt aus'; }
 }
 (function worldCard() {
   const card = document.createElement('div'); card.className = 'card'; card.id = 'c-world'; card.style.padding = '10px';
-  card.innerHTML = '<div class="label"><span>🌍 Klangwelt</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Verändert den Klangcharakter der ganzen Musik auf einmal: Kassette, Schallplatte, 8-Bit, Radio, Unterwasser, Kathedrale und mehr. Probiere sie beim Abspielen durch. Wirkt auch beim Export.</div><div class="grid-oct" id="world-grid" style="grid-template-columns:repeat(3,1fr);">' + WORLDS.map((w, i) => '<button class="oct-btn" data-w="' + i + '" style="font-size:.78rem;padding:10px 4px;">' + w.e + '<br>' + w.n + '</button>').join('') + '</div><button id="world-rnd" class="oct-btn" style="width:100%;margin-top:8px;">🎲 Zufällige Klangwelt</button><div id="world-msg" style="font-size:.78rem;margin-top:8px;color:var(--gold);min-height:1.2em;"></div>';
+  card.innerHTML = '<div class="label"><span>🌍 Klangwelt</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;">Verändert den Klangcharakter der ganzen Musik auf einmal: Kassette, Schallplatte, 8-Bit, Radio, Unterwasser, Kathedrale und mehr. Probiere sie beim Abspielen durch. Wirkt auch beim Export.</div><div class="grid-oct" id="world-grid" style="grid-template-columns:repeat(3,1fr);">' + WORLDS.map((w, i) => '<button class="oct-btn" data-w="' + i + '" style="font-size:.78rem;padding:10px 4px;">' + w.e + '<br>' + w.n + '</button>').join('') + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><button id="world-rnd" class="oct-btn">🎲 Zufällige Klangwelt</button><button id="world-off" class="oct-btn">⛔ Klangwelt aus</button></div><div id="world-msg" style="font-size:.78rem;margin-top:8px;color:var(--gold);min-height:1.2em;"></div>';
   const anchor = document.getElementById('c-sing') || document.getElementById('c-sliders'); anchor.parentNode.insertBefore(card, anchor);
   card.querySelectorAll('#world-grid button').forEach(b => b.addEventListener('click', () => setWorld(+b.dataset.w)));
+  document.getElementById('world-off').addEventListener('click', () => setWorld(0, false, !st.worldOff));
   document.getElementById('world-rnd').addEventListener('click', () => setWorld(1 + Math.floor(Math.random() * (WORLDS.length - 1))));
   let w0 = 0; try { w0 = +localStorage.getItem('musify-world') || 0; } catch (e) {}
-  st.world = w0; setWorld(w0); const m = document.getElementById('world-msg'); if (m && !w0) m.textContent = '';
+  let wo = false; try { wo = !!localStorage.getItem('musify-worldoff'); } catch (e) {} st.world = wo ? 0 : w0; setWorld(st.world, false, wo); const m = document.getElementById('world-msg'); if (m && !w0) m.textContent = '';
 })();
 
 </script>
