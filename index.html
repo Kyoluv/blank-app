@@ -236,7 +236,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 </header>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
-  <button id="btn-newhit">🎲 Neuer Hit</button>
+  <button id="btn-newhit">🎲 Shuffle</button>
   <button id="mode-btn">🙂 Einfach</button>
   <button id="help-btn" aria-label="Hilfe">❓</button>
 </div>
@@ -366,7 +366,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 <div class="card" id="c-song" data-tab="song">
   <div class="label"><span>Ganzer Song & alle Regler</span><span id="song-lbl" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
-  <div class="mixgrid" style="margin-bottom:8px;"><label>🎼 Songform</label><select id="song-form" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="standard">Standard (ca. 2:40)</option><option value="radio">Radio-Edit (ca. 1:50)</option><option value="club">Club-Mix (ca. 3:40)</option><option value="bridge">Mit Bridge (ca. 2:55)</option><option value="random">Zufall bei „Neuer Hit"</option></select></div>
+  <div class="mixgrid" style="margin-bottom:8px;"><label>🎼 Songform</label><select id="song-form" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="standard">Standard (ca. 2:40)</option><option value="radio">Radio-Edit (ca. 1:50)</option><option value="club">Club-Mix (ca. 3:40)</option><option value="bridge">Mit Bridge (ca. 2:55)</option><option value="random">Zufall bei „Shuffle"</option></select></div>
   <div id="song-tl" class="song-tl"></div>
   <button id="btn-song" class="play-btn" style="width:100%;margin:8px 0;">▶ Ganzen Song spielen</button>
   <div style="font-size:0.72rem;color:var(--muted);">🎚 Alle Regler (Tempo, Lautstärken, Hall …) stehen ganz oben unter dem Play-Knopf.</div>
@@ -519,7 +519,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 53</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 54</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2161,7 +2161,7 @@ $('#btn-clearall').addEventListener('click', () => {
   T(saveCur);
 
   b.textContent = '🗑 Alles löschen (eigene Spuren)'; b.classList.remove('active-pink');
-  $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Mixer-Regler stehen auf 0. Baue ihn in den Editoren neu auf und schiebe die Regler hoch, wenn du etwas hören willst. „Neuer Hit“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
+  $('#clearall-msg').textContent = '✔ Der Song ist jetzt ganz leer, es klingt nichts, und alle Mixer-Regler stehen auf 0. Baue ihn in den Editoren neu auf und schiebe die Regler hoch, wenn du etwas hören willst. „Shuffle“ holt den Stil zurück, „↶ Rückgängig“ deinen alten Song.';
   { const bad = $$('input[type=range]').filter(r => +r.value > +r.min).map(r => r.id + '=' + r.value); $('#clearall-msg').textContent += ' [Prüfung: ' + (bad.length ? 'NICHT auf 0: ' + bad.join(', ') : 'alle Regler auf 0') + (errs.length ? '; Fehler: ' + errs.join(' | ') : '') + ']'; }
   setTimeout(() => { $('#clearall-msg').textContent = ''; }, 12000);
 });
@@ -2310,7 +2310,7 @@ const HELP = {
   'c-pad': 'Zieh den Punkt: nach oben = mehr Energie (voller Beat), nach unten = ruhiger. Nach rechts wird der Klang heller und es kommt mehr Echo.',
   'c-oct': 'Hier änderst du, wie hoch oder tief die Melodie spielt. „Sprung" und „Welle" wechseln automatisch, „Morph" würfelt die Tonhöhe.',
   'c-fx': 'Effekte, die du beim Spielen zuschaltest. Leuchtet ein Knopf, ist er an. Der KI-Auto-DJ verändert alles von selbst, Drop-Build baut Spannung auf und endet mit einem Knall.',
-  'c-notes': 'Tippe in die Felder, um eigene Noten zu setzen. Unten ist tief, oben hoch. Die Noten laufen der Reihe nach über den Rhythmus des Stils. „Melodie bleibt" schützt deine Melodie vor „Neuer Hit".',
+  'c-notes': 'Tippe in die Felder, um eigene Noten zu setzen. Unten ist tief, oben hoch. Die Noten laufen der Reihe nach über den Rhythmus des Stils. „Melodie bleibt" schützt deine Melodie vor „Shuffle".',
   'c-beat': 'Hier setzt du dein Schlagzeug selbst: Tippe auf ein Feld, um einen Schlag ein- oder auszuschalten. Kick, Snare, Clap, Hi-Hat, Offen und Tom haben je eine Zeile. Die beiden unteren Zeilen bestimmen, wann Melodie und Akkorde erklingen. Drücke oben ▶ PLAY, dann hörst du jede Änderung sofort.',
   'c-bass': 'Spiele deinen eigenen Bass. Tippe in das Raster: oben sind hohe Töne, unten der Grundton des Akkords. Der Bass folgt automatisch deinen Akkorden. Mit „Klang“ wählst du Sub, weich oder Säge. „Zurück zum Stil“ gibt dir den Bass des Stils zurück.',
   'c-gtr': 'Eine eigene Gitarre. Tippe in das Raster, wo sie spielen soll. Bei „Akkord-Anschlag“ schlägt sie den ganzen Akkord an, sonst spielt sie einzelne Töne. Die Gitarre ist zuerst aus, bis du ein Feld setzt. Die Lautstärke findest du im Mixer unter „Gitarre“.',
@@ -2333,7 +2333,7 @@ function buildHelp() {
 }
 const TOUR = [
   ['Willkommen bei Musify 🎶', 'Mit einem Fingertipp entstehen Songs. Alle Klänge kommen aus Synthesizern, deine Stimme nimmst du selbst auf.'],
-  ['So entsteht ein Song', '① Stil wählen\n② „Neuen Song erzeugen" tippen\n③ Gefällt er dir? Dann speichern.\nMit „Neuer Hit" oben würfelst du jederzeit neu.'],
+  ['So entsteht ein Song', '① Stil wählen\n② „Neuen Song erzeugen" tippen\n③ Gefällt er dir? Dann speichern.\nMit „Shuffle" oben würfelst du jederzeit neu.'],
   ['Die Leiste unten', 'Alles steht untereinander: einfach nach oben und unten scrollen. Die Leiste unten springt direkt zu Spielen, Song (ganzer Song und Mixer), Melodie (eigene Noten), Stimme (einsingen) und Speichern.'],
   ['Einfach oder Profi', 'Oben wechselst du zwischen Einfach (wenige Knöpfe) und Profi (alle Effekte). Hinter jedem ⓘ steht eine kurze Erklärung. Die Einführung findest du jederzeit unter ❓.']
 ];
