@@ -195,10 +195,29 @@
   button:disabled { opacity:0.45; }
 </style>
 <style>
-#vsb{position:fixed;right:0;top:calc(env(safe-area-inset-top,0px) + 56px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:44px;z-index:60;touch-action:none;}
+#vsb{position:fixed;right:0;top:calc(env(safe-area-inset-top,0px) + 190px);bottom:calc(env(safe-area-inset-bottom,0px) + 90px);width:44px;z-index:60;touch-action:none;}
 #vsb::before{content:"";position:absolute;right:14px;top:0;bottom:0;width:10px;border-radius:5px;background:rgba(128,128,150,.22);}
 #vsb i{position:absolute;right:6px;width:26px;min-height:80px;border-radius:13px;background:var(--accent,#ff4fa3);opacity:.85;box-shadow:0 0 0 1px rgba(0,0,0,.25);}
 #vsb.drag i{opacity:1;width:32px;right:3px;}
+</style>
+<style>
+#jump{display:flex;gap:6px;overflow-x:auto;padding:8px 2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#jump::-webkit-scrollbar{display:none}
+#jump button{flex:0 0 auto;padding:8px 13px;border-radius:18px;font-size:.78rem;min-height:38px}
+#fab{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 84px);display:flex;gap:8px;z-index:55}
+#fab button{width:52px;height:52px;border-radius:50%;font-size:1.3rem;padding:0;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+#tip{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);max-width:86vw;background:#000d;color:#fff;border:1px solid var(--accent);border-radius:12px;padding:10px 14px;font-size:.85rem;z-index:80;text-align:center;display:none}
+#c-favs .fav-row{display:grid;grid-template-columns:104px 1fr;gap:6px 10px;align-items:center;font-size:.75rem;color:var(--muted);margin-bottom:6px}
+#c-favs .fav-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+#c-favs .fav-row input{width:100%}
+body.favedit #c-fx button, body.favedit #c-sliders label{outline:2px dashed var(--gold,#ffc83d);outline-offset:2px}
+.isfav{box-shadow:0 0 0 2px var(--gold,#ffc83d) inset}
+@media (pointer:coarse){
+  #c-fx button,#c-clear button,#c-song button,.undo-row button,#c-chords > button,#c-notes button,#c-beat button{min-height:44px}
+}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:36px}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:rgba(128,128,150,.38)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--accent);border:2px solid rgba(0,0,0,.45);margin-top:-11px}
 </style>
 </head>
 <body>
@@ -500,7 +519,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 52</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 53</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2406,6 +2425,90 @@ $('#btn-reload').addEventListener('click', async () => {
 
 function setChordsOff(on) { st.chordsOff = !!on; const b = $('#ce-off'); if (!b) return; b.classList.toggle('active-pink', !!on); b.textContent = on ? '🔊 Akkorde sind AUS – antippen zum Einschalten' : '🔇 Akkorde ausschalten'; }
 $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
+
+/* ---------- Bedienung: Sprungmarken, Rückgängig-Knöpfe, Tipps, Favoriten ---------- */
+(function ux() {
+  const sticky = $('#sticky');
+  // 2) Sprungmarken
+  const jump = document.createElement('div'); jump.id = 'jump';
+  [['⭐ Favoriten', 'c-favs'], ['🎚 Regler', 'c-sliders'], ['✨ Effekte', 'c-fx'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+    const b = document.createElement('button'); b.textContent = t;
+    b.addEventListener('click', () => {
+      const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
+      const y = el.getBoundingClientRect().top + window.scrollY - sticky.offsetHeight - 8; window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    });
+    jump.appendChild(b);
+  });
+  sticky.appendChild(jump);
+  // 5) feste Rückgängig-Knöpfe
+  const fab = document.createElement('div'); fab.id = 'fab';
+  const bu = document.createElement('button'); bu.className = 'undo-btn'; bu.textContent = '↶'; bu.setAttribute('aria-label', 'Rückgängig'); bu.addEventListener('click', doUndo);
+  const br = document.createElement('button'); br.className = 'redo-btn'; br.textContent = '↷'; br.setAttribute('aria-label', 'Wiederholen'); br.addEventListener('click', doRedo);
+  fab.append(bu, br); document.body.appendChild(fab); refreshUndoUI();
+  // 4) Tipps beim langen Drücken
+  const TIPS = {
+    'btn-play': 'Startet und stoppt die Musik.', 'btn-newhit': 'Mischt alles komplett neu: Stil, Tempo, Regler, Töne, Melodie.',
+    'mode-btn': 'Wechselt zwischen Einfach und Profi.', 'btn-clearall': 'Löscht alles: Song leer, alle Regler auf 0.', 'btn-resetall': 'Zurück zum Anfang, wie beim ersten Start.',
+    'btn-reload': 'Lädt die neueste Version der App.', 'ne-toprand': 'Würfelt eine neue Zufalls-Melodie.', 'ce-rand': 'Würfelt neue Akkorde und einen neuen Klang für die Flächen.',
+    'ce-off': 'Schaltet alle Akkorde und Flächen aus oder an.', 'ne-delone': 'Dann löscht jede angetippte Note.', 'ne-delall': 'Löscht alle Noten der Melodie.',
+    'btn-autodj': 'Ändert alle paar Takte selbst Energie und Effekte.', 'btn-acid': 'Fügt eine Acid-Bassline hinzu.', 'btn-vocal': 'Kurze Stimm-Schnipsel im Rhythmus.',
+    'btn-arp': 'Schnelle Tonfolge aus dem Akkord.', 'btn-sub': 'Mehr Wumms im Tiefbass.', 'btn-echo': 'Langes Echo mit viel Raum.', 'btn-gate': 'Hackt den Klang rhythmisch ab.',
+    'btn-trem': 'Die Lautstärke zittert im Takt.', 'btn-phone': 'Klingt wie durch ein altes Telefon.', 'btn-siren': 'Ein Rauschen steigt auf, wie vor einem Drop.',
+    'btn-boom': 'Ein tiefer Einschlag-Wumms.', 'btn-laser': 'Ein kurzer Laser-Ton.', 'btn-half': 'Halbes Tempo-Gefühl.', 'btn-groove': 'Gerader Rhythmus ohne Swing.',
+    'btn-build': 'Baut Spannung für den Drop auf.', 'btn-scratch': 'Ein DJ-Scratch.', 'btn-stutter': 'Stottert in schnellen Sechzehnteln.'
+  };
+  const tip = document.createElement('div'); tip.id = 'tip'; document.body.appendChild(tip);
+  let tt = null, held = false, tm = null;
+  document.addEventListener('pointerdown', ev => {
+    const b = ev.target.closest && ev.target.closest('button'); if (!b || !TIPS[b.id]) return;
+    clearTimeout(tt); tt = setTimeout(() => { held = true; tip.textContent = TIPS[b.id]; tip.style.display = 'block'; clearTimeout(tm); tm = setTimeout(() => { tip.style.display = 'none'; }, 3500); }, 600);
+  }, true);
+  const cancel = () => clearTimeout(tt);
+  document.addEventListener('pointerup', cancel, true); document.addEventListener('pointercancel', cancel, true); document.addEventListener('pointermove', cancel, true);
+  document.addEventListener('click', ev => { if (held) { held = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
+  Object.keys(TIPS).forEach(id => { const b = document.getElementById(id); if (b) b.title = TIPS[id]; });
+  // 6) Favoriten
+  let favs = []; try { favs = JSON.parse(localStorage.getItem('musify-favs') || '[]'); } catch (e) { favs = []; }
+  const saveFavs = () => { try { localStorage.setItem('musify-favs', JSON.stringify(favs)); } catch (e) {} };
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-favs'; card.style.padding = '10px';
+  card.innerHTML = '<div class="label"><span>⭐ Meine Favoriten</span></div><button id="fav-edit" style="width:100%;margin-bottom:6px;">✏️ Favoriten auswählen</button><div id="fav-hint" style="font-size:.72rem;color:var(--muted);margin-bottom:6px;"></div><div id="fav-list"></div>';
+  const first = $('#c-sliders'); first.parentNode.insertBefore(card, first);
+  let editMode = false;
+  const idOfLabel = lab => { let n = lab.nextElementSibling; return n && n.tagName === 'INPUT' ? n.id : null; };
+  const markFavs = () => { $$('.isfav').forEach(e => e.classList.remove('isfav')); favs.forEach(id => { const el = document.getElementById(id); if (!el) return; (el.tagName === 'INPUT' ? el.previousElementSibling : el).classList.add('isfav'); }); };
+  const proxies = [];
+  function renderFavs() {
+    const list = $('#fav-list'); list.innerHTML = ''; proxies.length = 0;
+    $('#fav-hint').textContent = editMode ? 'Tippe unten bei den Reglern auf den NAMEN oder bei den Effekten auf den Knopf, um ihn hier anzuheften oder zu entfernen.' : (favs.length ? '' : 'Noch leer. Tippe auf „Favoriten auswählen“.');
+    const btns = document.createElement('div'); btns.className = 'fav-btns';
+    favs.forEach(id => {
+      const src = document.getElementById(id); if (!src) return;
+      if (src.tagName === 'INPUT') {
+        const row = document.createElement('div'); row.className = 'fav-row';
+        const l = document.createElement('label'); l.textContent = src.previousElementSibling ? src.previousElementSibling.textContent : id;
+        const p = document.createElement('input'); p.type = 'range'; p.min = src.min; p.max = src.max; p.value = src.value;
+        p.addEventListener('input', () => { src.value = p.value; src.dispatchEvent(new Event('input', { bubbles: true })); });
+        p.addEventListener('change', () => { src.dispatchEvent(new Event('change', { bubbles: true })); });
+        p.addEventListener('pointerdown', () => src.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+        row.append(l, p); list.appendChild(row); proxies.push([src, p]);
+      } else {
+        const p = document.createElement('button'); p.textContent = src.textContent; p.addEventListener('click', () => src.click()); btns.appendChild(p); proxies.push([src, p]);
+      }
+    });
+    if (btns.children.length) list.appendChild(btns);
+    markFavs();
+  }
+  setInterval(() => { proxies.forEach(([s, p]) => { if (s.tagName === 'INPUT') { if (document.activeElement !== p && p.value !== s.value) p.value = s.value; } else { if (p.className !== s.className.replace('isfav', '').trim()) p.className = s.className.replace('isfav', '').trim(); } }); }, 400);
+  $('#fav-edit').addEventListener('click', () => { editMode = !editMode; document.body.classList.toggle('favedit', editMode); $('#fav-edit').textContent = editMode ? '✔ Fertig' : '✏️ Favoriten auswählen'; renderFavs(); });
+  document.addEventListener('click', ev => {
+    if (!editMode) return; const t = ev.target; let id = null;
+    const lab = t.closest('#c-sliders label'); if (lab) id = idOfLabel(lab);
+    const btn = t.closest('#c-fx button'); if (btn && btn.id) id = btn.id;
+    if (!id) return; ev.stopPropagation(); ev.preventDefault();
+    const i = favs.indexOf(id); if (i >= 0) favs.splice(i, 1); else favs.push(id); saveFavs(); renderFavs();
+  }, true);
+  renderFavs();
+})();
 
 </script>
 </body>
