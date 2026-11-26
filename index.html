@@ -194,8 +194,15 @@
   .ce-pal { display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:8px; } .ce-pal button { padding:8px 0; font-size:0.7rem; }
   button:disabled { opacity:0.45; }
 </style>
+<style>
+#vsb{position:fixed;right:0;top:calc(env(safe-area-inset-top,0px) + 56px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:22px;z-index:60;touch-action:none;}
+#vsb::before{content:"";position:absolute;right:6px;top:0;bottom:0;width:6px;border-radius:3px;background:rgba(128,128,150,.22);}
+#vsb i{position:absolute;right:3px;width:12px;min-height:44px;border-radius:6px;background:var(--accent,#ff4fa3);opacity:.85;box-shadow:0 0 0 1px rgba(0,0,0,.25);}
+#vsb.drag i{opacity:1;width:16px;right:1px;}
+</style>
 </head>
 <body>
+<div id="vsb"><i></i></div>
 
 <div id="sticky">
 <header>
@@ -490,7 +497,7 @@
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 47</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 48</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2354,6 +2361,29 @@ $('#btn-reload').addEventListener('click', async () => {
   try { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } catch (e) {}
   location.reload();
 });
+
+(function vScroll() {
+  const bar = document.getElementById('vsb'), th = bar && bar.firstElementChild; if (!bar) return;
+  const se = () => document.scrollingElement || document.documentElement;
+  function upd() {
+    const e = se(), total = e.scrollHeight, view = window.innerHeight, h = bar.clientHeight;
+    if (total <= view + 4) { bar.style.display = 'none'; return; } bar.style.display = '';
+    const tl = Math.max(44, h * view / total), max = total - view, top = (h - tl) * (e.scrollTop / max);
+    th.style.height = tl + 'px'; th.style.top = top + 'px';
+  }
+  let drag = false;
+  function moveTo(y) {
+    const r = bar.getBoundingClientRect(), tl = th.offsetHeight, f = Math.max(0, Math.min(1, (y - r.top - tl / 2) / Math.max(1, r.height - tl)));
+    const e = se(); e.scrollTop = f * (e.scrollHeight - window.innerHeight);
+  }
+  bar.addEventListener('pointerdown', ev => { drag = true; bar.classList.add('drag'); try { bar.setPointerCapture(ev.pointerId); } catch (e) {} moveTo(ev.clientY); ev.preventDefault(); });
+  bar.addEventListener('pointermove', ev => { if (drag) moveTo(ev.clientY); });
+  const end = () => { drag = false; bar.classList.remove('drag'); };
+  bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
+  window.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd);
+  new MutationObserver(upd).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'open'] });
+  setInterval(upd, 1000); upd();
+})();
 
 </script>
 </body>
