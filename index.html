@@ -262,6 +262,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
     <label>🎺 Tuba</label><input type="range" id="mix-tuba" min="0" max="100" value="80">
     <label>🎷 Bassposaune</label><input type="range" id="mix-bone" min="0" max="100" value="80">
     <label>🎹 Melodie</label><input type="range" id="mix-lead" min="0" max="100" value="100">
+    <label>🎼 Akkorde</label><input type="range" id="mix-pad" min="0" max="100" value="55">
     <label>🔆 Helligkeit</label><input type="range" id="mix-tone" min="0" max="100" value="80">
     <label>💨 Pump</label><input type="range" id="mix-pump" min="0" max="100" value="50">
     <label>🏛️ Hall</label><input type="range" id="mix-hall" min="0" max="100" value="30">
@@ -519,7 +520,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 54</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 55</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -1179,7 +1180,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const inv = rr(bar, 5) < vary * 0.45;
   const triad = (inv ? [2, 4, 7] : [0, 2, 4]).map(k => nf(chordDeg + k, 0));
   if (!S.chordsOff && s === 0 && (!B || S.chordA)) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
-  if (!S.chordsOff && stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.11 * (sty.quiet || 1));
+  if (!S.chordsOff && stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.11 * (sty.quiet || 1) * ((S.mix && S.mix.pad != null ? S.mix.pad : 0.55) / 0.55));
 
   // Schlagzeug
   if (kickOn) {
@@ -2214,7 +2215,7 @@ $('#fmt').addEventListener('change', ev => lsSet('musify-fmt', ev.target.value))
 $('#btn-proj-save').addEventListener('click', saveProject);
 $('#nudge').addEventListener('input', ev => { st.nudge = +ev.target.value; $('#nudge-val').textContent = st.nudge + ' ms'; });
 $('#btn-wav-song').addEventListener('click', () => exportWav(true));
-['kick', 'snare', 'cl', 'hat', 'open', 'tom', 'drums', 'bass', 'gtr', 'horn', 'tuba', 'bone', 'lead', 'tone', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
+['kick', 'snare', 'cl', 'hat', 'open', 'tom', 'drums', 'bass', 'gtr', 'horn', 'tuba', 'bone', 'lead', 'pad', 'tone', 'pump', 'hall', 'loud', 'vox', 'vary'].forEach(k => $('#mix-' + k).addEventListener('input', ev => setMix(k, +ev.target.value / 100)));
 
 const pickR = a => a[Math.floor(Math.random() * a.length)], rngR = (a, b) => a + Math.random() * (b - a);
 $('#ce-rand').addEventListener('click', () => {
