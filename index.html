@@ -528,7 +528,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
   <button id="btn-reload" style="width:100%;margin-top:6px;">🔄 Neueste Version laden</button>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 83</div>
+  <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Version 84</div>
 </div>
 
 <div class="card" id="c-voice" data-tab="voice">
@@ -2318,10 +2318,50 @@ let learn = {}; try { learn = JSON.parse(localStorage.getItem('musify-learn') ||
 const saveLearn = () => { try { localStorage.setItem('musify-learn', JSON.stringify(learn)); } catch (e) {} };
 const wOf = k => Math.max(0.12, 1 + (learn[k] || 0));
 function wPick(items, prefix) { const w = items.map(i => wOf(prefix + i)); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < items.length; i++) { r -= w[i]; if (r <= 0) return items[i]; } return items[items.length - 1]; }
+/* ---------- Shuffle-Stimmungen: jede Runde bekommt eine klare Richtung ---------- */
+const RECIPES = [
+  { n: 'Club-Banger', e: '🔥', styles: ['dance', 'techno', 'berlin', 'euro90', 'y2000', 'y2010'], bpm: [124, 140], mix: { drums: [0.9, 1], bass: [0.75, 0.95], pump: [0.6, 0.9], hall: [0.1, 0.3], pad: [0.12, 0.3] }, fx: [['gate'], ['sub', 'gate'], ['acid'], ['sub'], ['arp', 'gate']], world: [0, 0, 7, 8], lead: ['square', 'supersaw', 'pluck'], tracks: 'none', live: [[], ['flange'], ['pan']] },
+  { n: 'Lo-Fi Chill', e: '🌙', styles: ['lofi', 'summer', 'disco70', 'sw30'], bpm: [70, 88], mix: { drums: [0.5, 0.7], hat: [0.2, 0.5], pad: [0.25, 0.45], hall: [0.35, 0.55], pump: [0, 0.2], lead: [0.5, 0.75], tone: [0.2, 0.45] }, fx: [['echo'], ['echo', 'vocal'], []], world: [1, 2, 10], lead: ['marimba', 'bell', 'pluck'], scales: [4, 11, 0, 7], tracks: 'few', live: [['dull'], [], ['wash']] },
+  { n: 'Episch-Filmisch', e: '🏛', styles: ['synth80', 'big40', 'dance'], bpm: [72, 100], mix: { drums: [0.65, 0.85], pad: [0.4, 0.55], hall: [0.65, 0.85], pump: [0, 0.15], tom: [0.9, 1], horn: [0.7, 0.9], vary: [0.2, 0.45] }, fx: [[], ['half']], world: [6, 6, 9], lead: ['brass', 'bell'], pad: ['sawtooth'], scales: [7, 4, 5, 14], tracks: 'brass', live: [['wash'], []] },
+  { n: 'Chiptune-Spielhalle', e: '👾', styles: ['euro90', 'dance', 'techno'], bpm: [118, 160], mix: { pad: [0.05, 0.18], hall: [0.05, 0.2], lead: [0.8, 1], drums: [0.7, 0.9] }, fx: [['arp'], ['arp', 'stutter'], ['arp', 'gate']], world: [3, 3, 11], lead: ['square', 'square', 'pluck'], pad: ['square'], scales: [1, 9, 8, 12], tracks: 'none', live: [['crush'], []] },
+  { n: 'Industrial-Dunkel', e: '⚙️', styles: ['techno', 'berlin', 'phonk', 'dnb'], bpm: [128, 150], mix: { drums: [0.9, 1], pump: [0.7, 0.9], hall: [0.2, 0.4], pad: [0.08, 0.25], tone: [0.3, 0.6], loud: [0.7, 0.9] }, fx: [['gate', 'stutter'], ['phone', 'sub'], ['acid', 'gate']], world: [8, 9, 4], lead: ['square', 'supersaw'], scales: [3, 0, 7, 14], tracks: 'none', live: [['ring'], ['wobble'], ['crush']] },
+  { n: 'Live-Band', e: '🎷', styles: ['tw20', 'sw30', 'big40', 'rock50', 'disco70', 's60'], mix: { drums: [0.6, 0.85], gtr: [0.7, 0.95], horn: [0.7, 0.95], hall: [0.15, 0.35], pump: [0, 0.1], pad: [0.08, 0.2] }, fx: [[]], world: [0, 2, 10], lead: ['brass', 'twang', 'marimba'], tracks: 'band', live: [[]] },
+  { n: 'Ambient-Traum', e: '☁️', styles: ['lofi', 'summer', 'synth80'], bpm: [70, 90], mix: { drums: [0.1, 0.3], hat: [0, 0.2], pad: [0.45, 0.58], hall: [0.75, 0.9], pump: [0, 0.1], lead: [0.45, 0.7], vary: [0.7, 1] }, fx: [['echo'], ['echo', 'trem']], world: [6, 7, 5], lead: ['bell', 'marimba'], pad: ['sine', 'triangle'], scales: [1, 13, 9, 2], tracks: 'few', live: [['wash'], ['wash', 'pan']] },
+  { n: 'Maximal-Chaos', e: '🎪', styles: ['dance', 'phonk', 'euro90', 'y2010', 'trap', 'reggaeton'], mix: { vary: [0.8, 1], hall: [0.2, 0.6] }, fx: [['acid', 'arp', 'stutter', 'echo'], ['gate', 'vocal', 'arp', 'phone'], ['sub', 'acid', 'trem', 'stutter']], world: [11, 8, 5, 3, 10, 4], lead: ['supersaw', 'bell', 'twang', 'brass'], tracks: 'all', chaos: true, live: [['flange', 'pan'], ['ring', 'crush'], ['wobble', 'wash']] },
+  { n: 'Minimal', e: '🧊', styles: ['techno', 'berlin', 'y2000', 'dance'], bpm: [116, 132], mix: { pad: [0.03, 0.1], hall: [0.1, 0.25], vary: [0.1, 0.3], lead: [0.45, 0.7], bass: [0.75, 0.95], drums: [0.7, 0.9] }, fx: [[]], world: [0, 0, 7], lead: ['pluck', 'marimba'], tracks: 'none', live: [[]] },
+  { n: 'Bass-Monster', e: '🔊', styles: ['phonk', 'trap', 'dnb', 'reggaeton'], bpm: [130, 150], mix: { bass: [0.88, 1], pump: [0.5, 0.8], hall: [0.1, 0.3], pad: [0.05, 0.2], drums: [0.85, 1] }, fx: [['sub'], ['sub', 'stutter'], ['sub', 'gate']], world: [0, 8, 11], lead: ['square', 'pluck'], tracks: 'bass808', live: [[], ['crush']] },
+  { n: 'Tropical-Sommer', e: '🌴', styles: ['y2020', 'afro', 'reggaeton', 'summer'], bpm: [96, 118], mix: { pad: [0.2, 0.35], hall: [0.2, 0.4], lead: [0.7, 0.95], pump: [0.1, 0.4], drums: [0.7, 0.9] }, fx: [['vocal'], ['echo'], []], world: [0, 0, 7], lead: ['marimba', 'pluck', 'bell'], scales: [1, 9, 2, 12], tracks: 'few', live: [[], ['pan']] },
+  { n: 'Retro-Radio', e: '📻', styles: ['s60', 'disco70', 'synth80', 'schlager', 'rock50'], mix: { hall: [0.15, 0.35], pad: [0.1, 0.25], tone: [0.25, 0.5] }, fx: [[], ['phone']], world: [4, 2, 11, 10], lead: ['twang', 'brass', 'marimba'], tracks: 'few', live: [[], ['flange']] }
+];
+let lastRecipe = -1;
+function pickRecipe() { let i; do { i = Math.floor(Math.random() * RECIPES.length); } while (i === lastRecipe && RECIPES.length > 1); lastRecipe = i; return RECIPES[i]; }
+function setLive(list) { st.live = st.live || {}; document.querySelectorAll('[id^="live-"]').forEach(b => { const k = b.id.slice(5); st.live[k] = list.includes(k); b.classList.toggle('active-pink', !!st.live[k]); }); try { if (chain) applyLive(chain, true); } catch (e) {} }
+function showRecipe(rc) {
+  let el = document.getElementById('recipe-toast'); if (!el) { el = document.createElement('div'); el.id = 'recipe-toast'; el.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%);z-index:130;background:#0c1220f2;border:1px solid var(--accent);border-radius:14px;padding:10px 16px;font-weight:700;font-size:.95rem;color:var(--text);box-shadow:0 6px 24px #0008;transition:opacity .4s;pointer-events:none;'; document.body.appendChild(el); }
+  el.textContent = rc.e + ' Stimmung: ' + rc.n + (st.world ? ' · ' + WORLDS[st.world].e + ' ' + WORLDS[st.world].n : ''); el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = 0; }, 3200);
+}
+function applyRecipe(rc) {
+  const rr = ([a, b]) => rngR(a, b);
+  if (rc.bpm) { const b = Math.round(rr(rc.bpm)); st.bpm = b; $('#bpm-slider').value = b; $('#bpm-val').textContent = b; }
+  if (rc.scales) { st.scaleIdx = pickR(rc.scales); st.scaleLock = true; }
+  Object.keys(rc.mix || {}).forEach(k => setMix(k, rr(rc.mix[k])));
+  const fx = pickR(rc.fx || [[]]); ['acid', 'arp', 'sub', 'echo', 'gate', 'trem', 'phone', 'stutter', 'half', 'straight', 'vocal'].forEach(k => { if (k in st.fx) setFx(k, fx.includes(k)); });
+  if (rc.lead) st.leadType = pickR(rc.lead); if (rc.pad) st.padWave = pickR(rc.pad);
+  const fill = (k, dens) => T0(() => { const t = emptyTrack(k), sel = $('#tp-' + k); t.n = Array.from({ length: 16 }, (_, i) => (Math.random() < (i % 4 === 0 ? 0.6 : dens) ? pickR([0, 0, 2, 4, 4, 7]) : -1)); if (sel && sel.options.length) t.type = sel.options[Math.floor(Math.random() * sel.options.length)].value; st.tracks[k] = t; });
+  if (rc.tracks === 'none') ['gtr', 'horn', 'tuba', 'bone'].forEach(k => { st.tracks[k] = null; });
+  else if (rc.tracks === 'band') { ['tuba', 'bone'].forEach(k => { st.tracks[k] = null; }); fill('gtr', 0.3); fill('horn', 0.28); }
+  else if (rc.tracks === 'brass') { ['gtr', 'tuba'].forEach(k => { st.tracks[k] = null; }); fill('horn', 0.3); fill('bone', 0.2); }
+  else if (rc.tracks === 'all') ['gtr', 'horn', 'tuba', 'bone'].forEach(k => fill(k, 0.25));
+  else if (rc.tracks === 'few') { ['gtr', 'horn', 'tuba', 'bone'].forEach(k => { st.tracks[k] = null; }); fill(pickR(['gtr', 'horn']), 0.2); }
+  else if (rc.tracks === 'bass808') { ['gtr', 'horn', 'tuba', 'bone'].forEach(k => { st.tracks[k] = null; }); if (st.tracks.bass) st.tracks.bass.type = '808'; }
+  if (rc.chaos != null) { st.chaos = !!rc.chaos; $('#btn-chaos').classList.toggle('active-pink', st.chaos); }
+  if (typeof setWorld === 'function' && !st.worldOff) setWorld(pickR(rc.world || [0]));
+  setLive(pickR(rc.live || [[]]));
+}
 function megaHit() {
-  undoPoint(); stopIfNeeded(); setChordsOff(false);
+  undoPoint(); stopIfNeeded(); setChordsOff(false); const RC = pickRecipe();
   st.blank = false; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.beat = null; st.melodyLock = false; st.scaleLock = false;
-  setStyle(wPick(Object.keys(STYLES), 'style:'));
+  setStyle(RC.styles && Math.random() < 0.85 ? pickR(RC.styles.filter(k => STYLES[k])) : wPick(Object.keys(STYLES), 'style:'));
   const pr0 = Math.random(), padL = pr0 < 0.15 ? rngR(0.03, 0.14) : pr0 < 0.85 ? rngR(0.14, 0.4) : rngR(0.4, 0.55);
   const M = { drums: rngR(0.6, 1), bass: rngR(0.4, 0.95), lead: rngR(0.45, 1), pad: padL, pump: Math.random() < 0.2 ? rngR(0, 0.12) : rngR(0.15, 0.9), hall: Math.random() < 0.25 ? rngR(0.55, 0.85) : rngR(0, 0.5), tone: rngR(0.3, 1), loud: rngR(0.5, 0.9), vox: 0.8, vary: rngR(0.08, 1), gtr: rngR(0.35, 0.9), horn: rngR(0.35, 0.9), tuba: rngR(0.35, 0.9), bone: rngR(0.35, 0.9) };
   Object.keys(M).forEach(k => setMix(k, M[k])); ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => setMix(k, rngR(0.55, 1))); if (Math.random() < 0.3) setMix(pickR(['cl', 'open', 'tom', 'hat']), rngR(0, 0.2));
@@ -2336,7 +2376,6 @@ function megaHit() {
   T0(() => { st.scaleIdx = wPick(SCALES.map((_, i) => i), 'scale:'); st.scaleLock = true; });
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['triangle', 'triangle', 'sawtooth', 'sine', 'square']); });
   T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
-  T0(() => { if (typeof setWorld === 'function' && !st.worldOff) setWorld(Math.random() < 0.4 ? 0 : 1 + Math.floor(Math.random() * (WORLDS.length - 1))); });
   T0(() => { const r = Math.round(rngR(0, 60)); $('#gen-rest').value = r; st.swingX = Math.random() < 0.45 ? rngR(0, 0.38) : null; });
   T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || styleBeat()), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
   ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
@@ -2349,6 +2388,7 @@ function megaHit() {
   T0(() => { ['bass', 'gtr', 'horn', 'tuba', 'bone'].forEach(k => { const t = st.tracks[k], s = $('#ln-' + k); if (t && s && s.options.length) { const o = s.options[Math.floor(Math.random() * s.options.length)].value; s.value = o; t.len = Number.isNaN(+o) ? o : +o; } }); });
   T0(() => { st.chaos = Math.random() < 0.35; $('#btn-chaos').classList.toggle('active-pink', st.chaos); setOct(st.oct); });
   T0(() => pickR($$('#vfx-grid button')).click()); T0(() => pickR($$('#tune-grid button')).click());
+  T0(() => applyRecipe(RC)); T0(() => showRecipe(RC));
   st.lastHit = { style: st.style, scale: st.scaleIdx, oct: String(st.oct), fx: Object.keys(st.fx).filter(k => st.fx[k] && k !== 'autodj') };
   renderBeat(); renderAllRolls(); renderChords(); updateStatus(); refreshNotesMsg(); renderEditor();
 }
@@ -2880,7 +2920,7 @@ const SING = (function () {
   function esLoad() {
     if (window.__ES) return Promise.resolve();
     if (esP) return esP;
-    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=83'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
+    esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=84'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
   function wavDecode(arr) {
@@ -2925,7 +2965,7 @@ const SING = (function () {
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
   async function aiPrefetch(words, lang, voice, prog) {
-    aiMod = aiMod || await import('./vits-web.js?v=83'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
+    aiMod = aiMod || await import('./vits-web.js?v=84'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
     let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
