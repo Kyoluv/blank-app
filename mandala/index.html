@@ -686,7 +686,7 @@ function buildItems() {
     ...APP.tools.map(t => ({ tab: 1, kind: 'tool', id: t.id, e: t.e, n: t.n, h: t.h })),
     ...(APP.acts || []).map(a => ({ tab: 1, kind: 'act', id: a.id, e: a.e, n: a.n })),
     { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'scale', e: '🎼', n: 'Skala' }, { tab: 2, kind: 'act', id: 'solo', e: '🎧', n: 'Solo' }, { tab: 2, kind: 'act', id: 'rand', e: '🎰', n: 'Zufall' }, { tab: 2, kind: 'act', id: 'fill', e: '💥', n: 'Fill' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Hintergrund' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'scale', e: '🎼', n: 'Skala' }, { tab: 2, kind: 'act', id: 'solo', e: '🎧', n: 'Solo' }, { tab: 2, kind: 'act', id: 'rand', e: '🎰', n: 'Zufall' }, { tab: 2, kind: 'act', id: 'fill', e: '💥', n: 'Fill' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
     { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' }, { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
     { tab: 5, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 5, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 5, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 5, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 5, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
   ];
@@ -709,7 +709,7 @@ function toolActive(d) {
   return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'gm' ? !!S.gm : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
 }
 function act(a) {
-  if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
+  if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Hintergrundmusik an' : 'Hintergrundmusik aus – nur deine Töne klingen'); }
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'undo') undo();
   else if (a === 'scale') { S.scOv = S.scOv == null ? 0 : (S.scOv + 1 >= SCALES.length ? null : S.scOv + 1); toast(S.scOv == null ? 'Tonleiter: vom Stil' : 'Tonleiter: ' + SCALES[S.scOv].name); }
@@ -879,7 +879,7 @@ function mDel(s, ring) {
   MAN.dots = MAN.dots.filter(d => !(d.ring === ring && keys.includes(d.s)));
 }
 const MANDALA = {
-  id: 'mandala', name: 'Musify Mandala', version: 'Mandala 3.2', hue: 300, world: 1, inst: 'shehnai', defaultTool: 'dot',
+  id: 'mandala', name: 'Musify Mandala', version: 'Mandala 3.3', hue: 300, world: 1, inst: 'shehnai', defaultTool: 'dot',
   claim: 'Ein Radar dreht sich. Jeder Punkt ist ein Ton – und alles spiegelt sich.',
   tip: 'Tippen/Ziehen = Punkte · außen hoch, innen tief · Spiegel (Werkzeuge) = 2–8 Kopien',
   tools: [
