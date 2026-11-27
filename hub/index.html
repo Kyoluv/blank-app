@@ -28,7 +28,11 @@ const APPS=[
 {id:'faden',n:'Faden',e:'✍️',c:'#ff7ab8',u:'../faden/',d:'Zeichne einen Faden, ein Punkt läuft ihn ab und spielt die Ecken.',t:'Zeichnen'},
 {id:'schwarm',n:'Schwarm',e:'🐦',c:'#5ef0b8',u:'../schwarm/',d:'Ein Schwarm folgt deinem Finger und spielt die Steine, die er berührt.',t:'Dirigieren'},
 {id:'labyrinth',n:'Labyrinth',e:'🧱',c:'#ffcf55',u:'../labyrinth/',d:'Baue ein Labyrinth, Kugeln rollen und klingen an jeder Wand.',t:'Bauen'},
-{id:'staebe',n:'Stäbe',e:'🪃',c:'#b58cff',u:'../staebe/',d:'Drehende Stäbe streichen über Punkte – jede Berührung ein Ton.',t:'Drehen'}];
+{id:'staebe',n:'Stäbe',e:'🪃',c:'#b58cff',u:'../staebe/',d:'Drehende Stäbe streichen über Punkte – jede Berührung ein Ton.',t:'Drehen'},
+{id:'magnete',n:'Magnete',e:'🧲',c:'#ff6b57',u:'../magnete/',d:'Magnete ziehen und stoßen Kugeln, jeder Zusammenprall klingt.',t:'Physik'},
+{id:'gezeiten',n:'Gezeiten',e:'🌊',c:'#4dc8f0',u:'../gezeiten/',d:'Wellenringe rollen über Perlen und lösen Töne aus.',t:'Wellen'},
+{id:'sternbilder',n:'Sternbilder',e:'⭐',c:'#ffd24d',u:'../sternbilder/',d:'Verbinde Sterne, ein Lichtpunkt wandert durch und spielt sie.',t:'Verbinden'},
+{id:'kreisel',n:'Kreisel',e:'🎡',c:'#ff5fa8',u:'../kreisel/',d:'Vier Ringe mit verschiedener Teilung – ein Zeiger macht Polyrhythmus.',t:'Polyrhythmus'}];
 const bar=document.getElementById('bar'),fr=document.getElementById('fr'),tiles=document.getElementById('tiles');
 function open(id){const a=APPS.find(x=>x.id===id);if(!a){home();return}
  try{localStorage.setItem('hubLast',id)}catch(e){}
