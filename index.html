@@ -235,7 +235,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 132</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 133</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -4462,11 +4462,11 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
 
 /* ---------- v129: In 5 Schritten zum Song ---------- */
 (function fiveSteps() {
-  const ph = document.getElementById('pagehead'); if (!ph) return; const wrap = document.createElement('div'); wrap.innerHTML = "<div class=\"card\" id=\"c-five\">\n  <div class=\"label\"><span>\u2728 In 5 Schritten zum Song</span></div>\n  <div class=\"five-row\">\n    <button data-step=\"0\">1<br>\ud83c\udfa8 Stil</button>\n    <button data-step=\"1\">2<br>\ud83c\udfbc Melodie</button>\n    <button data-step=\"2\">3<br>\ud83e\udd41 Beat</button>\n    <button data-step=\"3\">4<br>\ud83c\udfa4 Gesang</button>\n    <button data-step=\"4\">5<br>\u25b6 Song</button>\n  </div>\n  <div id=\"five-msg\" class=\"hint\">Dr\u00fcck die Kn\u00f6pfe nacheinander, von 1 bis 5. Danach hast du einen neuen Song.</div>\n</div>\n<style>\n  #five-msg { padding: 8px 4px 2px; font-size: .9rem; }\n  .five-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }\n  .five-row button { padding: 10px 2px; font-size: .85rem; line-height: 1.3; min-height: 56px; opacity: .45; }\n  .five-row button.next { opacity: 1; box-shadow: 0 0 0 2px var(--accent, #ff5fa2); }\n  .five-row button.done { opacity: 1; background: #1f7a4d; color: #fff; }\n</style>\n"; ph.after(...wrap.childNodes);
+  const ph = document.getElementById('pagehead'); if (!ph) return; const wrap = document.createElement('div'); wrap.innerHTML = "<div class=\"card\" id=\"c-five\">\n  <div class=\"label\"><span>\u2728 In 5 Schritten zum Song</span></div>\n  <div class=\"five-row\">\n    <button data-step=\"0\">1<br>\ud83c\udfa8 Stil</button>\n    <button data-step=\"1\">2<br>\ud83c\udfbc Melodie</button>\n    <button data-step=\"2\">3<br>\ud83e\udd41 Beat</button>\n    <button data-step=\"3\">4<br>\ud83c\udfa4 Gesang</button>\n    <button data-step=\"4\">5<br>\u25b6 Song</button>\n  </div>\n  <div id=\"five-msg\" class=\"hint\">Dr\u00fcck die Kn\u00f6pfe nacheinander von 1 bis 5. Jeder Knopf w\u00fcrfelt bei jedem Druck neu, du kannst also jeden Schritt wiederholen, bis es dir gef\u00e4llt.</div>\n</div>\n<style>\n  #five-msg { padding: 8px 4px 2px; font-size: .9rem; }\n  .five-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }\n  .five-row button { padding: 10px 2px; font-size: .85rem; line-height: 1.3; min-height: 56px; opacity: .45; }\n  .five-row button.next { opacity: 1; box-shadow: 0 0 0 2px var(--accent, #ff5fa2); }\n  .five-row button.done { opacity: 1; background: #1f7a4d; color: #fff; }\n</style>\n"; ph.after(...wrap.childNodes);
   const box = document.getElementById('c-five'); if (!box) return;
   const btn = [...box.querySelectorAll('[data-step]')], msg = box.querySelector('#five-msg'); let step = 0, busy = false;
   const say = t => { msg.textContent = t; };
-  const paint = () => btn.forEach((b, i) => { b.disabled = busy || i !== step; b.classList.toggle('done', i < step); b.classList.toggle('next', i === step && !busy); });
+  const dn = new Set(); const paint = () => { const nx = [0, 1, 2, 3, 4].find(i => !dn.has(i)); btn.forEach((b, i) => { b.disabled = busy; b.classList.toggle('done', dn.has(i)); b.classList.toggle('next', i === nx && !busy); }); };
   const pickK = a => a[Math.floor(Math.random() * a.length)];
   const ACT = [
     async () => { if (st.playing) stop(); const k = pickK(Object.keys(STYLES)); setStyle(k); const bpm = Math.round(STYLES[k].bpm + (Math.random() * 8 - 4)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm; say('1/5 Stil: ' + STYLES[k].name + ', ' + bpm + ' BPM'); },
@@ -4485,8 +4485,8 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     async () => { st.form = 'stream'; $('#song-form').value = 'stream'; setForm('stream'); setMix('vox', 1); if (st.playing) stop(); document.getElementById('btn-song').click(); say('5/5 Dein neuer Song läuft! Drück ■ zum Stoppen oder starte wieder bei Schritt 1.'); }
   ];
   btn.forEach((b, i) => b.addEventListener('click', async () => {
-    if (busy || i !== step) return; busy = true; paint();
-    try { await ACT[i](); step = i === 4 ? 0 : i + 1; } catch (e) { say('Das hat nicht geklappt: ' + e.message); }
+    if (busy) return; busy = true; paint();
+    try { await ACT[i](); dn.add(i); if (i === 0) { dn.delete(3); } if (i === 4 && dn.size === 5) { /* alles fertig, weiter würfeln erlaubt */ } } catch (e) { say('Das hat nicht geklappt: ' + e.message); }
     busy = false; paint();
   }));
   paint();
