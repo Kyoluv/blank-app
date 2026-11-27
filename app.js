@@ -3862,3 +3862,15 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   }));
   paint();
 })();
+
+/* ---------- v131: Gesang stoppen ---------- */
+(function stopVox() {
+  const mk = () => { const b = document.createElement('button'); b.className = 'oct-btn vox-stop'; b.textContent = '🔇 Gesang stoppen'; b.style.cssText = 'width:100%;margin-top:8px;'; return b; };
+  const act = () => {
+    try { if (voiceSrc) { const g = chain && chain.vox && chain.vox.gain; if (g) { const t = ctx.currentTime; g.cancelScheduledValues(t); const v = g.value; g.setValueAtTime(v, t); g.linearRampToValueAtTime(0, t + 0.05); setTimeout(() => { try { voiceSrc.stop(); } catch (e) {} voiceSrc = null; try { applyMix(chain, st.mix, 0, false); } catch (e) {} }, 90); } else { voiceSrc.stop(); voiceSrc = null; } } } catch (e) {}
+    try { const so = document.getElementById('sing-solo'); if (so && so.textContent.indexOf('Stopp') > -1) so.click(); } catch (e) {}
+    try { document.querySelectorAll('.vox-stop').forEach(b => { const o = b.textContent; b.textContent = '✔ Gesang gestoppt'; setTimeout(() => { b.textContent = o; }, 1200); }); } catch (e) {}
+  };
+  const five = document.getElementById('c-five'); if (five) { const b = mk(); b.addEventListener('click', act); five.appendChild(b); }
+  const so = document.getElementById('sing-solo'); if (so && so.parentNode) { const b = mk(); b.style.marginTop = '0'; b.addEventListener('click', act); so.parentNode.after(b); }
+})();

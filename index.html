@@ -235,7 +235,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 130</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 131</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -4490,6 +4490,18 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     busy = false; paint();
   }));
   paint();
+})();
+
+/* ---------- v131: Gesang stoppen ---------- */
+(function stopVox() {
+  const mk = () => { const b = document.createElement('button'); b.className = 'oct-btn vox-stop'; b.textContent = '🔇 Gesang stoppen'; b.style.cssText = 'width:100%;margin-top:8px;'; return b; };
+  const act = () => {
+    try { if (voiceSrc) { const g = chain && chain.vox && chain.vox.gain; if (g) { const t = ctx.currentTime; g.cancelScheduledValues(t); const v = g.value; g.setValueAtTime(v, t); g.linearRampToValueAtTime(0, t + 0.05); setTimeout(() => { try { voiceSrc.stop(); } catch (e) {} voiceSrc = null; try { applyMix(chain, st.mix, 0, false); } catch (e) {} }, 90); } else { voiceSrc.stop(); voiceSrc = null; } } } catch (e) {}
+    try { const so = document.getElementById('sing-solo'); if (so && so.textContent.indexOf('Stopp') > -1) so.click(); } catch (e) {}
+    try { document.querySelectorAll('.vox-stop').forEach(b => { const o = b.textContent; b.textContent = '✔ Gesang gestoppt'; setTimeout(() => { b.textContent = o; }, 1200); }); } catch (e) {}
+  };
+  const five = document.getElementById('c-five'); if (five) { const b = mk(); b.addEventListener('click', act); five.appendChild(b); }
+  const so = document.getElementById('sing-solo'); if (so && so.parentNode) { const b = mk(); b.style.marginTop = '0'; b.addEventListener('click', act); so.parentNode.after(b); }
 })();
 
 </script>
