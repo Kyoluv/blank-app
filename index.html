@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 101</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 102</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3756,7 +3756,8 @@ function setWorld(id, quiet, off) {
   const tcss = document.createElement('style');
   tcss.textContent = `
   .sg { display: block; }
-  body.tl { max-width: none !important; padding-left: 18px !important; padding-right: 18px !important; }
+  body.tl { max-width: none !important; padding-left: 18px !important; padding-right: 58px !important; }
+  body.tl input[type=range]::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--accent) var(--p, 50%), rgba(128,128,150,.38) var(--p, 50%)); }
   body.tl #tabs { max-width: 900px !important; }
   body.tl .sg { column-count: 2; column-gap: 12px; }
   body.tl .sg > .card { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 8px; }
@@ -3785,6 +3786,9 @@ function setWorld(id, quiet, off) {
     if (t && !was && !tabletSeen && lsGet('musify-acc') === null) { acc = false; tabletSeen = true; lsSet('musify-tabset', '1'); paint(); } };
   lb.addEventListener('click', () => { lay = lay === 'auto' ? 'tablet' : lay === 'tablet' ? 'phone' : 'auto'; lsSet('musify-layout', lay); paintLay(); });
   window.addEventListener('resize', paintLay); paintLay();
+  const fillR = r => { const mn = +r.min || 0, mx = +r.max || 100; r.style.setProperty('--p', Math.max(0, Math.min(100, (+r.value - mn) / (mx - mn || 1) * 100)) + '%'); };
+  document.addEventListener('input', e => { if (e.target && e.target.type === 'range') fillR(e.target); }, true);
+  setInterval(() => { if (document.body.classList.contains('tl')) document.querySelectorAll('input[type=range]').forEach(fillR); }, 500);
   try { applyView(); } catch (e) {}
 })();
 
