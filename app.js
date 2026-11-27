@@ -445,6 +445,7 @@ function makeImpulse(ctx) {
   for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
   return b;
 }
+const SAFE_CLIP = (() => { const c = new Float32Array(4096); for (let i = 0; i < 4096; i++) { const x = i / 2047.5 - 1, a = Math.abs(x), y = a < 0.8 ? a : 0.8 + 0.185 * Math.tanh((a - 0.8) / 0.185); c[i] = x < 0 ? -y : y; } return c; })();
 const LIMIT = (() => { const c = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; c[i] = Math.tanh(x * 1.0) / Math.tanh(1.0); } return c; })();
 function buildChain(ctx) {
   const mk = () => ctx.createGain();
@@ -476,6 +477,7 @@ function buildChain(ctx) {
   comp.threshold.value = -19; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.16;
   lim.curve = LIMIT; try { lim.oversample = '2x'; } catch (e) {}
   master.gain.value = 0.9;
+  { const sat = ctx.createWaveShaper(); sat.curve = SAFE_CLIP; try { sat.oversample = '2x'; } catch (e) {} const rawConnect = AudioNode.prototype.connect.bind(master); rawConnect(sat); master.connect = function (d, a, b) { return sat.connect(d, a, b); }; master.disconnect = function () { try { sat.disconnect.apply(sat, arguments); } catch (e) {} }; }
   const widen = (src, ms, amt) => { const m = ctx.createChannelMerger(2), d = ctx.createDelay(0.05), g = mk(); d.delayTime.value = ms / 1000; g.gain.value = amt; src.connect(m, 0, 0); src.connect(d); d.connect(m, 0, 1); src.connect(g); g.connect(m, 0, 1); m.connect(mixBus); };
   const dk = {}, PAN = { hat: 0.32, open: -0.3, tom: -0.22, cl: 0.14 }; ['kick', 'snare', 'cl', 'hat', 'open', 'tom'].forEach(k => { dk[k] = mk(); if (PAN[k]) { const pn = ctx.createStereoPanner(); pn.pan.value = PAN[k]; dk[k].connect(pn); pn.connect(drums); } else dk[k].connect(drums); });
   drums.connect(mixBus); bass.connect(dB); tuba.connect(dB); bone.connect(dB); dB.connect(mixBus); lead.connect(dL); widen(dL, 13, 0.6); pad.connect(dP); widen(dP, 19, 0.6); fx.connect(mixBus); gtr.connect(dG); widen(dG, 11, 0.55); horn.connect(dH); widen(dH, 15, 0.5);
