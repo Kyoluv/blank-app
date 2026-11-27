@@ -3893,8 +3893,8 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   const hann = new Float32Array(NF); for (let i = 0; i < NF; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NF - 1));
   const rough = (f1, a1, f2, a2) => { const fl = Math.min(f1, f2), d = Math.abs(f2 - f1), s = 0.24 / (0.0207 * fl + 18.96), x = d * s; return a1 * a2 * (Math.exp(-3.5 * x) - Math.exp(-5.75 * x)); };
   function analyze(d, bpm, scale, nBeats, bt) {
-    const out = [], re = new Float32Array(NF), im = new Float32Array(NF), inScale = new Array(12).fill(false);
-    scale.notes.forEach(n => { inScale[(scale.rs + n) % 12] = true; });
+    const out = [], OFFH = window.__offH = new Array(12).fill(0), ALLH = window.__allH = new Array(12).fill(0), re = new Float32Array(NF), im = new Float32Array(NF), inScale = new Array(12).fill(false);
+    scale.notes.forEach(n => { inScale[(scale.rs + n) % 12] = true; }); if (/Moll|Phryg/.test(scale.name)) { inScale[(scale.rs + 11) % 12] = true; inScale[(scale.rs + 9) % 12] = true; }
     for (let b = 0; b < nBeats; b++) {
       const c = Math.floor((0.05 + b * bt + bt / 2) * SR), s0 = c - NF / 2; if (s0 < 0 || s0 + NF > d.length) break;
       let rms = 0; for (let i = 0; i < NF; i++) { const v = d[s0 + i]; re[i] = v * hann[i]; im[i] = 0; rms += v * v; } fft(re, im);
@@ -3902,7 +3902,7 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
       const pk = []; for (let k = 2; k < NF / 2 - 1; k++) { const f = k * SR / NF; if (f < 90 || f > 2500) continue; if (mag[k] > mag[k - 1] && mag[k] >= mag[k + 1] && mag[k] > mx * 0.03) { let loc = 0; for (let q = -24; q <= 24; q++) loc += mag[Math.max(1, Math.min(NF / 2 - 1, k + q))]; loc /= 49; if (mag[k] > loc * 3) pk.push([f, mag[k]]); } }
       pk.sort((a, b2) => b2[1] - a[1]); const top = pk.slice(0, 12); let R = 0, A2 = 0; for (let i = 0; i < top.length; i++) { A2 += top[i][1] * top[i][1]; for (let j = i + 1; j < top.length; j++) R += rough(top[i][0], top[i][1], top[j][0], top[j][1]); }
       const dis = A2 > 0 ? R / A2 * 4 : 0; let tot = 0, off = 0;
-      top.forEach(([f, a]) => { const midi = 69 + 12 * Math.log2(f / 440), pc = ((Math.round(midi) % 12) + 12) % 12, dev = Math.abs(midi - Math.round(midi)); if (dev > 0.35) return; tot += a * a; if (!inScale[pc]) off += a * a; });
+      top.forEach(([f, a]) => { const midi = 69 + 12 * Math.log2(f / 440), pc = ((Math.round(midi) % 12) + 12) % 12, dev = Math.abs(midi - Math.round(midi)); if (dev > 0.35) return; tot += a * a; ALLH[pc] += a * a; if (!inScale[pc]) { off += a * a; OFFH[pc] += a * a; } });
       out.push({ dis: Math.min(1, dis), off: tot > 0 ? off / tot : 0, rms: Math.sqrt(rms / NF) });
     }
     return out;
