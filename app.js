@@ -53,6 +53,9 @@ const STYLES = {
   tw20:   { name:'20er Charleston', bpm:148, scales:[1,2], progs:[1,0], swing:0.3, lp:4500,
     kick:'x.......x.......', snare:'....x.......x...', clap:false, hat:'x.x.x.x.x.x.x.x.', open:'................',
     bass:'x...x...x...x...', bassType:'walk', lead:'x..x....x.x.....', leadType:'brass', stab:'..x...x...x...x.' },
+  organ:  { name:'Orgel-Trio Soul', bpm:116, scales:[7,5,4], progs:[0,1,4], swing:0.12, lp:6500,
+    kick:'x.....x...x..x..', snare:'....x.......x..x', clap:false, hat:'x.xxx.xxx.xxx.xx', open:'..............x.',
+    bass:'x..x..x.x..x..x.', bassType:'walk', lead:'x..x.x..x.x..x..', leadType:'square', stab:'..x...x..x..x...' },
   sw30:   { name:'30er Swing', bpm:132, scales:[1,2], progs:[1,0], swing:0.33, lp:5500,
     kick:'x...x...x...x...', snare:'................', clap:false, hat:'..x...x...x...x.', open:'................',
     bass:'x...x...x...x...', bassType:'walk', lead:'x.x..x..x...x...', leadType:'brass', stab:'..x.....x.......' },
@@ -562,7 +565,7 @@ function playTrack(ctx, ch, k, tr, s, tt, dur, nf, chordDeg) {
 const CHST = {
   dance: { t: 'add9', v: 'open', pad: 'strings', comp: 'off', stab: 'pluck' }, techno: { t: 'p5', v: 'open', pad: 'warm', comp: 'pluck', stab: 'saw' }, berlin: { t: 'sus2', v: 'open', pad: 'glass', comp: 'hold', stab: 'organ' },
   western: { t: 'p5', v: 'open', pad: 'warm', comp: 'strum', stab: 'gtr' }, summer: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, phonk: { t: 'sus4', v: 'open', pad: 'choir', comp: 'hold', stab: 'bell' },
-  tw20: { t: 'sev', v: 'drop2', pad: 'organ', comp: 'charl', stab: 'brass' }, sw30: { t: 'sev', v: 'drop2', pad: 'strings', comp: 'charl', stab: 'brass' }, big40: { t: 'sev', v: 'drop2', pad: 'brass', comp: 'off', stab: 'brass' },
+  organ: { t: 'sev', v: 'drop2', pad: 'organ', comp: 'charl', stab: 'brass' }, tw20: { t: 'sev', v: 'drop2', pad: 'organ', comp: 'charl', stab: 'brass' }, sw30: { t: 'sev', v: 'drop2', pad: 'strings', comp: 'charl', stab: 'brass' }, big40: { t: 'sev', v: 'drop2', pad: 'brass', comp: 'off', stab: 'brass' },
   rock50: { t: 'tri', v: 'tri', pad: 'organ', comp: 'pluck', stab: 'gtr' }, s60: { t: 'tri', v: 'tri', pad: 'organ', comp: 'pluck', stab: 'gtr' }, disco70: { t: 'sev', v: 'open', pad: 'strings', comp: 'off', stab: 'epiano' },
   synth80: { t: 'sev', v: 'open', pad: 'supersaw', comp: 'pluck', stab: 'saw' }, euro90: { t: 'tri', v: 'tri', pad: 'supersaw', comp: 'pluck', stab: 'saw' }, y2000: { t: 'sev', v: 'open', pad: 'glass', comp: 'off', stab: 'pluck' },
   y2010: { t: 'add9', v: 'tri', pad: 'supersaw', comp: 'off', stab: 'saw' }, y2020: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, trap: { t: 'sus2', v: 'open', pad: 'glass', comp: 'hold', stab: 'bell' },
