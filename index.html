@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 119</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 120</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3929,7 +3929,7 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   const wrapPeer = cn => { const l = { send: o => { try { cn.send(JSON.stringify(o)); } catch (e) {} }, close: () => { try { cn.close(); } catch (e) {} }, onmessage: null, onclose: null }; cn.on('data', d => { try { l.onmessage && l.onmessage(typeof d === 'string' ? JSON.parse(d) : d); } catch (x) {} }); cn.on('close', () => l.onclose && l.onclose()); return l; };
   const enc = d => btoa(unescape(encodeURIComponent(JSON.stringify({ t: d.type, s: d.sdp })))), dec = t => { const o = JSON.parse(decodeURIComponent(escape(atob(t.trim())))); return { type: o.t, sdp: o.s }; };
   const gathered = pc => new Promise(r => { if (pc.iceGatheringState === 'complete') return r(); const f = () => { if (pc.iceGatheringState === 'complete') { pc.removeEventListener('icegatheringstatechange', f); r(); } }; pc.addEventListener('icegatheringstatechange', f); setTimeout(r, 5000); });
-  const loadPeer = () => new Promise((res, rej) => { if (window.Peer) return res(); const s = document.createElement('script'); s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'; s.onload = res; s.onerror = () => rej(new Error('nodienst')); document.head.appendChild(s); });
+  const loadPeer = () => new Promise((res, rej) => { if (window.Peer) return res(); const urls = ['https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js']; const t = i => { if (i >= urls.length) return rej(new Error('nodienst')); const s = document.createElement('script'); s.src = urls[i]; s.onload = () => (window.Peer ? res() : t(i + 1)); s.onerror = () => t(i + 1); document.head.appendChild(s); }; t(0); });
   // ---- Host
   function paintList() {
     const box = document.getElementById('bd-list'); box.innerHTML = ''; if (!players.size) { box.innerHTML = hostOn ? '<div style="font-size:.78rem;color:var(--muted);">Noch niemand verbunden.</div>' : ''; return; }
@@ -3960,12 +3960,22 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   function startHost(kind) { try { initAudio(); } catch (e) {} hostOn = true; document.getElementById('bd-stop').style.display = ''; return true; }
   function stopHost() { hostOn = false; players.forEach(p => { try { p.link.close(); } catch (e) {} }); [...players.keys()].forEach(drop); try { peer && peer.destroy(); } catch (e) {} peer = null; document.getElementById('bd-man-box').innerHTML = ''; document.getElementById('bd-stop').style.display = 'none'; info('Band beendet.'); paintList(); }
   document.getElementById('bd-stop').addEventListener('click', stopHost);
+  function showRoom(status, ok) {
+    const url = baseUrl() + '#band=' + code;
+    info('<div style="margin-bottom:6px;">' + status + '</div>Raumcode: <b style="font-size:1.4rem;letter-spacing:3px;">' + code.toUpperCase() + '</b><br>Link für Freunde: <span style="word-break:break-all;">' + url + '</span><br><div id="bd-qr" style="background:#fff;padding:8px;border-radius:10px;width:210px;max-width:100%;margin-top:8px;"></div><div style="font-size:.74rem;color:var(--muted);">📷 Freund scannt den QR-Code mit der Handy-Kamera: Der Link öffnet sich und der Raumcode ist schon eingetragen.</div><button id="bd-copy" class="oct-btn" style="margin-top:6px;">📋 Link kopieren / teilen</button>');
+    try { const q = window.__qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('bd-qr').innerHTML = q.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); const sv = document.querySelector('#bd-qr svg'); if (sv) { sv.style.width = '100%'; sv.style.height = 'auto'; } } catch (e) { document.getElementById('bd-qr').textContent = 'QR-Code konnte nicht erzeugt werden: ' + esc(e.message || e); }
+    document.getElementById('bd-copy').addEventListener('click', () => { try { if (navigator.share) navigator.share({ title: 'Musify Band', text: 'Spiel mit mir Musik!', url }); else navigator.clipboard.writeText(url); } catch (e) { try { navigator.clipboard.writeText(url); } catch (x) {} } });
+  }
   document.getElementById('bd-net').addEventListener('click', async () => {
     if (!rtcOK()) { info(noRtc()); return; }
-    startHost(); info('⏳ Verbinde mit dem Vermittler-Dienst …'); try { await loadPeer(); } catch (e) { hostOn = false; document.getElementById('bd-stop').style.display = 'none'; info('❌ Der Vermittler-Dienst ist nicht erreichbar. Das passiert im Artefakt-Fenster und ohne Internet. Öffne die App über den GitHub-Link oder nimm „ohne Dienst".'); return; }
-    code = Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join(''); try { peer && peer.destroy(); } catch (e) {} peer = new Peer('musify-' + code, { config: ICE });
-    peer.on('open', () => { const url = baseUrl() + '#band=' + code; info('✅ Band offen! Raumcode: <b style="font-size:1.4rem;letter-spacing:3px;">' + code.toUpperCase() + '</b><br>Freunde öffnen den Link auf dem Handy: <span style="word-break:break-all;">' + url + '</span><br><br><div id="bd-qr" style="background:#fff;padding:8px;border-radius:10px;width:210px;max-width:100%;margin-top:8px;"></div><div style="font-size:.74rem;color:var(--muted);">📷 Freund scannt den QR-Code mit der Handy-Kamera: Der Link öffnet sich und der Raumcode ist schon eingetragen.</div><button id="bd-copy" class="oct-btn" style="margin-top:6px;">📋 Link kopieren / teilen</button>'); try { const q = window.__qrcode(0, 'M'); q.addData(url); q.make(); document.getElementById('bd-qr').innerHTML = q.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); const sv = document.querySelector('#bd-qr svg'); if (sv) { sv.style.width = '100%'; sv.style.height = 'auto'; } } catch (e) { document.getElementById('bd-qr').textContent = 'QR-Code konnte nicht erzeugt werden.'; } document.getElementById('bd-copy').addEventListener('click', () => { try { if (navigator.share) navigator.share({ title: 'Musify Band', text: 'Spiel mit mir Musik!', url }); else navigator.clipboard.writeText(url); } catch (e) { try { navigator.clipboard.writeText(url); } catch (x) {} } }); });
-    peer.on('connection', cn => cn.on('open', () => addPlayer(wrapPeer(cn)))); peer.on('error', e => info((e && e.type === 'browser-incompatible') ? noRtc() : '❌ Fehler beim Verbinden: ' + esc(e.type || e.message || e)));
+    startHost(); code = Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
+    showRoom('⏳ Verbinde mit dem Vermittler-Dienst … (der QR-Code gilt erst, wenn hier „Band offen" steht)');
+    try { await loadPeer(); } catch (e) { showRoom('❌ Der Vermittler-Dienst ist nicht erreichbar (kein Internet oder gesperrt). Nimm stattdessen „ohne Dienst".'); return; }
+    try { peer && peer.destroy(); } catch (e) {} let opened = false;
+    try { peer = new Peer('musify-' + code, { config: ICE }); } catch (e) { showRoom('❌ Fehler beim Start: ' + esc(e.message || e)); return; }
+    peer.on('open', () => { opened = true; showRoom('✅ Band offen! Freunde können jetzt beitreten.', true); });
+    setTimeout(() => { if (!opened && hostOn) showRoom('❌ Der Vermittler-Dienst antwortet nicht. Prüfe das Internet oder nimm „ohne Dienst".'); }, 12000);
+    peer.on('connection', cn => cn.on('open', () => addPlayer(wrapPeer(cn)))); peer.on('error', e => showRoom((e && e.type === 'browser-incompatible') ? noRtc() : '❌ Fehler beim Verbinden: ' + esc(e.type || e.message || e)));
   });
   document.getElementById('bd-man').addEventListener('click', () => { if (!rtcOK()) { info(noRtc()); return; } startHost(); info('📋 <b>Ohne Dienst:</b> Tippe „Freund hinzufügen", schicke den Code (z. B. per WhatsApp) an deinen Freund. Er fügt ihn bei „Ich bin Satellit" ein und schickt dir seinen Antwort-Code zurück.<br><button id="bd-add" class="oct-btn" style="margin-top:6px;">➕ Freund hinzufügen</button>'); document.getElementById('bd-add').addEventListener('click', addManual); });
   async function addManual() {
