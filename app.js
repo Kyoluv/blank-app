@@ -2397,6 +2397,7 @@ const SING = (function () {
     esP = new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'espeak.js?v=97'; sc.onload = () => window.__ES ? res() : rej(new Error('Sprachmodul leer')); sc.onerror = () => { esP = null; rej(new Error('Das Sprachmodul konnte nicht geladen werden. Bitte einmal mit Internet öffnen und es noch mal versuchen.')); }; document.head.appendChild(sc); });
     return esP;
   }
+  window.__esReset = () => { window.__ES = null; esP = null; document.querySelectorAll('script[src^="espeak.js"]').forEach(x => x.remove()); };
   function wavDecode(arr) {
     const u = Uint8Array.from(arr), dv = new DataView(u.buffer); const sr = dv.getUint32(24, true); let p = 12, off = 44, len = u.length - 44;
     while (p + 8 <= u.length) { const id = String.fromCharCode(u[p], u[p + 1], u[p + 2], u[p + 3]), sz = dv.getUint32(p + 4, true); if (id === 'data') { off = p + 8; len = Math.min(sz, u.length - off); break; } p += 8 + sz; }
@@ -2430,7 +2431,7 @@ const SING = (function () {
     parts.forEach(p => { if (p.v && !p.valid) p.v = false; });
     return parts;
   }
-  const wcache = {};
+  const wcache = {}; window.__wcache = wcache;
   function wordAudio(word, lang, r) {
     const key = lang + '|' + word.toLowerCase() + '|' + r; if (wcache[key]) return wcache[key];
     const sp = () => window.__ES.speak(word.toLowerCase(), { rawdata: 'array', voice: lang === 'de' ? 'de' : 'en/en-us', speed: 100, pitch: 50, amplitude: 100 });
@@ -2704,6 +2705,7 @@ const SING = (function () {
     const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
     if (!txt) { msg('Schreibe zuerst einen Text.'); return; }
     try { soloCtx = soloCtx || new (window.AudioContext || window.webkitAudioContext)(); soloCtx.resume(); } catch (e) {}
+    try { for (const k in window.__wcache) if (!/^ai\|/.test(k)) delete window.__wcache[k]; window.__esReset(); } catch (e) {}
     SING.useKokoro = $('#sing-eng').value === 'kokoro'; SING.fell = false; SING.progress = t => msg('🎤 ' + t); msg($('#sing-eng').value === 'kokoro' ? '🎤 Kokoro-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 90 MB (nur Englisch, danach geht es schnell). Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'ai' ? '🎤 KI-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 60 MB. Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'tts' ? '🎤 Ich lade die Sprache (beim ersten Mal ca. 5 MB) und übe den Text … das kann eine halbe Minute dauern.' : '🎤 Ich übe den Text …'); $('#sing-go').disabled = true; await new Promise(r => setTimeout(r, 30));
     try {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
@@ -3793,25 +3795,35 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
 /* ---------- v126: Voll-Hit (alle Karten + neuer Text + Gesang) ---------- */
 (function fullHit() {
   const b = document.getElementById('btn-fullhit'); if (!b) return;
-  let busy = false; const sm = t => { try { document.getElementById('sing-msg').textContent = t; } catch (e) {} b.textContent = busy ? '⏳ ' + t.slice(0, 22) : '🌟 Voll-Hit'; };
+  let busy = false, cancel = false, tok = 0;
+  const lab = () => { b.textContent = busy ? '■ Stopp' : (st.playing && st.songMode && b.dataset.on ? '■ Stopp' : '🌟 Voll-Hit'); b.classList.toggle('stop', busy || (!!b.dataset.on && st.playing)); };
+  const sm = t => { try { document.getElementById('sing-msg').textContent = t; } catch (e) {} };
+  const _s = stop; stop = function () { if (busy) cancel = true; const r = _s.apply(this, arguments); delete b.dataset.on; lab(); return r; };
+  const SAFE = [0, 0, 1, 2, 7];
   b.addEventListener('click', async () => {
-    if (busy) return; busy = true; b.disabled = true;
+    if (busy || (b.dataset.on && st.playing)) { cancel = true; busy = false; stop(); sm('Gestoppt.'); lab(); return; }
+    busy = true; cancel = false; lab(); const my = ++tok; const dead = () => cancel || my !== tok;
     try {
-      if (st.playing) stop(); sm('Würfle Song …');
+      if (st.playing) stop(); cancel = false;
+      { const w0 = Date.now(); while (document.getElementById('sing-go').disabled && Date.now() - w0 < 150000 && !dead()) { sm('Warte, bis der letzte Gesang fertig ist …'); await new Promise(r => setTimeout(r, 400)); } if (dead()) { busy = false; lab(); return; } }
+      sm('Würfle Song …'); st.voiceRaw = null; st.voiceWet = null; try { document.getElementById('sing-solo').textContent.indexOf('Stopp') > -1 && document.getElementById('sing-solo').click(); } catch (e) {}
       megaHit();
-      try { if (!st.worldOff) setWorld(Math.floor(Math.random() * WORLDS.length), true); } catch (e) {}
+      try { const on = Object.keys(st.fx).filter(k => st.fx[k] && k !== 'autodj'); on.slice(1).forEach(k => setFx(k, false)); setMix('vox', 1); setMix('pad', Math.min(0.3, st.mix.pad)); } catch (e) {}
+      try { if (!st.worldOff) setWorld(SAFE[Math.floor(Math.random() * SAFE.length)], true); } catch (e) {}
       st.form = 'stream'; $('#song-form').value = 'stream'; setForm('stream'); regen();
       sm('Schreibe neuen Text …');
-      const de = Math.random() < 0.5; document.getElementById(de ? 'sing-auto' : 'sing-auto-en').click();
+      document.getElementById(Math.random() < 0.5 ? 'sing-auto' : 'sing-auto-en').click();
       if ($('#sing-eng').value === 'kokoro') $('#sing-eng').value = 'tts';
-      $('#sing-fit').value = 'song'; $('#sing-style').value !== 'robot' || ($('#sing-style').value = $('#sing-style').options[0].value);
+      $('#sing-fit').value = 'song';
       const before = st.voiceRaw; sm('Gesang wird erzeugt …'); document.getElementById('sing-go').click();
       const t0 = Date.now(); await new Promise(r => setTimeout(r, 600));
-      while (Date.now() - t0 < 150000 && (document.getElementById('sing-go').disabled || st.voiceRaw === before)) await new Promise(r => setTimeout(r, 400));
-      try { document.getElementById('jam-hook').click(); } catch (e) {}
+      while (!dead() && Date.now() - t0 < 150000 && (document.getElementById('sing-go').disabled || st.voiceRaw === before)) await new Promise(r => setTimeout(r, 300));
+      if (dead()) { busy = false; lab(); return; }
+      try { document.getElementById('sing-solo').textContent.indexOf('Stopp') > -1 && document.getElementById('sing-solo').click(); } catch (e) {}
       if (st.voiceRaw === before) sm('Gesang hat nicht geklappt, der Song läuft ohne Stimme.');
-      if (st.playing) stop(); document.getElementById('btn-song').click(); busy = false; sm('Voll-Hit läuft!');
+      if (st.playing) stop(); busy = false; cancel = false; document.getElementById('btn-song').click(); b.dataset.on = '1'; lab();
+      try { document.getElementById('jam-hook').click(); } catch (e) {}
     } catch (e) { busy = false; try { console.warn(e.stack); } catch (x) {} sm('Das hat nicht geklappt: ' + e.message); }
-    b.disabled = false; b.textContent = '🌟 Voll-Hit';
+    lab();
   });
 })();
