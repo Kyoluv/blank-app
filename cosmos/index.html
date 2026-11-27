@@ -352,8 +352,54 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
   });
 };
 
+/* ===== MIXER (Lautstärke je Klang, Gruppen, Hall, Tonart) + Rückgängig ===== */
+const MIX = { m: 0.75, g: 0.75, l: 0.75, r: 0.5, t: 0.5, iv: {}, last: 'oud' };
+const mixTab = () => TABS.indexOf('Mixer');
+function selInst() { if (typeof S.inst === 'string' && IM[S.inst]) return S.inst; if (IM[S.tool]) MIX.last = S.tool; return MIX.last; }
+const mixVal = k => k === 'iv' ? (MIX.iv[selInst()] != null ? MIX.iv[selInst()] : 0.5) : MIX[k];
+function mixSet(k, v) { v = Math.max(0, Math.min(1, v)); if (k === 'iv') MIX.iv[selInst()] = v; else MIX[k] = v; applyMix(); }
+const ivGain = id => (MIX.iv[id] != null ? MIX.iv[id] : 0.5) * 2;
+function ig(inst) {
+  const k = inst.k === 'drum' ? 'd' : inst.k === 'bass' ? 'b' : 'l'; S.ign = S.ign || {};
+  if (!S.ign[inst.id]) { const n = ctx.createGain(); n.gain.value = ivGain(inst.id); n.connect(k === 'l' ? bus.T.l : k === 'd' ? bus.T.d : bus.T.b); S.ign[inst.id] = n; }
+  return S.ign[inst.id];
+}
+function applyMix() {
+  S.trans = Math.round((MIX.t - 0.5) * 12); if (!bus) return; const t = ctx.currentTime, f = v => v / 0.75;
+  bus.master.gain.setTargetAtTime(0.9 * f(MIX.m), t, 0.02); bus.T.d.gain.setTargetAtTime(f(MIX.g), t, 0.02); bus.T.b.gain.setTargetAtTime(f(MIX.g), t, 0.02); bus.T.l.gain.setTargetAtTime(f(MIX.l), t, 0.02);
+  bus.rvg.gain.setTargetAtTime(0.32 * MIX.r / 0.5, t, 0.02); if (S.ign) for (const id in S.ign) S.ign[id].gain.setTargetAtTime(ivGain(id), t, 0.02);
+}
+function mixOut() { const iv = {}; for (const k in MIX.iv) if (Math.abs(MIX.iv[k] - 0.5) > 0.01) iv[k] = Math.round(MIX.iv[k] * 100) / 100; return { m: MIX.m, g: MIX.g, l: MIX.l, r: MIX.r, t: MIX.t, iv }; }
+function mixIn(d) { if (!d) return; ['m', 'g', 'l', 'r', 't'].forEach(k => { if (typeof d[k] === 'number') MIX[k] = d[k]; }); MIX.iv = d.iv || {}; applyMix(); }
+function mixSliders(top) {
+  const y0 = top + styH + TABH + 6, col = (W - 24) / 2, rows = 3, h = Math.min(36, (dockH() - styH - TABH - 8) / rows), L = [['m', 'Gesamt'], ['g', 'Groove'], ['l', 'Melodie'], ['r', 'Hall'], ['iv', 'Klang: ' + (IM[selInst()] ? IM[selInst()].n : '')], ['t', 'Tonart']];
+  return L.map(([k, n], i) => ({ k, n, x: 8 + Math.floor(i / 3) * (col + 8), y: y0 + (i % 3) * h, w: col, h: h - 2 }));
+}
+function mixDraw(top) {
+  if (S.tab !== mixTab()) return;
+  mixSliders(top).forEach(s => {
+    const v = mixVal(s.k), tx = s.x + 6, tw = s.w - 12, ty = s.y + s.h - 9;
+    g.fillStyle = 'rgba(40,48,72,0.55)'; rr(s.x, s.y, s.w, s.h, 10); g.fill();
+    g.fillStyle = '#b6c0d6'; g.font = '700 11px system-ui'; g.textAlign = 'left'; g.fillText(s.n, tx, s.y + 12);
+    g.textAlign = 'right'; g.fillStyle = '#fff'; g.fillText(s.k === 't' ? (S.trans > 0 ? '+' : '') + S.trans + ' Halbt.' : s.k === 'iv' && v < 0.02 ? 'stumm' : Math.round(v * 200) / 2 + '%', tx + tw, s.y + 12);
+    g.fillStyle = 'rgba(255,255,255,0.15)'; g.fillRect(tx, ty - 2, tw, 4); g.fillStyle = s.k === 'iv' ? '#ffd54a' : '#00e5ff'; g.fillRect(tx, ty - 2, tw * v, 4); g.beginPath(); g.arc(tx + tw * v, ty, 7, 0, 7); g.fill();
+  });
+}
+function mixDown(x, y, ev) {
+  if (S.tab !== mixTab()) return false; const top = H - dockH(), s = mixSliders(top).find(q => x >= q.x && x <= q.x + q.w && y >= q.y - 2 && y <= q.y + q.h + 2); if (!s) return false;
+  S.mixDrag = { s, id: ev.pointerId }; mixMove(x); return true;
+}
+function mixMove(x) { const d = S.mixDrag; if (!d) return; const tx = d.s.x + 6, tw = d.s.w - 12; mixSet(d.s.k, (x - tx) / tw); }
+/* Rückgängig */
+const snapState = () => JSON.stringify(typeof APP !== 'undefined' && APP ? APP.getState() : getState());
+function pushHist() { S.hist = S.hist || []; const s = snapState(); if (S.hist[S.hist.length - 1] !== s) { S.hist.push(s); if (S.hist.length > 40) S.hist.shift(); } }
+function undo() {
+  S.hist = S.hist || []; const cur = snapState(); let s; while ((s = S.hist.pop()) != null && s === cur); if (s == null) { toast('Nichts zum Rückgängigmachen'); return; }
+  const o = JSON.parse(s); if (typeof APP !== 'undefined' && APP) APP.setState(o); else setState(o); toast('Rückgängig');
+}
+
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 7.7';
+const VERSION = 'Cosmos 8.0';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -397,13 +443,13 @@ const INST = [
   { id: 'voice', e: '🎙', n: 'Stimme', k: 'voice', t: 'voice', h: 60 }
 ];
 const IM = {}; INST.forEach(i => IM[i.id] = i);
-const TABS = ['Klänge', 'Werkzeuge', 'Raum', 'Szenen', 'Sichern'];
+const TABS = ['Klänge', 'Werkzeuge', 'Raum', 'Szenen', 'Sichern', 'Mixer'];
 const TOOLS = { portal: { e: '⭕', n: 'Portal', h: 260 }, erase: { e: '🧽', n: 'Radierer', h: 200 }, mag: { e: '🧲', n: 'Magnet', h: 0 }, rep: { e: '💥', n: 'Abstoß', h: 40 }, fast: { e: '⚡', n: 'Tempo-Feld', h: 55 }, echo: { e: '🌊', n: 'Echo-Feld', h: 200 }, up: { e: '⬆️', n: 'Höhen-Feld', h: 290 } };
 const ITEMS = [
   ...INST.map(i => ({ tab: 0, kind: 'inst', id: i.id, e: i.e, n: i.n })),
   ...Object.keys(TOOLS).map(k => ({ tab: 1, kind: 'tool', id: k, e: TOOLS[k].e, n: TOOLS[k].n })),
   { tab: 1, kind: 'act', id: 'spin', e: '🪐', n: 'Dreher' }, { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
   { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' },
   { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
   { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
@@ -425,13 +471,13 @@ function initAudio() {
   for (let c = 0; c < 2; c++) { const d = ib.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
   rv.buffer = ib; const rvg = mk(0.32); rv.connect(rvg); rvg.connect(master);
   const B = { d: mk(0.95), b: mk(0.85), l: mk(0.8), p: mk(0.5) };
-  Object.values(B).forEach(n => n.connect(master)); const ls = mk(0.35), ps = mk(0.45); B.l.connect(ls); ls.connect(rv); B.p.connect(ps); ps.connect(rv);
-  bus = { ...B, master, an, comp, clip, dest: null };
+  const T = { d: mk(1), b: mk(1), l: mk(1) }; B.d.connect(T.d); T.d.connect(master); B.b.connect(T.b); T.b.connect(master); B.l.connect(T.l); T.l.connect(master); B.p.connect(master); const ls = mk(0.35), ps = mk(0.45); T.l.connect(ls); ls.connect(rv); B.p.connect(ps); ps.connect(rv);
+  bus = { ...B, master, an, comp, clip, dest: null, T, rvg }; applyMix();
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
 const sc = () => SCALES[WORLDS[S.world].sc];
-function noteF(deg, oct) { const s = sc(), semi = s.notes[((deg % 7) + 7) % 7] + 12 * Math.floor(deg / 7); return s.root * Math.pow(2, (semi + 12 * oct) / 12); }
+function noteF(deg, oct) { const s = sc(), semi = s.notes[((deg % 7) + 7) % 7] + 12 * Math.floor(deg / 7); return s.root * Math.pow(2, (semi + 12 * oct + (S.trans || 0)) / 12); }
 const stepDur = () => 60 / S.bpm / 4;
 function duck(t) {
   [['b', 0.85], ['p', 0.5]].forEach(([k, b]) => { const p = bus[k].gain; p.cancelScheduledValues(t); p.setValueAtTime(b * 0.3, t); p.linearRampToValueAtTime(b, t + 0.2); });
@@ -458,23 +504,23 @@ function gmDue(bar) { const L = S.gm || 0; return L >= 3 || (L === 2 && bar % 2 
 function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – der Groove bleibt original und läuft weiter (Ausschalten: Knopf Puls 💗)'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
 function chordRoot(bar) { const w = WORLDS[S.world]; return w.prog[(Math.floor(bar / 2) + S.shift) % w.prog.length]; }
 function playInst(inst, deg, vel, t, root, oct) {
-  const dur = stepDur(); oct = oct || 0;
+  const dur = stepDur(), o = ig(inst); oct = oct || 0;
   if (inst.k === 'drum') {
     const v = 0.5 + 0.5 * vel;
-    if (inst.t === 'kick') { V.kick(ctx, bus.d, t, v); duck(t); }
-    else if (inst.t === 'clap') V.snare(ctx, bus.d, t, 0.8 * v, true);
-    else if (inst.t === 'hat') V.hat(ctx, bus.d, t, 0.22 + 0.2 * vel, vel > 0.75);
-    else V.tom(ctx, bus.d, t, v, inst.t);
+    if (inst.t === 'kick') { V.kick(ctx, o, t, v); duck(t); }
+    else if (inst.t === 'clap') V.snare(ctx, o, t, 0.8 * v, true);
+    else if (inst.t === 'hat') V.hat(ctx, o, t, 0.22 + 0.2 * vel, vel > 0.75);
+    else V.tom(ctx, o, t, v, inst.t);
     return;
   }
   const A = [0, 2, 4, 7]; let d = deg;
   if (Math.random() < 0.6) { let best = d, bd = 99; for (let o = -7; o <= 14; o += 7) A.forEach(a => { const c = root + a + o; if (Math.abs(c - d) < bd) { bd = Math.abs(c - d); best = c; } }); d = best; }
   if (inst.k === 'voice') {
     if (!S.voice) return; const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = S.voice; src.playbackRate.value = Math.max(0.4, Math.min(3.2, noteF(d, oct) / sc().root));
-    gn.gain.value = 0.9 * (0.5 + 0.5 * vel); src.connect(gn); gn.connect(bus.l); src.start(t); return;
+    gn.gain.value = 0.9 * (0.5 + 0.5 * vel); src.connect(gn); gn.connect(o); src.start(t); return;
   }
-  if (inst.k === 'bass') { V.bass(ctx, bus.b, t, noteF(((d % 7) + 7) % 7, inst.o + oct), dur * 2.2, inst.t, 0.5 * (0.6 + 0.4 * vel), 0.6); return; }
-  V.lead(ctx, bus.l, t, noteF(d, inst.o + oct), dur * 2.5, inst.t, 5500, (inst.t === 'supersaw' ? 0.12 : 0.2) * (0.55 + 0.45 * vel));
+  if (inst.k === 'bass') { V.bass(ctx, o, t, noteF(((d % 7) + 7) % 7, inst.o + oct), dur * 2.2, inst.t, 0.5 * (0.6 + 0.4 * vel), 0.6); return; }
+  V.lead(ctx, o, t, noteF(d, inst.o + oct), dur * 2.5, inst.t, 5500, (inst.t === 'supersaw' ? 0.12 : 0.2) * (0.55 + 0.45 * vel));
 }
 function runStep(s, t) {
   if (s === 0 && S.gm && gmDue(S.bar)) gmStep(S.gm);
@@ -513,14 +559,14 @@ const r3 = v => Math.round(v * 1000) / 1000;
 function playH() { return H - dockH(); }
 function getState() {
   const m = Math.min(W, H);
-  return { v: 6, w: S.world, bpm: Math.round(S.bpm), p: S.pulse,
+  return { v: 6, mx: mixOut(), w: S.world, bpm: Math.round(S.bpm), p: S.pulse,
     s: S.strings.map(s => [r3(s.x1 / W), r3(s.y1 / H), r3(s.x2 / W), r3(s.y2 / H), s.inst, r3(s.rot || 0)]),
     po: S.portals.map(p => [r3(p.x / W), r3(p.y / H), r3(p.r / m)]),
     fi: S.fields.map(f => [r3(f.x / W), r3(f.y / H), r3(f.r / m), f.type]),
     mg: S.mags.map(q => [r3(q.x / W), r3(q.y / H), q.sign]) };
 }
 function setState(d) {
-  if (!d) return; const m = Math.min(W, H), ph = playH(), cy = y => Math.min(ph - 8, Math.max(8, y));
+  if (!d) return; mixIn(d.mx); const m = Math.min(W, H), ph = playH(), cy = y => Math.min(ph - 8, Math.max(8, y));
   S.world = Math.max(0, Math.min(WORLDS.length - 1, d.w | 0)); S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false;
   S.strings = (d.s || []).filter(a => IM[a[4]]).map(a => { const s = { x1: a[0] * W, y1: cy(a[1] * H), x2: a[2] * W, y2: cy(a[3] * H), inst: a[4], rot: a[5] || 0, wob: 0, last: 0, name: '' }; s.len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1); return s; });
   S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: cy(a[1] * H), r: a[2] * m, h: (i * 70 + 190) % 360 }));
@@ -730,11 +776,12 @@ function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'grav') { S.grav = (S.grav + 1) % 3; toast(['Schwerkraft aus', 'Schwerkraft: nach unten', 'Schwerkraft: zur Mitte'][S.grav]); }
-  else if (a === 'clear') { S.strings = []; S.portals = []; S.fields = []; S.mags = []; S.balls = []; toast('Leer'); }
-  else if (a === 'dice') dice();
+  else if (a === 'clear') { pushHist(); S.strings = []; S.portals = []; S.fields = []; S.mags = []; S.balls = []; toast('Leer'); }
+  else if (a === 'dice') { pushHist(); dice(); }
   else if (a === 'morph') { S.morph = (S.morph + 1) % 9; morphMsg(); }
   else if (a === 'spin') { S.spin = !S.spin; toast(S.spin ? 'Dreher an – neue Saiten kreisen von selbst' : 'Dreher aus'); }
   else if (a === 'gm') gmCycle();
+  else if (a === 'undo') undo();
   else if (a === 'mic') recordMic();
   else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
   else if (a === 'sauto') { S.sauto = !S.sauto; toast(S.sauto ? 'Szenen-Auto: wechselt alle 8 Takte' : 'Szenen-Auto aus'); return; }
@@ -789,12 +836,15 @@ function onDown(ev) {
     else act(d.id);
     return;
   }
+  if (mixDown(x, y, ev)) return;
   if (y > playH()) return;
+  pushHist();
   gest = { x0: x, y0: y, x, y, t0: performance.now(), mode: null, id: ev.pointerId, pts: [[x, y]] };
   if (S.tool !== 'erase') gest.grab = findGrab(x, y);
   gest.lp = setTimeout(() => { if (gest && !gest.mode) { gest.mode = 'well'; S.well = { x: gest.x, y: gest.y }; if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {} } }, 420);
 }
 function onMove(ev) {
+  if (S.mixDrag && ev.pointerId === S.mixDrag.id) { mixMove(ev.clientX); return; }
   if (!gest || ev.pointerId !== gest.id) return; gest.x = ev.clientX; gest.y = Math.min(ev.clientY, playH() - 2); gest.pts.push([gest.x, gest.y]);
   if (!gest.mode && gest.grab && Math.hypot(gest.x - gest.x0, gest.y - gest.y0) > 8) { clearTimeout(gest.lp); gest.mode = 'grab'; gest.off = [gest.grab.x - gest.x0, gest.grab.y - gest.y0]; }
   if (gest.mode === 'grab') { gest.grab.x = Math.max(8, Math.min(W - 8, gest.x + gest.off[0])); gest.grab.y = Math.max(8, Math.min(playH() - 8, gest.y + gest.off[1])); }
@@ -803,6 +853,7 @@ function onMove(ev) {
   if (gest.mode === 'erase') eraseAt(gest.x, gest.y);
 }
 function onUp(ev) {
+  if (S.mixDrag && ev.pointerId === S.mixDrag.id) { S.mixDrag = null; save(); return; }
   if (!gest || ev.pointerId !== gest.id) return; clearTimeout(gest.lp);
   if (gest.mode === 'grab') save();
   else if (gest.mode === 'draw') {
@@ -874,6 +925,7 @@ function draw(dt) {
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.n, d.x + d.w / 2, y0 + d.h - 7);
   });
+  mixDraw(top);
   S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
   S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 84 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 103 + i * 34, W - 30); });
   if (S.started) { const tip = W < 640 ? 'Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent' : 'Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent (zieht die Kugeln an)'; g.textAlign = 'center'; g.font = '600 12px system-ui'; const tw = Math.min(W - 16, g.measureText(tip).width + 22); g.fillStyle = 'rgba(0,0,0,0.35)'; rr(W / 2 - tw / 2, 4, tw, 22, 11); g.fill(); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText(tip, W / 2, 19, W - 30); }
