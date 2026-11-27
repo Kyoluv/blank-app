@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 114</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 115</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3663,9 +3663,12 @@ function setWorld(id, quiet, off) {
     + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button id="jam-bg" class="oct-btn" style="flex:1;min-width:120px;">▶ Begleitung</button><button id="jam-new" class="oct-btn" style="flex:1;min-width:120px;">🎲 Neuer Song</button></div>'
     + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-help" checked> 🎯 Hilfe: nur passende Töne (springt zum nächsten Akkordton)</label>'
     + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:8px;"><input type="checkbox" id="jam-q" checked> Im Takt einrasten (wenn der Song läuft)</label>'
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center;"><label style="font-size:.78rem;">🎛 Spielart:</label><select id="jam-mode" style="flex:1;min-width:150px;padding:9px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="n">Normal (Ton halten)</option><option value="arp">🌀 Arpeggio (Taste halten = Tonlauf)</option><option value="arp2">🌀 Arpeggio hoch &amp; runter</option><option value="strum">🎸 Akkord-Anschlag</option><option value="echo">🔊 Echo (Töne hallen nach)</option><option value="oct">🎺 Oktav-Doppel (dick)</option></select><select id="jam-rate" style="padding:9px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="1">1/16 schnell</option><option value="2" selected>1/8</option><option value="4">1/4 ruhig</option></select></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center;"><label style="font-size:.78rem;">🎛 Spielart:</label><select id="jam-mode" style="flex:1;min-width:150px;padding:9px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="n">Normal (Ton halten)</option><option value="arp">🌀 Arpeggio (Taste halten = Tonlauf)</option><option value="arp2">🌀 Arpeggio hoch &amp; runter</option><option value="strum">🎸 Akkord-Anschlag</option><option value="echo">🔊 Echo (Töne hallen nach)</option><option value="oct">🎺 Oktav-Doppel (dick)</option><option value="harm">👥 Terz-Harmonie (zweite Stimme)</option></select><select id="jam-rate" style="padding:9px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="1">1/16 schnell</option><option value="2" selected>1/8</option><option value="4">1/4 ruhig</option></select></div>'
+    + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-penta"> 🌴 Pentatonik-Schongang (5 Töne, es kann nichts falsch klingen)</label>'
+    + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-od"> ➕ Overdub (neue Aufnahme kommt über den laufenden Loop)</label>'
     + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-latch"> 🔒 Töne bleiben, bis du die Taste nochmal tippst (zum Mixen mit beiden Händen)</label>'
-    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button id="jam-hook" class="oct-btn" style="flex:1;min-width:150px;">🎲 Ohrwurm-Hook als Loop</button><button id="jam-hook2" class="oct-btn" style="flex:1;min-width:150px;">🎲 Zufalls-Melodie als Loop</button><button id="jam-reset" class="oct-btn" style="flex:1;min-width:150px;">↺ Jam-Pad zurücksetzen</button></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button id="jam-hook" class="oct-btn" style="flex:1;min-width:150px;">🎲 Ohrwurm-Hook als Loop</button><button id="jam-hook2" class="oct-btn" style="flex:1;min-width:150px;">🎲 Zufalls-Melodie als Loop</button><button id="jam-var" class="oct-btn" style="flex:1;min-width:150px;">🎲 Loop variieren</button><button id="jam-reset" class="oct-btn" style="flex:1;min-width:150px;">↺ Jam-Pad zurücksetzen</button></div>'
+    + '<div id="jam-phw" style="height:6px;border-radius:3px;background:rgba(128,128,150,.25);margin:2px 0 6px;position:relative;overflow:hidden;"><div id="jam-ph" style="position:absolute;top:0;bottom:0;width:6%;left:0;background:#18d4ff;opacity:.9;border-radius:3px;"></div></div>'
     + '<div id="jam-grid"></div>'
     + '<div style="margin-top:10px;border-top:1px solid #2a3046;padding-top:8px;"><div style="font-size:.74rem;color:var(--muted);margin-bottom:6px;">🔁 Loop-Aufnahme: spiele eine Melodie, sie läuft dann im Kreis weiter und du spielst darüber.</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><select id="jam-len" style="padding:10px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="1">1 Takt</option><option value="2" selected>2 Takte</option><option value="4">4 Takte</option></select><button id="jam-rec" class="oct-btn" style="flex:1;min-width:130px;">⏺ Aufnehmen</button><button id="jam-clr" class="oct-btn" style="flex:1;min-width:110px;">🗑 Loop löschen</button></div><div id="jam-msg" style="font-size:.74rem;margin-top:6px;color:var(--muted);min-height:1em;"></div></div>';
   anchor.parentNode.insertBefore(jc, anchor);
@@ -3690,9 +3693,10 @@ function setWorld(id, quiet, off) {
     if (P.decay) g.gain.setTargetAtTime(P.v * 0.35, t + 0.05, P.decay / 3);
     const oscs = [], lfo = P.vr ? ctx.createOscillator() : null, lg = lfo ? ctx.createGain() : null;
     if (lfo) { lfo.frequency.value = P.vr; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(P.vd, t + 0.6); lfo.connect(lg); lfo.start(t); }
-    P.o.forEach(([w, m, det, gn]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = w; o.frequency.setValueAtTime(freq * m, t); o.detune.value = det; og.gain.value = gn; o.connect(og); og.connect(lp); if (lg) lg.connect(o.detune); o.start(t); oscs.push([o, m]); });
+    P.o.forEach(([w, m, det, gn]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = w; o.frequency.setValueAtTime(freq * m, t); o.detune.value = det; og.gain.value = gn; o.connect(og); og.connect(lp); if (lg) lg.connect(o.detune); o.start(t); oscs.push([o, m, det]); });
     lp.connect(g); g.connect(out); let done = false;
     return {
+      bend(c) { if (done) return; const n = ctx.currentTime; oscs.forEach(([o, m, det]) => o.detune.setTargetAtTime(det + c, n, 0.03)); },
       glide(f) { if (done) return; const n = ctx.currentTime; oscs.forEach(([o, m]) => o.frequency.setTargetAtTime(f * m, n, 0.03)); },
       rel(tr) { if (done) return; done = true; const n = Math.max(tr, ctx.currentTime); g.gain.cancelScheduledValues(n); g.gain.setTargetAtTime(0, n, P.r / 3); const e = n + P.r * 1.6 + 0.1; oscs.forEach(([o]) => { try { o.stop(e); } catch (x) {} }); if (lfo) try { lfo.stop(e); } catch (x) {}; setTimeout(() => { try { g.disconnect(); } catch (x) {} }, (e - ctx.currentTime) * 1000 + 200); }
     };
@@ -3706,18 +3710,22 @@ function setWorld(id, quiet, off) {
   const pre = document.getElementById('jam-pre');
   Object.keys(PRE).forEach(n => { const b = document.createElement('button'); b.className = 'oct-btn' + (n === curPre ? ' active' : ''); b.textContent = n; b.style.cssText = 'padding:8px 12px;'; b.dataset.pre = n; b.addEventListener('click', () => { curPre = n; pre.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.pre === n)); }); pre.appendChild(b); });
   // Tasten
-  const ROWS = [['🎵 Melodie mittel', 'lead', [7, 8, 9, 10, 11, 12, 13], 1], ['🎵 Melodie tief', 'lead', [0, 1, 2, 3, 4, 5, 6], 1], ['🎼 Akkorde (halten)', 'chord', [0, 1, 2, 3, 4, 5, 6], 0], ['🔊 Bass (halten)', 'bass', [0, 1, 2, 3, 4, 5, 6], -1]];
+  const ROWS = [['🎵 Melodie mittel', 'lead', [7, 8, 9, 10, 11, 12, 13], 1], ['🎵 Melodie tief', 'lead', [0, 1, 2, 3, 4, 5, 6], 1], ['🎼 Akkorde (halten)', 'chord', [0, 1, 2, 3, 4, 5, 6], 0], ['🔊 Bass (halten)', 'bass', [0, 1, 2, 3, 4, 5, 6], -1], ['🥁 Drums (tippen)', 'drum', [0, 1, 2, 3], 0]];
   const jg = document.getElementById('jam-grid'); jg.style.cssText = 'display:grid;gap:5px;touch-action:none;user-select:none;-webkit-user-select:none;';
-  ROWS.forEach(([lbl, kind, degs]) => { const lab = document.createElement('div'); lab.style.cssText = 'font-size:.7rem;color:var(--muted);margin-top:2px;'; lab.textContent = lbl; jg.appendChild(lab); const row = document.createElement('div'); row.style.cssText = 'display:grid;gap:5px;grid-template-columns:repeat(7,1fr);';
-    degs.forEach(d => { const b = document.createElement('button'); b.className = 'oct-btn jam'; b.dataset.k = kind; b.dataset.d = d; b.style.cssText = 'padding:15px 0;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;border-width:2px;' + (kind === 'chord' ? 'border-color:#7c5cff;' : kind === 'bass' ? 'border-color:#ff7a45;' : 'border-color:#18d4ff;'); row.appendChild(b); }); jg.appendChild(row); });
-  const relabel = () => { const ct = chordTones(); jg.querySelectorAll('.jam').forEach(b => { const d = +b.dataset.d, i = ((d % 7) + 7) % 7, k = b.dataset.k; b.textContent = degName(d); const good = k === 'chord' ? i === ct[0] : ct.includes(i); b.style.background = good ? 'rgba(61,220,132,.22)' : ''; if (k !== 'chord') b.style.boxShadow = good ? '0 0 0 1px #3ddc84 inset' : ''; else b.style.boxShadow = good ? '0 0 0 1px #3ddc84 inset' : ''; }); };
+  ROWS.forEach(([lbl, kind, degs]) => { const lab = document.createElement('div'); lab.style.cssText = 'font-size:.7rem;color:var(--muted);margin-top:2px;'; lab.textContent = lbl; jg.appendChild(lab); const row = document.createElement('div'); row.style.cssText = 'display:grid;gap:5px;grid-template-columns:repeat(' + (kind === 'drum' ? 4 : 7) + ',1fr);';
+    degs.forEach(d => { const b = document.createElement('button'); b.className = 'oct-btn jam'; b.dataset.k = kind; b.dataset.d = d; b.style.cssText = 'padding:15px 0;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;border-width:2px;' + (kind === 'chord' ? 'border-color:#7c5cff;' : kind === 'bass' ? 'border-color:#ff7a45;' : kind === 'drum' ? 'border-color:#ffd54a;' : 'border-color:#18d4ff;'); row.appendChild(b); }); jg.appendChild(row); });
+  const DRN = ['Kick', 'Snare', 'Hat', 'Clap'], pentaOn = () => { const e = document.getElementById('jam-penta'); return !!(e && e.checked); }, pentaOut = () => (sc0().notes[2] === 3 ? [1, 5] : [3, 6]), pentaD = d => (pentaOut().includes(((d % 7) + 7) % 7) ? d + 1 : d);
+  const relabel = () => { const ct = chordTones(); jg.querySelectorAll('.jam').forEach(b => { const d = +b.dataset.d, i = ((d % 7) + 7) % 7, k = b.dataset.k; if (k === 'drum') { b.textContent = DRN[d]; return; } b.textContent = degName(d); b.style.opacity = (pentaOn() && k !== 'chord' && pentaOut().includes(i)) ? '.3' : ''; const good = k === 'chord' ? i === ct[0] : ct.includes(i); b.style.background = good ? 'rgba(61,220,132,.22)' : ''; if (k !== 'chord') b.style.boxShadow = good ? '0 0 0 1px #3ddc84 inset' : ''; else b.style.boxShadow = good ? '0 0 0 1px #3ddc84 inset' : ''; }); };
   setInterval(relabel, 400); relabel();
   const grid = t0 => { if (!document.getElementById('jam-q').checked || !st.playing || typeof songT0 === 'undefined') return t0; const step = 60 / st.bpm / 4, k = Math.ceil((t0 - songT0) / step - 0.2); return Math.max(t0, songT0 + k * step); };
   // Ton starten / spielen
+  function drumHit(d, t) { try { if (d === 0) V.kick(ctx, chain.dk.kick, t, 1); else if (d === 1) V.snare(ctx, chain.dk.snare, t, 0.9, false); else if (d === 2) V.hat(ctx, chain.dk.hat, t, 0.3, false); else V.snare(ctx, chain.dk.cl || chain.dk.snare, t, 0.8, true); } catch (e) {} }
   function startNote(kind, d, oct, t, P) {
     const sc = sc0();
+    if (kind === 'drum') { drumHit(d, t); return { vs: [] }; }
     if (kind === 'lead') { const PP = P || PRE[curPre], mode = (document.getElementById('jam-mode') || {}).value || 'n';
       if (mode === 'strum') return { vs: [0, 2, 4].map((k, i) => jv(noteFreq(sc, d + k, oct), t + i * 0.035, PP, chain.lead)), offs: [0, 2, 4] };
+      if (mode === 'harm') return { vs: [jv(noteFreq(sc, d, oct), t, PP, chain.lead), jv(noteFreq(sc, d - 2, oct), t + 0.012, { ...PP, v: PP.v * 0.55 }, chain.lead)], offs: [0, -2] };
       if (mode === 'oct') return { vs: [jv(noteFreq(sc, d, oct), t, PP, chain.lead), jv(noteFreq(sc, d, oct - 1), t, { ...PP, v: PP.v * 0.7 }, chain.lead)], offs: [0, 0], oc: [0, -1] };
       if (mode === 'echo') { const bt = 60 / st.bpm * 0.75, vs = [jv(noteFreq(sc, d, oct), t, PP, chain.lead)]; [1, 2, 3].forEach(i => { const v = jv(noteFreq(sc, d, oct), t + bt * i, { ...PP, v: PP.v * Math.pow(0.5, i), a: Math.min(PP.a, 0.02) }, chain.lead); v.rel(t + bt * i + 0.22); }); return { vs }; }
       return { vs: [jv(noteFreq(sc, d, oct), t, PP, chain.lead)] }; }
@@ -3725,30 +3733,43 @@ function setWorld(id, quiet, off) {
     return { vs: [0, 2, 4].map(k => jv(noteFreq(sc, d + k, 0), t, PCHORD, chain.pad)) };
   }
   const relNote = (n, t) => n.vs.forEach(v => v.rel(t));
-  const glideNote = (n, kind, d, oct) => { const sc = sc0(); if (kind === 'chord') n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + [0, 2, 4][i], 0))); else if (n.offs) n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + n.offs[i], oct + (n.oc ? n.oc[i] : 0)))); else if (n.arp) { n.arp.d = d; } else n.vs[0].glide(noteFreq(sc, d, oct)); };
+  const glideNote = (n, kind, d, oct) => { const sc = sc0(); if (kind === 'drum') return; if (kind === 'chord') n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + [0, 2, 4][i], 0))); else if (n.offs) n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + n.offs[i], oct + (n.oc ? n.oc[i] : 0)))); else if (n.arp) { n.arp.d = d; } else n.vs[0].glide(noteFreq(sc, d, oct)); };
   // Loop-Recorder
   const L = { rec: false, ev: [], len: 0, t0: 0, play: false, it: 0, timer: null, open: {} };
   const msg = t => { document.getElementById('jam-msg').textContent = t; };
   const barLen = () => 240 / st.bpm;
-  function logOn(id, kind, d, oct, t) { if (L.rec && t >= L.t0 && t < L.t0 + L.len) L.open[id] = { kind, d, oct, off: t - L.t0 }; }
-  function logOff(id, t) { const o = L.open[id]; if (!o) return; delete L.open[id]; L.ev.push({ kind: o.kind, d: o.d, oct: o.oct, off: o.off, dur: Math.max(0.08, Math.min(t - L.t0, L.len) - o.off), pre: curPre }); }
+  function logOn(id, kind, d, oct, t) { if (L.rec && t >= L.rt0 && t < L.rt0 + L.len) L.open[id] = { kind, d, oct, off: t - L.rt0 }; }
+  function logOff(id, t) { const o = L.open[id]; if (!o) return; delete L.open[id]; L.ev.push({ kind: o.kind, d: o.d, oct: o.oct, off: o.off, dur: Math.max(0.08, Math.min(t - L.rt0, L.len) - o.off), pre: curPre }); }
   function schedLoop() {
     if (!L.play || !ctx || !L.ev.length) return; const now = ctx.currentTime, ahead = now + 0.35;
     for (let it = Math.max(0, Math.floor((now - L.t0) / L.len)); it < Math.floor((ahead - L.t0) / L.len) + 1; it++) {
-      L.ev.forEach((e, i) => { const t = L.t0 + it * L.len + e.off; if (t >= now - 0.02 && t < ahead && !(e._s && e._s[it])) { e._s = e._s || {}; e._s[it] = 1; const n = startNote(e.kind, e.d, e.oct, Math.max(t, now), PRE[e.pre] || PRE.Synth); relNote(n, Math.max(t, now) + e.dur); } });
+      L.ev.forEach((e, i) => { const t = L.t0 + it * L.len + e.off; if (t >= now - 0.02 && t < ahead && !(e._s && e._s[it])) { e._s = e._s || {}; e._s[it] = 1; const n = startNote(e.kind, e.d, e.oct, Math.max(t, now), PRE[e.pre] || PRE.Synth); relNote(n, Math.max(t, now) + e.dur); if (window.__jamFlash) window.__jamFlash(e.kind, e.d, (Math.max(t, now) - now) * 1000); } });
     }
   }
   function startLoopPlay() { L.play = true; clearInterval(L.timer); L.timer = setInterval(schedLoop, 100); const b = document.getElementById('jam-rec'); b.textContent = '⏺ Neu aufnehmen'; msg('🔁 Dein Loop läuft. Spiele darüber oder nimm neu auf.'); }
   document.getElementById('jam-rec').addEventListener('click', () => {
     initAudio(); try { ctx.resume(); } catch (e) {}
     if (L.rec) return;
-    const bars = +document.getElementById('jam-len').value; L.len = bars * barLen(); L.ev = []; L.play = false; clearInterval(L.timer);
-    const now = ctx.currentTime + 0.1; let start = now;
-    if (st.playing) { const k = Math.ceil((now - songT0) / barLen()); start = songT0 + k * barLen(); } else start = now + 1.5;
-    L.t0 = start; L.rec = true; L.open = {}; const b = document.getElementById('jam-rec');
-    const tick = () => { const n = ctx.currentTime; if (n < L.t0) { msg('Gleich geht es los … ' + Math.ceil(L.t0 - n) + ' (spiele ab dem Start)'); b.textContent = '⏺ Gleich …'; } else if (n < L.t0 + L.len) { msg('🔴 Aufnahme läuft … spiele jetzt!'); b.textContent = '🔴 Nimmt auf'; } else { Object.keys(L.open).forEach(id => logOff(id, L.t0 + L.len)); L.rec = false; clearInterval(L.rt); if (L.ev.length) { L.t0 += L.len; startLoopPlay(); } else { b.textContent = '⏺ Aufnehmen'; msg('Nichts aufgenommen. Versuche es nochmal.'); } } };
+    const od = !!(document.getElementById('jam-od') && document.getElementById('jam-od').checked && L.play && L.ev.length), now = ctx.currentTime + 0.1; let start = now;
+    if (od) { start = L.t0 + Math.ceil((now - L.t0) / L.len) * L.len; L.od = true; }
+    else { const bars = +document.getElementById('jam-len').value; L.len = bars * barLen(); L.ev = []; L.play = false; clearInterval(L.timer); L.od = false;
+      if (st.playing) { const k = Math.ceil((now - songT0) / barLen()); start = songT0 + k * barLen(); } else start = now + 1.5; L.t0 = start; }
+    L.rt0 = start; L.rec = true; L.open = {}; const b = document.getElementById('jam-rec');
+    const tick = () => { const n = ctx.currentTime; if (n < L.rt0) { msg('Gleich geht es los … ' + Math.ceil(L.rt0 - n) + ' (spiele ab dem Start)'); b.textContent = '⏺ Gleich …'; } else if (n < L.rt0 + L.len) { msg(L.od ? '🔴 Overdub läuft … spiele etwas dazu!' : '🔴 Aufnahme läuft … spiele jetzt!'); b.textContent = '🔴 Nimmt auf'; } else { Object.keys(L.open).forEach(id => logOff(id, L.rt0 + L.len)); L.rec = false; clearInterval(L.rt); if (L.od) { L.od = false; b.textContent = '⏺ Neu aufnehmen'; msg('➕ Overdub fertig: deine neuen Töne laufen jetzt mit.'); } else if (L.ev.length) { L.t0 += L.len; startLoopPlay(); } else { b.textContent = '⏺ Aufnehmen'; msg('Nichts aufgenommen. Versuche es nochmal.'); } } };
     clearInterval(L.rt); L.rt = setInterval(tick, 120); tick();
   });
+  document.getElementById('jam-var').addEventListener('click', () => {
+    if (!L.ev.length) { msg('Erst einen Loop aufnehmen oder einen Hook-Loop starten, dann kann ich ihn abwandeln.'); return; }
+    const pick = a => a[Math.floor(Math.random() * a.length)], melo = L.ev.filter(e => e.kind === 'lead');
+    melo.forEach(e => { const r = Math.random(); if (r < 0.3) e.d += pick([-2, -1, 1, 2]); else if (r < 0.4) e.dur = Math.max(0.06, e.dur / 2); });
+    if (melo.length > 4 && Math.random() < 0.5) { const k = L.ev.indexOf(pick(melo)); if (k >= 0) L.ev.splice(k, 1); }
+    if (melo.length) { const b0 = pick(melo); L.ev.push({ ...b0, d: b0.d + pick([2, 4]), off: (b0.off + barLen() / 8) % L.len, dur: b0.dur }); }
+    msg('🎲 Dein Loop wurde leicht abgewandelt. Nochmal tippen = noch mehr Veränderung. Mit ↺ ist alles weg.');
+  });
+  // Playhead und Aufleuchten
+  const phEl = document.getElementById('jam-ph');
+  (function ph() { try { const run = ctx && (L.play || L.rec); if (run) { const n = ctx.currentTime, t0 = L.rec ? L.rt0 : L.t0, f = L.len ? (((n - t0) % L.len) + L.len) % L.len / L.len : 0; phEl.style.left = (f * 94) + '%'; phEl.style.background = L.rec ? '#ff4d6d' : '#18d4ff'; phEl.style.opacity = '.9'; } else phEl.style.opacity = '.25'; } catch (e) {} requestAnimationFrame(ph); })();
+  window.__jamFlash = (kind, d, delay) => setTimeout(() => { let el = jg.querySelector('.jam[data-k="' + kind + '"][data-d="' + d + '"]'); if (!el && kind === 'lead') el = jg.querySelector('.jam[data-k="lead"][data-d="' + (((d % 7) + 7) % 7 + 7) + '"]'); if (el) { el.style.outline = '3px solid #fff'; setTimeout(() => { el.style.outline = ''; }, 140); } }, Math.max(0, delay));
   document.getElementById('jam-clr').addEventListener('click', () => { L.play = false; L.rec = false; L.ev = []; clearInterval(L.timer); clearInterval(L.rt); document.getElementById('jam-rec').textContent = '⏺ Aufnehmen'; msg('Loop gelöscht.'); });
   document.getElementById('jam-bg').addEventListener('click', () => { document.getElementById('btn-play').click(); });
   document.getElementById('jam-new').addEventListener('click', () => { document.getElementById('btn-newhit').click(); });
@@ -3756,19 +3777,19 @@ function setWorld(id, quiet, off) {
   // Finger: halten, gleiten
   const held = new Map(); let pend = null; window.__jam = { held, L, jv, PRE };
   const keyOf = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.jam') : null; };
-  const eff = b => { const k = b.dataset.k; let d = +b.dataset.d; const oct = k === 'lead' ? 1 : k === 'bass' ? -1 : 0; if (k === 'lead') d = snap(d); else if (k === 'chord') d = d; return [k, d, oct]; };
+  const eff = b => { const k = b.dataset.k; let d = +b.dataset.d; const oct = k === 'lead' ? 1 : k === 'bass' ? -1 : 0; if (k === 'drum') return [k, d, 0]; if (k === 'lead') { d = snap(d); if (pentaOn() && !document.getElementById('jam-help').checked) d = pentaD(d); else if (pentaOn()) { const x = pentaD(d); if (!chordTones().includes(((d % 7) + 7) % 7)) d = x; } } else if (k === 'bass' && pentaOn()) d = pentaD(d); return [k, d, oct]; };
   const latched = new Map();
   function arpStart(k, d, oct, t) {
     const sc = sc0(), A = { d, oct, step: 0, vs: [], timer: null, up: ((document.getElementById('jam-mode') || {}).value) === 'arp2' }, rate = +(document.getElementById('jam-rate') || { value: 2 }).value, sd = 60 / st.bpm / 4 * rate;
     const seq = A.up ? [0, 2, 4, 7, 4, 2] : [0, 2, 4, 7], PP = { ...PRE[curPre], a: .004, r: .08, decay: .18, vr: 0 };
     let nt = t;
-    const run = () => { if (!ctx) return; const now = ctx.currentTime; if (nt < now) nt = grid(now + 0.01); while (nt < now + 0.15) { const f = noteFreq(sc, A.d + seq[A.step % seq.length], A.oct); const v = jv(f, nt, PP, chain.lead); v.rel(nt + sd * 0.75); A.step++; nt += sd; } };
+    const run = () => { if (!ctx) return; const now = ctx.currentTime; if (nt < now) nt = grid(now + 0.01); while (nt < now + 0.15) { const f = noteFreq(sc, A.d + seq[A.step % seq.length], A.oct) * Math.pow(2, (A.bend || 0) / 1200); const v = jv(f, nt, PP, chain.lead); v.rel(nt + sd * 0.75); A.step++; nt += sd; } };
     A.timer = setInterval(run, 40); run(); return { vs: [], arp: A };
   }
-  function press(id, b) {
+  function press(id, b, cy) {
     if (latched.has(b)) { const h0 = latched.get(b); latched.delete(b); relNote(h0.n, ctx.currentTime); if (h0.n.arp) clearInterval(h0.n.arp.timer); b.classList.remove('active-pink'); return; }
-    const [k, d, oct] = eff(b), mode = (document.getElementById('jam-mode') || {}).value || 'n'; const t = grid(ctx.currentTime + 0.01), n = (k === 'lead' && (mode === 'arp' || mode === 'arp2')) ? arpStart(k, d, oct, t) : startNote(k, d, oct, t);
-    held.set(id, { n, b, k, d, oct }); logOn(id, k, d, oct, t); b.classList.add('active-pink'); if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+    const [k, d, oct] = eff(b), mode = (document.getElementById('jam-mode') || {}).value || 'n'; const t = grid(ctx.currentTime + 0.01); let vP = null; if (k === 'lead' && cy != null) { const r = b.getBoundingClientRect(), yy = Math.max(0, Math.min(1, (cy - r.top) / Math.max(1, r.height))), P0 = PRE[curPre]; vP = { ...P0, v: P0.v * (1.25 - 0.6 * yy) }; } const n = (k === 'lead' && (mode === 'arp' || mode === 'arp2')) ? arpStart(k, d, oct, t) : startNote(k, d, oct, t, vP);
+    held.set(id, { n, b, k, d, oct, y0: cy }); logOn(id, k, d, oct, t); b.classList.add('active-pink'); if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
   }
   function lift(id) { const h = held.get(id); if (!h) return; held.delete(id); logOff(id, ctx.currentTime);
     if (document.getElementById('jam-latch') && document.getElementById('jam-latch').checked) { latched.set(h.b, h); return; }
@@ -3779,7 +3800,7 @@ function setWorld(id, quiet, off) {
     L.play = false; L.rec = false; L.ev = []; clearInterval(L.timer); clearInterval(L.rt); document.getElementById('jam-rec').textContent = '⏺ Aufnehmen';
     curPre = 'Synth'; pre.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.pre === 'Synth'));
     const set = (id, v) => { const e = document.getElementById(id); if (e) e[typeof v === 'boolean' ? 'checked' : 'value'] = v; };
-    set('jam-mode', 'n'); set('jam-rate', '2'); set('jam-latch', false); set('jam-help', true); set('jam-q', true); set('jam-len', '2');
+    set('jam-mode', 'n'); set('jam-rate', '2'); set('jam-latch', false); set('jam-penta', false); set('jam-od', false); set('jam-help', true); set('jam-q', true); set('jam-len', '2');
     msg('↺ Jam-Pad ist zurückgesetzt: Klangfarbe Synth, Spielart Normal, Loop gelöscht. Dein Song und alle anderen Regler bleiben unverändert.');
   });
   // Hook / Zufalls-Melodie als Loop
@@ -3793,8 +3814,8 @@ function setWorld(id, quiet, off) {
   document.getElementById('jam-hook').addEventListener('click', () => loopFrom((bar, sl) => chordAt(bar) + hookOff(st.seed || 1, bar, sl, false), '🎲 Dein Ohrwurm-Hook läuft im Kreis. Spiele darüber oder wähle oben eine andere Klangfarbe. Tippe nochmal für einen neuen Song-Hook.'));
   document.getElementById('jam-hook2').addEventListener('click', () => { const sd = (Math.random() * 1e9) | 0; loopFrom((bar, sl) => { if (H(sd, bar, sl) < 0.28) return null; const ct = [0, 2, 4, 7]; return chordAt(bar) + (H(sd, bar * 9 + 1, sl) < 0.6 ? ct[Math.floor(H(sd, bar * 9 + 2, sl) * 4)] : Math.floor(H(sd, bar * 9 + 3, sl) * 8) - 1); }, '🎲 Neue Zufalls-Melodie läuft im Kreis. Gefällt sie dir nicht, tippe nochmal.'); });
   jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); try { initAudio(); } catch (e) {} try { jg.setPointerCapture(ev.pointerId); } catch (e) {}
-    if (ctx.state === 'running') press(ev.pointerId, b); else pend = { id: ev.pointerId, b }; });
-  jg.addEventListener('pointermove', ev => { const h = held.get(ev.pointerId); if (!h) return; const b = keyOf(ev.clientX, ev.clientY); if (!b || b === h.b || b.dataset.k !== h.k) return; const [k, d, oct] = eff(b); h.b.classList.remove('active-pink'); b.classList.add('active-pink'); glideNote(h.n, k, d, oct); h.b = b; h.d = d; });
+    if (ctx.state === 'running') press(ev.pointerId, b, ev.clientY); else pend = { id: ev.pointerId, b }; });
+  jg.addEventListener('pointermove', ev => { const h = held.get(ev.pointerId); if (!h) return; if (h.k === 'lead' && h.y0 != null) { const dy = h.y0 - ev.clientY, c = Math.abs(dy) < 10 ? 0 : Math.max(-200, Math.min(200, dy * 3)); if (h.n.arp) h.n.arp.bend = c; else h.n.vs.forEach(v => v.bend && v.bend(c)); } const b = keyOf(ev.clientX, ev.clientY); if (!b || b === h.b || b.dataset.k !== h.k) return; const [k, d, oct] = eff(b); h.b.classList.remove('active-pink'); b.classList.add('active-pink'); glideNote(h.n, k, d, oct); h.b = b; h.d = d; });
   const up = ev => { if (pend && pend.id === ev.pointerId) { const p = pend; pend = null; const go = () => { press(p.id, p.b); setTimeout(() => lift(p.id), 450); }; try { initAudio(); if (ctx.state !== 'running') ctx.resume().then(go); else go(); } catch (e) {} return; } lift(ev.pointerId); };
   jg.addEventListener('pointerup', up); jg.addEventListener('pointercancel', up); jg.addEventListener('lostpointercapture', up);
   ['pointerup', 'click', 'touchend'].forEach(n => document.addEventListener(n, () => { if (typeof ctx !== 'undefined' && ctx && ctx.state === 'running') return; try { if (ctx) ctx.resume(); } catch (e) {} }, true));
@@ -3832,6 +3853,50 @@ function setWorld(id, quiet, off) {
     btn.disabled = false;
   });
 })();
+/* ---------- v115: Hit-Check, Abzeichen, Tagessong ---------- */
+(function hitCheck() {
+  const BADGES = { song: ['🎵', 'Erster Song'], jam: ['🎹', 'Jam-Pad gespielt'], loop: ['🔁', 'Loop gebaut'], voice: ['🎤', 'Sänger'], dice10: ['🎲', 'Würfelkönig (10 Würfe)'], star4: ['⭐', 'Song mit 4+ Sternen'], star5: ['🏆', 'Song mit 5 Sternen'], daily: ['🎯', 'Tagessong gemacht'], streak3: ['🔥', '3 Tage in Folge'] };
+  const rd = k => { try { return JSON.parse(lsGet(k) || 'null'); } catch (e) { return null; } }, wr = (k, v) => { try { lsSet(k, JSON.stringify(v)); } catch (e) {} };
+  let got = rd('musify-badges') || {}, tEl = null;
+  function toast(t) { if (!tEl) { tEl = document.createElement('div'); tEl.style.cssText = 'position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#1d2236;color:#fff;border:1px solid #7c5cff;padding:10px 16px;border-radius:14px;font-size:.9rem;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center;'; document.body.appendChild(tEl); } tEl.textContent = t; tEl.style.opacity = '1'; clearTimeout(tEl._t); tEl._t = setTimeout(() => { tEl.style.opacity = '0'; }, 2600); }
+  function award(id) { if (got[id] || !BADGES[id]) return; got[id] = Date.now(); wr('musify-badges', got); toast('🏅 Neues Abzeichen: ' + BADGES[id][0] + ' ' + BADGES[id][1]); paintBadges(); }
+  function scoreSong() {
+    const S = st, sty = STYLES[S.style] || {}, mel = (S.melody || []).filter(d => d !== REST), uniq = new Set(mel).size, tr = Object.values(S.tracks || {}).filter(Boolean).length, tips = [], pts = {};
+    pts['Melodie'] = Math.min(20, uniq * 3 + (mel.length >= 6 ? 4 : 0)); if (pts['Melodie'] < 12) tips.push('Nimm mehr verschiedene Töne in die Melodie (🎲 Würfeln im Melodie-Editor).');
+    pts['Aufbau'] = Math.min(15, (SONG_SECS.length || 0) * 2); if (pts['Aufbau'] < 10) tips.push('Wähle unter „Aufbau" eine längere Form mit Refrain, Aufbau und Break.');
+    pts['Klang'] = Math.min(20, 6 + tr * 5 + (S.fx && Object.values(S.fx).filter(Boolean).length ? 4 : 0)); if (tr < 2) tips.push('Schalte Gitarre, Bläser oder Bass dazu. Mehr Spuren geben mehr Fülle.');
+    pts['Abwechslung'] = Math.round(15 * Math.min(1, ((S.mix && S.mix.vary == null) ? 0.6 : (S.mix ? S.mix.vary : 0.6)) / 0.6)); if (pts['Abwechslung'] < 9) tips.push('Stelle den Regler „Abwechslung" höher.');
+    pts['Tempo'] = Math.abs((S.bpm || 120) - (sty.bpm || 120)) <= 14 ? 10 : 5;
+    pts['Gesang'] = (S.voiceWet && !S.voiceMute) ? 15 : 0; if (!pts['Gesang']) tips.push('Ein Text mit Gesang macht aus dem Beat ein Lied (Karte 🎤 Gesang).');
+    pts['Hook'] = S.melodyLock ? 3 : 5; const total = Math.min(100, Object.values(pts).reduce((a, b) => a + b, 0));
+    return { total, stars: Math.max(1, Math.min(5, Math.ceil(total / 20))), tips, pts };
+  }
+  const TITLES = ['Probelauf', 'Guter Anfang', 'Radio-tauglich', 'Ohrwurm-Alarm', 'Nummer-1-Kandidat'];
+  const c = document.createElement('div'); c.className = 'card'; c.id = 'c-hit'; c.style.padding = '10px';
+  c.innerHTML = '<div class="label"><span>⭐ Hit-Check &amp; Abzeichen</span></div><div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;line-height:1.4;">Ein Spaß-Urteil nach klaren Regeln (kein echtes Hörurteil): Wie viele Töne, Spuren, Abwechslung, Gesang. Du sammelst Abzeichen beim Ausprobieren.</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button id="hit-go" class="sunset-btn" style="flex:1;min-width:150px;">⭐ Meinen Song bewerten</button><button id="hit-daily" class="oct-btn" style="flex:1;min-width:150px;">🎯 Tagessong (für alle gleich)</button></div>'
+    + '<div id="hit-res" style="margin-top:8px;font-size:.84rem;line-height:1.5;"></div><div id="hit-streak" style="font-size:.74rem;color:var(--muted);margin-top:6px;"></div><div id="hit-badges" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>';
+  const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(c, anchor);
+  function paintBadges() { const b = document.getElementById('hit-badges'); b.innerHTML = ''; Object.keys(BADGES).forEach(k => { const d = document.createElement('div'); d.textContent = BADGES[k][0] + ' ' + BADGES[k][1]; d.style.cssText = 'padding:5px 9px;border-radius:12px;font-size:.74rem;border:1px solid ' + (got[k] ? '#7c5cff' : '#333a50') + ';opacity:' + (got[k] ? 1 : 0.38) + ';'; b.appendChild(d); }); const n = Object.keys(got).length; document.getElementById('hit-streak').textContent = '🏅 ' + n + ' von ' + Object.keys(BADGES).length + ' Abzeichen' + ((rd('musify-streak') || {}).n ? ' · 🔥 Serie: ' + rd('musify-streak').n + ' Tag(e)' : ''); }
+  function show() { const r = scoreSong(); document.getElementById('hit-res').innerHTML = '<div style="font-size:1.5rem;">' + '⭐'.repeat(r.stars) + '<span style="opacity:.25">' + '⭐'.repeat(5 - r.stars) + '</span> <b style="font-size:1rem;">' + r.total + ' / 100 · ' + TITLES[r.stars - 1] + '</b></div>' + (r.tips.length ? '<div style="margin-top:4px;">💡 ' + r.tips.slice(0, 2).join('<br>💡 ') + '</div>' : '<div style="margin-top:4px;">💡 Stark! Speichere ihn oder exportiere ihn als WAV.</div>'); if (r.stars >= 4) award('star4'); if (r.stars >= 5) award('star5'); return r; }
+  document.getElementById('hit-go').addEventListener('click', show);
+  function rngSeed(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  document.getElementById('hit-daily').addEventListener('click', () => {
+    const d = new Date(), key = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(), R = Math.random; Math.random = rngSeed(key);
+    try { megaHit(); } finally { Math.random = R; }
+    const sk = rd('musify-streak') || { n: 0, last: 0 }; if (sk.last !== key) { const y = new Date(d); y.setDate(y.getDate() - 1); const yk = y.getFullYear() * 10000 + (y.getMonth() + 1) * 100 + y.getDate(); sk.n = sk.last === yk ? sk.n + 1 : 1; sk.last = key; wr('musify-streak', sk); }
+    award('daily'); if (sk.n >= 3) award('streak3'); paintBadges();
+    document.getElementById('hit-res').innerHTML = '🎯 <b>Tagessong ' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b> Jeder auf der Welt bekommt heute denselben. Mach etwas daraus: Gesang dazu, Melodie ändern, dann „Meinen Song bewerten".';
+  });
+  // Abzeichen-Auslöser
+  let dice = (rd('musify-dice') || 0);
+  document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('button'); if (!t) return; const id = t.id;
+    if (id === 'btn-song') award('song'); else if (id === 'btn-newhit') { dice++; wr('musify-dice', dice); if (dice >= 10) award('dice10'); } else if (id === 'sing-go') award('voice'); else if (id === 'jam-hook' || id === 'jam-hook2') award('loop'); }, true);
+  document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#jam-grid .jam')) award('jam'); }, true);
+  setInterval(() => { try { if (window.__jam && __jam.L.play && !got.loop && __jam.L.ev.length) award('loop'); if (st.songDone && !c._shown) { c._shown = true; show(); } if (!st.songDone) c._shown = false; } catch (e) {} }, 1500);
+  paintBadges(); window.__hit = { scoreSong, award };
+})();
+
 
 
 /* ---------- v105: Natürliche Stimme (Gerätestimme, spricht im Takt) ---------- */
