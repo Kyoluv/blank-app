@@ -875,7 +875,7 @@ function stAddPt(x, y, inst) { if (ST.pts.length >= 24) ST.pts.shift(); ST.pts.p
 function stNearRod(x, y) { let b = null, bd = 36; ST.rods.forEach(r => { const a = stAng(r), c = Math.cos(a), sn = Math.sin(a), u = clamp((x - r.x) * c + (y - r.y) * sn, -r.back, r.len), d = Math.hypot(x - (r.x + c * u), y - (r.y + sn * u)); if (d < bd) { bd = d; b = r; } }); return b; }
 function stNearPt(x, y) { return ST.pts.find(p => Math.hypot(p.x - x, p.y - y) < 22); }
 const STAEBE = {
-  id: 'staebe', name: 'Musify Stäbe', version: 'Stäbe 1.5', hue: 270, world: 0, inst: 'oud', defaultTool: 'stab',
+  id: 'staebe', name: 'Musify Stäbe', version: 'Stäbe 1.6', hue: 270, world: 0, inst: 'oud', defaultTool: 'stab',
   claim: 'Stäbe drehen sich. Wo sie über einen Punkt streichen, klingt er.',
   tip: 'Stab: vom Drehpunkt ziehen (kurz = schnell) · Punkt: tippen · Propeller = Stab dreht um die Mitte',
   tools: [
@@ -929,8 +929,8 @@ const STAEBE = {
   clear() { ST.rods = []; ST.pts = []; },
   dice() {
     ST.rods = []; ST.pts = []; const w = WORLDS[S.world], ph = playH(), m = Math.min(W, ph);
-    [[0.3, 0.45, 0.22], [0.7, 0.45, 0.3], [0.5, 0.6, 0.14]].forEach(([fx, fy, fl], i) => stAddRod(fx * W, fy * ph, fl * m * 2, rnd(0, 6.28), i === 1 ? -1 : 1, i === 1 ? fl * m * 2 : 0));
-    const I = [...w.leads, ...w.leads, w.bass === 'tuba' ? 'tuba' : 'bass', pick(['tabla', 'dhol']), 'hat', 'snare', 'kick'];
+    const nr = 2 + Math.floor(Math.random() * 4); for (let i = 0; i < nr; i++) { const l = rnd(0.12, 0.32) * m * 2, prop = Math.random() < 0.4; stAddRod(rnd(0.15, 0.85) * W, rnd(0.2, 0.8) * ph, l, rnd(0, 6.28), Math.random() < 0.5 ? 1 : -1, prop ? l * rnd(0.6, 1) : 0); const r = ST.rods[ST.rods.length - 1]; stSetP(r, pick([4, 8, 8, 16, 16, 24, 32])); }
+    const I = [...w.leads, ...w.leads, w.bass === 'tuba' ? 'tuba' : 'bass', pick(['tabla', 'dhol']), 'hat', 'snare', 'kick'].sort(() => Math.random() - 0.5).slice(0, 6 + Math.floor(Math.random() * 5)); if (Math.random() < 0.5) I.push(pick(['bell', 'santoor', 'brass']));
     I.forEach(inst => { const r = pick(ST.rods), a = rnd(0, 6.28), d = rnd(0.35, 1) * r.len; stAddPt(clamp(r.x + Math.cos(a) * d, 20, W - 20), clamp(r.y + Math.sin(a) * d, 20, ph - 20), inst); });
   },
   morph(lv) {
