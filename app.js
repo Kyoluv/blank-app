@@ -3871,6 +3871,7 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     try { const so = document.getElementById('sing-solo'); if (so && so.textContent.indexOf('Stopp') > -1) so.click(); } catch (e) {}
     try { document.querySelectorAll('.vox-stop').forEach(b => { const o = b.textContent; b.textContent = '✔ Gesang gestoppt'; setTimeout(() => { b.textContent = o; }, 1200); }); } catch (e) {}
   };
+  const tb = document.getElementById('topbar'); if (tb) { const b = mk(); b.style.cssText = 'width:100%;margin:6px 0 0;padding:10px;font-size:.95rem;'; b.addEventListener('click', act); tb.after(b); }
   const five = document.getElementById('c-five'); if (five) { const b = mk(); b.addEventListener('click', act); five.appendChild(b); }
   const so = document.getElementById('sing-solo'); if (so && so.parentNode) { const b = mk(); b.style.marginTop = '0'; b.addEventListener('click', act); so.parentNode.after(b); }
 })();
