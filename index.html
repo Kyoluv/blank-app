@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 105</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 106</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -524,10 +524,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   <div style="font-size:0.68rem;color:var(--muted);margin-top:6px;">Bis zu 8 Akkorde, jeder dauert einen Takt.</div>
 </div>
 
-<div class="card" id="c-clear" style="padding:10px;margin-top:8px;">
-  <div class="label"><span>🗑 Aufräumen (löschen / zurücksetzen)</span></div>
-  <button id="btn-clearall" style="width:100%;">🗑 Alles löschen (eigene Spuren)</button>
-  <button id="btn-resetall" style="width:100%;margin-top:6px;">↺ Alles zurücksetzen (wie beim ersten Start)</button>
+<div class="card" id="c-clear" style="padding:8px 10px;margin-top:8px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"><button id="btn-clearall" style="width:100%;">🗑 Alles leeren (eigene Spuren)</button>
+  <button id="btn-resetall" style="width:100%;">↺ Alles zurücksetzen</button></div>
   <div id="clearall-msg" style="font-size:0.72rem;color:var(--green);margin-top:4px;"></div>
 </div>
 
@@ -3826,7 +3825,6 @@ function setWorld(id, quiet, off) {
   const paint = () => { document.body.classList.toggle('dense', dense); document.getElementById('t-dense').textContent = dense ? '📏 Kompakt AN' : '📏 Kompakt aus'; document.getElementById('t-acc').textContent = acc ? '☝ 1 Karte offen' : '☝ Alle frei'; document.getElementById('t-dense').classList.toggle('active-pink', dense); document.getElementById('t-acc').classList.toggle('active-pink', acc); };
   document.getElementById('t-dense').addEventListener('click', () => { dense = !dense; lsSet('musify-dense', dense ? '1' : '0'); paint(); });
   document.getElementById('t-acc').addEventListener('click', () => { acc = !acc; lsSet('musify-acc', acc ? '1' : '0'); paint(); });
-  foldify('c-clear', 'save', true);
   paint();
   // Akkordeon: beim Öffnen einer Karte werden die anderen im selben Abschnitt zugeklappt
   const _so = setOpen;
@@ -3860,8 +3858,9 @@ function setWorld(id, quiet, off) {
   const isTab = () => lay === 'tablet' || (lay === 'auto' && Math.min(screen.width, screen.height) >= 600 && window.innerWidth >= 900);
   const paintLay = () => { const t = isTab(); const was = document.body.classList.contains('tl'); document.body.classList.toggle('tl', t);
     { const cs = document.getElementById('c-sliders'), song = document.getElementById('c-song'), first = document.querySelector('.sec'); if (cs && first) { let rt = document.getElementById('regtop'); if (!rt) { rt = document.createElement('div'); rt.id = 'regtop'; first.before(rt); }
-      if (t && cs.parentNode !== rt) { rt.appendChild(cs); cs.dataset.tab = 'regler'; if (lsGet('musify-regtop') !== '1') { lsSet('musify-regtop', '1'); cs.classList.remove('shut'); saveOpen(); } }
-      else if (!t && cs.parentNode === rt && song) { song.after(cs); cs.dataset.tab = 'song'; } } }
+      const cl = document.getElementById('c-clear'); if (t && cs.parentNode !== rt) { rt.appendChild(cs); cs.dataset.tab = 'regler'; if (lsGet('musify-regtop') !== '1') { lsSet('musify-regtop', '1'); cs.classList.remove('shut'); saveOpen(); } }
+      else if (!t && cs.parentNode === rt && song) { song.after(cs); cs.dataset.tab = 'song'; }
+      if (cl) { cs.before(cl); cl.dataset.tab = cs.dataset.tab; } } }
     lb.textContent = (lay === 'auto' ? '🔁 Auto: ' : 'Fest: ') + (t ? '📟 Tablet' : '📱 Handy') + ' (tippen = wechseln)';
     if (t && !was && !tabletSeen && lsGet('musify-acc') === null) { acc = false; tabletSeen = true; lsSet('musify-tabset', '1'); paint(); } };
   lb.addEventListener('click', () => { lay = lay === 'auto' ? 'tablet' : lay === 'tablet' ? 'phone' : 'auto'; lsSet('musify-layout', lay); paintLay(); });
