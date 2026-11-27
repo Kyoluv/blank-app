@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 6.5';
+const VERSION = 'Cosmos 6.6';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -721,6 +721,13 @@ function dice() {
 
 /* ---------- Eingabe ---------- */
 let gest = null;
+function findGrab(x, y) {
+  for (const p of S.portals) if (Math.hypot(x - p.x, y - p.y) < p.r + 6) return p;
+  for (const q of (S.mags || [])) if (Math.hypot(x - q.x, y - q.y) < 30) return q;
+  for (const f of (S.fields || [])) { const d = Math.hypot(x - f.x, y - f.y); if (d < 30 || Math.abs(d - f.r) < 18) return f; }
+  return null;
+}
+
 const isField = t => t === 'fast' || t === 'echo' || t === 'up';
 function eraseAt(x, y) {
   const n = S.strings.length + S.portals.length + S.fields.length + S.mags.length;
@@ -749,17 +756,21 @@ function onDown(ev) {
   }
   if (y > playH()) return;
   gest = { x0: x, y0: y, x, y, t0: performance.now(), mode: null, id: ev.pointerId, pts: [[x, y]] };
+  if (S.tool !== 'erase') gest.grab = findGrab(x, y);
   gest.lp = setTimeout(() => { if (gest && !gest.mode) { gest.mode = 'well'; S.well = { x: gest.x, y: gest.y }; if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {} } }, 420);
 }
 function onMove(ev) {
   if (!gest || ev.pointerId !== gest.id) return; gest.x = ev.clientX; gest.y = Math.min(ev.clientY, playH() - 2); gest.pts.push([gest.x, gest.y]);
+  if (!gest.mode && gest.grab && Math.hypot(gest.x - gest.x0, gest.y - gest.y0) > 8) { clearTimeout(gest.lp); gest.mode = 'grab'; gest.off = [gest.grab.x - gest.x0, gest.grab.y - gest.y0]; }
+  if (gest.mode === 'grab') { gest.grab.x = Math.max(8, Math.min(W - 8, gest.x + gest.off[0])); gest.grab.y = Math.max(8, Math.min(playH() - 8, gest.y + gest.off[1])); }
   if (!gest.mode && Math.hypot(gest.x - gest.x0, gest.y - gest.y0) > 14) { clearTimeout(gest.lp); gest.mode = S.tool === 'erase' ? 'erase' : isField(S.tool) ? 'field' : (S.tool === 'mag' || S.tool === 'rep') ? 'none' : 'draw'; }
   if (gest.mode === 'well') S.well = { x: gest.x, y: gest.y };
   if (gest.mode === 'erase') eraseAt(gest.x, gest.y);
 }
 function onUp(ev) {
   if (!gest || ev.pointerId !== gest.id) return; clearTimeout(gest.lp);
-  if (gest.mode === 'draw') {
+  if (gest.mode === 'grab') save();
+  else if (gest.mode === 'draw') {
     const ci = circleOf(gest.pts);
     if (ci) { addPortal(ci.x, ci.y, ci.r); toast(S.portals.length > 1 ? 'Portal ' + S.portals.length + ' – Kugeln springen zum nächsten Portal' : 'Loch – Kugeln tauchen irgendwo wieder auf'); }
     else if (!addString(gest.x0, gest.y0, gest.x, gest.y, S.tool)) toast('Zu kurz – zieh weiter');
