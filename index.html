@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 99</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 100</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3752,6 +3752,33 @@ function setWorld(id, quiet, off) {
   const _so = setOpen;
   setOpen = function (c, open) { if (open && acc && c.dataset.tab) document.querySelectorAll('.card.fold[data-tab="' + c.dataset.tab + '"]').forEach(o => { if (o !== c && o.id !== 'c-easy') o.classList.add('shut'); }); _so(c, open); if (open && acc) setTimeout(() => { try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 60); };
   const _fa = document.getElementById('fold-all'); if (_fa) _fa.addEventListener('click', () => { acc = false; lsSet('musify-acc', '0'); paint(); });
+  // ===== v100: Tablet-Querformat (Auto / Tablet / Handy) =====
+  const tcss = document.createElement('style');
+  tcss.textContent = `
+  .sg { display: block; }
+  body.tl { max-width: none !important; padding-left: 18px !important; padding-right: 18px !important; }
+  body.tl #tabs { max-width: 900px !important; }
+  body.tl .sg { column-count: 2; column-gap: 12px; }
+  body.tl .sg > .card { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 8px; }
+  body.tl .sec { margin-top: 14px; }
+  body.tl #pagehead { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 0 12px; align-items: start; }
+  body.tl #pagehead > header { grid-column: 1; grid-row: 1 / span 2; margin-bottom: 4px; } body.tl #pagehead > #stage { grid-column: 2; grid-row: 1; align-self: center; margin: 0 !important; }
+  body.tl #pagehead > #topbar { grid-column: 2; grid-row: 2; } body.tl #cbar { grid-template-columns: .6fr .6fr 1fr 1fr 1.6fr !important; }
+  body.tl .card { scroll-margin-top: 130px; }
+  @media (min-width: 1500px) { body.tl .sg { column-count: 3; } }
+  #t-lay { grid-column: 1 / -1; white-space: normal !important; } body.tl #t-lay { grid-column: auto; }
+  `;
+  document.head.appendChild(tcss);
+  // Karten pro Abschnitt in eine Spalten-Box packen
+  document.querySelectorAll('.sec').forEach(sec => { const box = document.createElement('div'); box.className = 'sg'; let n = sec.nextElementSibling; while (n && n.classList.contains('card')) { const nx = n.nextElementSibling; box.appendChild(n); n = nx; } sec.after(box); });
+  const lb = document.createElement('button'); lb.id = 't-lay'; bar.appendChild(lb); bar.style.gridTemplateColumns = '.7fr .7fr 1.3fr 1.3fr';
+  let lay = lsGet('musify-layout') || 'auto', tabletSeen = lsGet('musify-tabset') === '1';
+  const isTab = () => lay === 'tablet' || (lay === 'auto' && Math.min(screen.width, screen.height) >= 600 && window.innerWidth >= 900);
+  const paintLay = () => { const t = isTab(); const was = document.body.classList.contains('tl'); document.body.classList.toggle('tl', t);
+    lb.textContent = (lay === 'auto' ? '🔁 Auto: ' : 'Fest: ') + (t ? '📟 Tablet' : '📱 Handy') + ' (tippen = wechseln)';
+    if (t && !was && !tabletSeen && lsGet('musify-acc') === null) { acc = false; tabletSeen = true; lsSet('musify-tabset', '1'); paint(); } };
+  lb.addEventListener('click', () => { lay = lay === 'auto' ? 'tablet' : lay === 'tablet' ? 'phone' : 'auto'; lsSet('musify-layout', lay); paintLay(); });
+  window.addEventListener('resize', paintLay); paintLay();
   try { applyView(); } catch (e) {}
 })();
 
