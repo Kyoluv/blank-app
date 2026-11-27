@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 108</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 109</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3171,7 +3171,7 @@ const SING = (function () {
   <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option></select></div>
   <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;">🎯 Auto-Tune (zieht den Gesang auf die Töne der Tonart)</div>
   <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
-  <button id="sing-auto" class="oct-btn" style="width:100%;margin-top:8px;">✍️ Autotext: Die App schreibt den Text</button>
+  <div style="display:flex;gap:6px;margin-top:8px;"><button id="sing-auto" class="oct-btn" style="flex:1;">✍️ Autotext Deutsch</button><button id="sing-auto-en" class="oct-btn" style="flex:1;">✍️ Auto text English</button></div>
   <button id="sing-go" class="sunset-btn" style="width:100%;margin-top:8px;">🎤 Gesang erzeugen</button>
   <button id="sing-mute" class="oct-btn" style="width:100%;margin-top:8px;">🔊 Gesang ist AN (tippen zum Ausschalten)</button>
   <div style="display:flex;gap:8px;margin-top:8px;"><button id="sing-solo" class="oct-btn" style="flex:1;">▶ Nur Gesang anhören</button><button id="sing-song" class="oct-btn" style="flex:1;">🎵 Mit Song anhören</button></div>
@@ -3202,7 +3202,7 @@ const SING = (function () {
     const v1 = cs[0].concat(cs[1 % cs.length]), ch = [T.hook].concat(cs[2 % cs.length], [T.hook]), v2 = cs[3 % cs.length].concat(cs[4 % cs.length] || cs[0]);
     return { th, text: [v1.join('\n'), ch.join('\n'), v2.join('\n'), ch.join('\n')].join('\n\n') };
   }
-  $('#sing-auto').addEventListener('click', () => { let l = $('#sing-lang').value; if (l === 'auto') { l = (navigator.language || 'de').startsWith('en') ? 'en' : 'de'; $('#sing-lang').value = l; } const r = autoText(l); $('#sing-txt').value = r.text; $('#sing-msg').textContent = '✍️ Neuer Text zum Thema „' + r.th + '“. Tippe auf „Gesang erzeugen“ oder noch mal auf Autotext für ein anderes Thema.'; });
+  const doAuto = l0 => { const l = l0; $('#sing-lang').value = l; const r = autoText(l); $('#sing-txt').value = r.text; $('#sing-msg').textContent = '✍️ Neuer Text zum Thema „' + r.th + '“. Tippe auf „Gesang erzeugen“ oder noch mal auf Autotext für ein anderes Thema.';  }; $('#sing-auto').addEventListener('click', () => doAuto('de')); $('#sing-auto-en').addEventListener('click', () => doAuto('en'));
   let soloCtx = null, soloSrc = null;
   function soloStop() { try { if (soloSrc) { soloSrc.onended = null; soloSrc.stop(); } } catch (e) {} soloSrc = null; $('#sing-solo').textContent = '▶ Nur Gesang anhören'; }
   async function soloPlay() {
@@ -3722,7 +3722,7 @@ function setWorld(id, quiet, off) {
   card.innerHTML = `<div class="label"><span>🗣 Natürliche Stimme (Tablet-Stimme, im Takt)</span></div>
   <div style="font-size:.74rem;color:var(--muted);margin-bottom:6px;line-height:1.45;">Diese Stimme kommt aus deinem Tablet (z. B. Google-Stimmen) und klingt viel menschlicher als die Computerstimme. Sie spricht oder rappt jede Zeile <b>im Takt</b> zum Song. Hinweis: Sie hört man nur live, sie ist <b>nicht</b> in der WAV/MP3-Datei.</div>
   <textarea id="tk-txt" rows="4" maxlength="500" placeholder="Eine Zeile pro Takt-Paar, z. B.:&#10;Heute Nacht tanzen wir&#10;Die Sterne leuchten für uns&#10;Wir gehen nie mehr nach Haus" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;user-select:text;"></textarea>
-  <div style="display:flex;gap:6px;margin-top:6px;"><button id="tk-auto" class="oct-btn" style="flex:1;">✍️ Autotext</button><button id="tk-copy" class="oct-btn" style="flex:1;">⬇ Text von der Gesangskarte</button></div>
+  <div style="display:flex;gap:6px;margin-top:6px;"><button id="tk-auto" class="oct-btn" style="flex:1;">✍️ Autotext Deutsch</button><button id="tk-auto-en" class="oct-btn" style="flex:1;">✍️ Auto text English</button><button id="tk-copy" class="oct-btn" style="flex:1;">⬇ Text von der Gesangskarte</button></div>
   <div class="mixgrid" style="margin-top:8px;"><label>🎭 Stil</label><select id="tk-style" style="${SEL}"><option value="rap">🎤 Rap (schnell, im Takt)</option><option value="spoken">📖 Sprechgesang (ruhig)</option><option value="chant">🎵 Melodisch (Tonhöhe folgt den Akkorden)</option></select>
   <label>🌍 Sprache</label><select id="tk-lang" style="${SEL}"><option value="auto">Automatisch</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
   <label>🧑 Stimme</label><select id="tk-voice" style="${SEL}"></select>
@@ -3774,7 +3774,7 @@ function setWorld(id, quiet, off) {
   setInterval(tick, 60);
   $t('tk-test').addEventListener('click', () => { try { ss.cancel(); ss.speak(mkU(curLang() === 'en' ? 'Hello, this is how this voice sounds.' : 'Hallo, so klingt diese Stimme.', 1, 1)); msg('🔊 Teste die Stimme …'); } catch (e) { msg('Das Sprechen hat nicht geklappt.'); } });
   $t('tk-next').addEventListener('click', () => { const o = $t('tk-voice').options; if (!o.length) return; $t('tk-voice').selectedIndex = ($t('tk-voice').selectedIndex + 1) % o.length; $t('tk-test').click(); });
-  $t('tk-auto').addEventListener('click', () => { const b = document.getElementById('sing-auto'); if (b) { const l = $t('tk-lang').value; if (l !== 'auto' && document.getElementById('sing-lang')) document.getElementById('sing-lang').value = l; b.click(); $t('tk-txt').value = document.getElementById('sing-txt').value; T.lines = []; T.d1 = {}; fillVoices(); msg('✍️ Neuer Text steht oben. Tippe auf „Song starten“.'); } });
+  const tkAuto = en => { const b = document.getElementById(en ? 'sing-auto-en' : 'sing-auto'); if (b) { $t('tk-lang').value = en ? 'en' : 'de'; b.click(); $t('tk-txt').value = document.getElementById('sing-txt').value; T.lines = []; T.d1 = {}; fillVoices(); msg('✍️ Neuer Text steht oben. Tippe auf „Song starten“.'); } }; $t('tk-auto').addEventListener('click', () => tkAuto(false)); $t('tk-auto-en').addEventListener('click', () => tkAuto(true));
   $t('tk-copy').addEventListener('click', () => { const s = document.getElementById('sing-txt'); if (s && s.value.trim()) { $t('tk-txt').value = s.value; T.lines = []; msg('Text übernommen.'); } else msg('Auf der Gesangskarte steht noch kein Text.'); });
   $t('tk-txt').addEventListener('input', () => { T.lines = []; });
   $t('tk-go').addEventListener('click', () => {
