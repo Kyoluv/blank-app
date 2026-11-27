@@ -3789,3 +3789,29 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     regen(); m('Song geladen: ' + STYLES[p[1]].name + ', ' + st.bpm + ' BPM. Drück Play!'); play(true);
   });
 })();
+
+/* ---------- v126: Voll-Hit (alle Karten + neuer Text + Gesang) ---------- */
+(function fullHit() {
+  const b = document.getElementById('btn-fullhit'); if (!b) return;
+  let busy = false; const sm = t => { try { document.getElementById('sing-msg').textContent = t; } catch (e) {} b.textContent = busy ? '⏳ ' + t.slice(0, 22) : '🌟 Voll-Hit'; };
+  b.addEventListener('click', async () => {
+    if (busy) return; busy = true; b.disabled = true;
+    try {
+      if (st.playing) stop(); sm('Würfle Song …');
+      megaHit();
+      try { if (!st.worldOff) setWorld(Math.floor(Math.random() * WORLDS.length), true); } catch (e) {}
+      st.form = 'stream'; $('#song-form').value = 'stream'; setForm('stream'); regen();
+      sm('Schreibe neuen Text …');
+      const de = Math.random() < 0.5; document.getElementById(de ? 'sing-auto' : 'sing-auto-en').click();
+      if ($('#sing-eng').value === 'kokoro') $('#sing-eng').value = 'tts';
+      $('#sing-fit').value = 'song'; $('#sing-style').value !== 'robot' || ($('#sing-style').value = $('#sing-style').options[0].value);
+      const before = st.voiceRaw; sm('Gesang wird erzeugt …'); document.getElementById('sing-go').click();
+      const t0 = Date.now(); await new Promise(r => setTimeout(r, 600));
+      while (Date.now() - t0 < 150000 && (document.getElementById('sing-go').disabled || st.voiceRaw === before)) await new Promise(r => setTimeout(r, 400));
+      try { document.getElementById('jam-hook').click(); } catch (e) {}
+      if (st.voiceRaw === before) sm('Gesang hat nicht geklappt, der Song läuft ohne Stimme.');
+      if (st.playing) stop(); document.getElementById('btn-song').click(); busy = false; sm('Voll-Hit läuft!');
+    } catch (e) { busy = false; try { console.warn(e.stack); } catch (x) {} sm('Das hat nicht geklappt: ' + e.message); }
+    b.disabled = false; b.textContent = '🌟 Voll-Hit';
+  });
+})();
