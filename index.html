@@ -235,7 +235,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 140</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 141</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -302,7 +302,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
     <button data-style="trap">🎤 Hip-Hop / Trap</button>
     <button data-style="reggaeton">💃 Reggaeton</button>
     <button data-style="afro">🥁 Afrobeats</button>
-    <button data-style="fury">🎼 Fury (Nachbau)</button>
     <button data-style="organ">🎹 Orgel-Trio Soul</button>
     <button data-style="melodic">🌌 Melodic House</button>
     <button data-style="french">💿 French Touch</button>
@@ -389,7 +388,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 <div class="card" id="c-song" data-tab="song">
   <div class="label"><span>Ganzer Song & alle Regler</span><span id="song-lbl" style="color:var(--gold);"></span></div>
   <div class="undo-row"><button class="undo-btn">↶ Rückgängig</button><button class="redo-btn">↷ Wiederholen</button></div>
-  <div class="mixgrid" style="margin-bottom:8px;"><label>🎼 Songform</label><select id="song-form" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="fury">Fury-Aufbau (ca. 4:50)</option><option value="stream">Streaming-Hit (ca. 1:45)</option><option value="standard">Standard (ca. 2:40)</option><option value="radio">Radio-Edit (ca. 1:50)</option><option value="club">Club-Mix (ca. 3:40)</option><option value="bridge">Mit Bridge (ca. 2:55)</option><option value="random">Zufall bei „Shuffle"</option></select></div>
+  <div class="mixgrid" style="margin-bottom:8px;"><label>🎼 Songform</label><select id="song-form" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="stream">Streaming-Hit (ca. 1:45)</option><option value="standard">Standard (ca. 2:40)</option><option value="radio">Radio-Edit (ca. 1:50)</option><option value="club">Club-Mix (ca. 3:40)</option><option value="bridge">Mit Bridge (ca. 2:55)</option><option value="random">Zufall bei „Shuffle"</option></select></div>
   <div id="song-tl" class="song-tl"></div>
   <button id="btn-song" class="play-btn" style="width:100%;margin:8px 0;">▶ Ganzen Song spielen</button>
   <div style="font-size:0.72rem;color:var(--muted);">🎚 Alle Regler (Tempo, Lautstärken, Hall …) stehen ganz oben unter dem Play-Knopf.</div>
@@ -687,9 +686,6 @@ const STYLES = {
   organ:  { name:'Orgel-Trio Soul', bpm:116, scales:[7,5,4], progs:[0,1,4], swing:0.12, lp:6500,
     kick:'x.....x...x..x..', snare:'....x.......x..x', clap:false, hat:'x.xxx.xxx.xxx.xx', open:'..............x.',
     bass:'x..x..x.x..x..x.', bassType:'walk', lead:'x..x.x..x.x..x..', leadType:'square', stab:'..x...x..x..x...' },
-  fury:   { name:'Fury (Nachbau)', bpm:122, scales:[4], progs:[0,0,0], swing:0, lp:9000,
-    kick:'x...x...x...x...', snare:false, clap:true, hat:'..x...x...x...x.', open:'..x...x...x...x.',
-    bass:'x.x.x.x.x.x.x.x.', bassType:'808', lead:'x...x...x.......', leadType:'square', stab:'................', sub:true },
   sw30:   { name:'30er Swing', bpm:132, scales:[1,2], progs:[1,0], swing:0.33, lp:5500,
     kick:'x...x...x...x...', snare:'................', clap:false, hat:'..x...x...x...x.', open:'................',
     bass:'x...x...x...x...', bassType:'walk', lead:'x.x..x..x...x...', leadType:'brass', stab:'..x.....x.......' },
@@ -1053,7 +1049,6 @@ const V = {
 
 /* ---------- Song-Aufbau ---------- */
 const FORMS = {
-  fury: { name: 'Fury-Aufbau (ca. 4:50)', plan: [['verse','Intro',8],['build','Aufbau',16],['chorus','Drop',16],['brk','Break',8],['chorus','Drop 2',24],['chorus','Drop 3',16],['brk','Großer Break',8],['chorus','Drop 4',40],['outro','Schluss',12]] },
   stream: { name: 'Streaming-Hit', plan: [['chorus','Hook',4],['verse','Strophe',8],['build','Aufbau',2],['chorus','Refrain',8],['verse','Strophe 2',8],['build','Aufbau',2],['chorus','Refrain',8],['outro','Schluss',2]] },
   standard: { name: 'Standard', plan: [['intro','Intro',8],['verse','Strophe',16],['build','Aufbau',4],['chorus','Refrain',16],['brk','Break',8],['build','Aufbau',4],['chorus','Refrain',16],['outro','Outro',8]] },
   radio: { name: 'Radio-Edit', plan: [['intro','Intro',4],['verse','Strophe',12],['build','Aufbau',4],['chorus','Refrain',12],['brk','Break',4],['build','Aufbau',4],['chorus','Refrain',12],['outro','Outro',4]] },
@@ -1780,7 +1775,7 @@ function setPad(px, py) {
   $('#energy-lbl').textContent = `Drop: ${Math.round((1 - st.py) * 100)}%`;
   if (chain) chain.wet.gain.setTargetAtTime(echoAmount(st), ctx.currentTime, 0.1);
 }
-function setStyle(key, keepBpm) { st.swingX = null;
+function setStyle(key, keepBpm) { st.swingX = null; if (!STYLES[key]) key = 'dance';
   st.style = key; st.scaleLock = false; if (!keepBpm) { st.bpm = STYLES[key].bpm; $('#bpm-slider').value = st.bpm; $('#bpm-val').textContent = Math.round(st.bpm); }
   $$('#style-grid button').forEach(b => b.classList.toggle('active', b.dataset.style === key));
   regen(); updateStatus(); refreshNotesMsg(); applyChainSettings(); if (document.getElementById('ne-grid')) renderEditor();
@@ -4595,22 +4590,8 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   });
 })();
 
-/* ---------- v140: Fury-Nachbau (aus Analyse der eigenen Aufnahme) ---------- */
-(function furyRebuild() {
-  const host = document.getElementById('btn-trend'); if (!host || !host.parentNode) return;
-  const b = document.createElement('button'); b.id = 'btn-fury'; b.className = 'play-btn'; b.style.cssText = 'width:100%;margin-top:6px'; b.textContent = '🎼 Fury nachbauen (D-Moll, 122 BPM)';
-  host.parentNode.insertBefore(b, host.nextSibling);
-  b.addEventListener('click', () => {
-    if (st.playing) stop(); undoPoint();
-    setStyle('fury'); st.bpm = 122; $('#bpm-slider').value = 122; $('#bpm-val').textContent = 122;
-    st.scaleIdx = 4; st.scaleLock = true; st.seed = (Math.random() * 4294967295) >>> 0; regen();
-    st.chordA = [0, 0, 0, 0, 0, 0, 0, 0]; st.chordB = [6, 6, 6, 3, 6, 6, 6, 6, 6, 6, 6, 3, 2, 2, 2, 0];
-    setMix('bass', 1); setMix('drums', 0.85); setMix('kick', 1); setMix('lead', 0.55); setMix('pad', 0.3); setMix('hall', 0.25);
-    st.form = 'fury'; $('#song-form').value = 'fury'; setForm('fury');
-    try { renderChords(); renderBeat(); updateStatus(); } catch (e) {}
-    document.getElementById('btn-song').click();
-  });
-})();
+
+try { if (!STYLES[st.style]) setStyle('dance'); } catch (e) {}
 
 </script>
 </body>
