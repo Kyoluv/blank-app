@@ -56,6 +56,9 @@ const STYLES = {
   organ:  { name:'Orgel-Trio Soul', bpm:116, scales:[7,5,4], progs:[0,1,4], swing:0.12, lp:6500,
     kick:'x.....x...x..x..', snare:'....x.......x..x', clap:false, hat:'x.xxx.xxx.xxx.xx', open:'..............x.',
     bass:'x..x..x.x..x..x.', bassType:'walk', lead:'x..x.x..x.x..x..', leadType:'square', stab:'..x...x..x..x...' },
+  fury:   { name:'Fury (Nachbau)', bpm:122, scales:[4], progs:[0,0,0], swing:0, lp:9000,
+    kick:'x...x...x...x...', snare:false, clap:true, hat:'..x...x...x...x.', open:'..x...x...x...x.',
+    bass:'x.x.x.x.x.x.x.x.', bassType:'808', lead:'x...x...x.......', leadType:'square', stab:'................', sub:true },
   sw30:   { name:'30er Swing', bpm:132, scales:[1,2], progs:[1,0], swing:0.33, lp:5500,
     kick:'x...x...x...x...', snare:'................', clap:false, hat:'..x...x...x...x.', open:'................',
     bass:'x...x...x...x...', bassType:'walk', lead:'x.x..x..x...x...', leadType:'brass', stab:'..x.....x.......' },
@@ -419,6 +422,7 @@ const V = {
 
 /* ---------- Song-Aufbau ---------- */
 const FORMS = {
+  fury: { name: 'Fury-Aufbau (ca. 4:50)', plan: [['verse','Intro',8],['build','Aufbau',16],['chorus','Drop',16],['brk','Break',8],['chorus','Drop 2',24],['chorus','Drop 3',16],['brk','Großer Break',8],['chorus','Drop 4',40],['outro','Schluss',12]] },
   stream: { name: 'Streaming-Hit', plan: [['chorus','Hook',4],['verse','Strophe',8],['build','Aufbau',2],['chorus','Refrain',8],['verse','Strophe 2',8],['build','Aufbau',2],['chorus','Refrain',8],['outro','Schluss',2]] },
   standard: { name: 'Standard', plan: [['intro','Intro',8],['verse','Strophe',16],['build','Aufbau',4],['chorus','Refrain',16],['brk','Break',8],['build','Aufbau',4],['chorus','Refrain',16],['outro','Outro',8]] },
   radio: { name: 'Radio-Edit', plan: [['intro','Intro',4],['verse','Strophe',12],['build','Aufbau',4],['chorus','Refrain',12],['brk','Break',4],['build','Aufbau',4],['chorus','Refrain',12],['outro','Outro',4]] },
@@ -3957,5 +3961,22 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     const f = 0.2 + sl.value / 100 * 1.6, B = sl.__base; sl.__base.__v = sl.value;
     K.forEach(k => { if (k in B) setMix(k, Math.max(0, Math.min(1, B[k] * (k === 'vary' ? 0.4 + f * 0.6 : f)))); });
     setMix('pad', Math.max(0, Math.min(0.6, B.pad * (2 - f * 0.8))));
+  });
+})();
+
+/* ---------- v140: Fury-Nachbau (aus Analyse der eigenen Aufnahme) ---------- */
+(function furyRebuild() {
+  const host = document.getElementById('btn-trend'); if (!host || !host.parentNode) return;
+  const b = document.createElement('button'); b.id = 'btn-fury'; b.className = 'play-btn'; b.style.cssText = 'width:100%;margin-top:6px'; b.textContent = '🎼 Fury nachbauen (D-Moll, 122 BPM)';
+  host.parentNode.insertBefore(b, host.nextSibling);
+  b.addEventListener('click', () => {
+    if (st.playing) stop(); undoPoint();
+    setStyle('fury'); st.bpm = 122; $('#bpm-slider').value = 122; $('#bpm-val').textContent = 122;
+    st.scaleIdx = 4; st.scaleLock = true; st.seed = (Math.random() * 4294967295) >>> 0; regen();
+    st.chordA = [0, 0, 0, 0, 0, 0, 0, 0]; st.chordB = [6, 6, 6, 3, 6, 6, 6, 6, 6, 6, 6, 3, 2, 2, 2, 0];
+    setMix('bass', 1); setMix('drums', 0.85); setMix('kick', 1); setMix('lead', 0.55); setMix('pad', 0.3); setMix('hall', 0.25);
+    st.form = 'fury'; $('#song-form').value = 'fury'; setForm('fury');
+    try { renderChords(); renderBeat(); updateStatus(); } catch (e) {}
+    document.getElementById('btn-song').click();
   });
 })();
