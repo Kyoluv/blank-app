@@ -439,6 +439,7 @@ function undo() {
   S.hist = S.hist || []; const cur = snapState(); let s; while ((s = S.hist.pop()) != null && s === cur); if (s == null) { toast('Nichts zum Rückgängigmachen'); return; }
   const o = JSON.parse(s); if (typeof APP !== 'undefined' && APP) APP.setState(o); else setState(o); toast('Rückgängig');
 }
+async function hardReload() { toast('Lädt neu …'); try { if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.unregister(); } if (window.caches) { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } } catch (e) {} location.reload(); }
 
 /* ===== MUSIFY SUITE – gemeinsames Grundgerüst (Audio, Takt, Dock, Sichern) ===== */
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
@@ -612,7 +613,7 @@ function buildItems() {
     ...APP.tools.map(t => ({ tab: 1, kind: 'tool', id: t.id, e: t.e, n: t.n, h: t.h })),
     ...(APP.acts || []).map(a => ({ tab: 1, kind: 'act', id: a.id, e: a.e, n: a.n })),
     { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
     { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
   ];
 }
@@ -635,6 +636,7 @@ function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'undo') undo();
+  else if (a === 'reload') { hardReload(); return; }
   else if (a === 'clear') { pushHist(); APP.clear(); toast('Leer'); }
   else if (a === 'dice') { pushHist(); APP.dice(); toast('Neu gewürfelt in „' + WORLDS[S.world].n + '“'); }
   else if (a === 'morph') { S.morph = (S.morph + 1) % 9; morphMsg(); }
@@ -794,7 +796,7 @@ function mDel(s, ring) {
   MAN.dots = MAN.dots.filter(d => !(d.ring === ring && keys.includes(d.s)));
 }
 const MANDALA = {
-  id: 'mandala', name: 'Musify Mandala', version: 'Mandala 2.0', hue: 300, world: 1, inst: 'shehnai', defaultTool: 'dot',
+  id: 'mandala', name: 'Musify Mandala', version: 'Mandala 2.1', hue: 300, world: 1, inst: 'shehnai', defaultTool: 'dot',
   claim: 'Ein Radar dreht sich. Jeder Punkt ist ein Ton – und alles spiegelt sich.',
   tip: 'Tippen/Ziehen = Punkte · außen hoch, innen tief · Spiegel (Werkzeuge) = 2–8 Kopien',
   tools: [

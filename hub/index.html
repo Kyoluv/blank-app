@@ -30,7 +30,8 @@ function open(id){const a=APPS.find(x=>x.id===id);if(!a){home();return}
  tiles.style.display='none';fr.style.display='block';if(fr.dataset.id!==id){fr.src=a.u;fr.dataset.id=id}
  bar.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p.dataset.id===id));history.replaceState(null,'','#'+id)}
 function home(){fr.style.display='none';fr.src='about:blank';fr.dataset.id='';tiles.style.display='grid';bar.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p.dataset.id==='home'));history.replaceState(null,'','#')}
-const h=document.createElement('button');h.className='pill on';h.id='home';h.dataset.id='home';h.textContent='⌂';h.style.setProperty('--c','#00e5ff');h.onclick=home;bar.appendChild(h);
+const rl=document.createElement('button');rl.className='pill';rl.textContent='🔄';rl.title='Neu laden';rl.onclick=async()=>{try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();const ks=await caches.keys();for(const k of ks)await caches.delete(k)}catch(e){}location.reload()};
+const h=document.createElement('button');h.className='pill on';h.id='home';h.dataset.id='home';h.textContent='⌂';h.style.setProperty('--c','#00e5ff');h.onclick=home;bar.appendChild(h);bar.appendChild(rl);
 tiles.innerHTML='<h1>Musify Hub</h1><p class="s">Tippe eine App an. Die Leiste oben bleibt, damit du jederzeit wechseln kannst.</p>';
 APPS.forEach(a=>{const b=document.createElement('button');b.className='pill';b.dataset.id=a.id;b.textContent=a.e+' '+a.n;b.style.setProperty('--c',a.c);b.onclick=()=>open(a.id);bar.appendChild(b);
  const t=document.createElement('button');t.className='tile';t.style.setProperty('--c',a.c);t.innerHTML='<i>'+a.e+'</i><b>'+a.n+'</b><span>'+a.d+'</span><small>'+a.t+'</small>';t.onclick=()=>open(a.id);tiles.appendChild(t)});

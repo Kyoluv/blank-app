@@ -397,9 +397,10 @@ function undo() {
   S.hist = S.hist || []; const cur = snapState(); let s; while ((s = S.hist.pop()) != null && s === cur); if (s == null) { toast('Nichts zum Rückgängigmachen'); return; }
   const o = JSON.parse(s); if (typeof APP !== 'undefined' && APP) APP.setState(o); else setState(o); toast('Rückgängig');
 }
+async function hardReload() { toast('Lädt neu …'); try { if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.unregister(); } if (window.caches) { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } } catch (e) {} location.reload(); }
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 8.0';
+const VERSION = 'Cosmos 8.1';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -449,7 +450,7 @@ const ITEMS = [
   ...INST.map(i => ({ tab: 0, kind: 'inst', id: i.id, e: i.e, n: i.n })),
   ...Object.keys(TOOLS).map(k => ({ tab: 1, kind: 'tool', id: k, e: TOOLS[k].e, n: TOOLS[k].n })),
   { tab: 1, kind: 'act', id: 'spin', e: '🪐', n: 'Dreher' }, { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
   { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' },
   { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
   { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
@@ -782,6 +783,7 @@ function act(a) {
   else if (a === 'spin') { S.spin = !S.spin; toast(S.spin ? 'Dreher an – neue Saiten kreisen von selbst' : 'Dreher aus'); }
   else if (a === 'gm') gmCycle();
   else if (a === 'undo') undo();
+  else if (a === 'reload') { hardReload(); return; }
   else if (a === 'mic') recordMic();
   else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
   else if (a === 'sauto') { S.sauto = !S.sauto; toast(S.sauto ? 'Szenen-Auto: wechselt alle 8 Takte' : 'Szenen-Auto aus'); return; }
