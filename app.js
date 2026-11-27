@@ -3157,7 +3157,15 @@ function setWorld(id, quiet, off) {
   document.getElementById('jam-new').addEventListener('click', () => { document.getElementById('btn-newhit').click(); });
   setInterval(() => { document.getElementById('jam-bg').textContent = st.playing ? '⏹ Begleitung aus' : '▶ Begleitung'; }, 500);
   // Finger: halten, gleiten
-  const held = new Map(); let pend = null; window.__jam = { held, L, jv, PRE };
+  const held = new Map(); let pend = null; const rem = new Map();
+  window.__jamRemote = {
+    on(key, kind, d, pre) { try { initAudio(); if (ctx.state !== 'running') ctx.resume(); } catch (e) { return; } if (rem.size > 24 || (kind !== 'lead' && kind !== 'bass')) return; let dd = d; if (kind === 'lead') { if (document.getElementById('jam-help').checked) dd = snap(d); else if (pentaOn()) dd = pentaD(d); } const t = grid(ctx.currentTime + 0.02); this.off(key); rem.set(key, startNote(kind, dd, kind === 'lead' ? 1 : -1, t)); },
+    off(key) { const n = rem.get(key); if (n) { rem.delete(key); relNote(n, ctx.currentTime); } },
+    offAll(pfx) { [...rem.keys()].forEach(k => { if (k.startsWith(pfx)) this.off(k); }); },
+    drum(d) { try { initAudio(); } catch (e) { return; } drumHit(d | 0, grid(ctx.currentTime + 0.02)); },
+    chordTones
+  };
+  window.__jam = { held, L, jv, PRE, chordTones };
   const keyOf = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.jam') : null; };
   const eff = b => { const k = b.dataset.k; let d = +b.dataset.d; const oct = k === 'lead' ? 1 : k === 'bass' ? -1 : 0; if (k === 'drum') return [k, d, 0]; if (k === 'lead') { d = snap(d); if (pentaOn() && !document.getElementById('jam-help').checked) d = pentaD(d); else if (pentaOn()) { const x = pentaD(d); if (!chordTones().includes(((d % 7) + 7) % 7)) d = x; } } else if (k === 'bass' && pentaOn()) d = pentaD(d); return [k, d, oct]; };
   const latched = new Map();
@@ -3278,6 +3286,113 @@ function setWorld(id, quiet, off) {
   setInterval(() => { try { if (window.__jam && __jam.L.play && !got.loop && __jam.L.ev.length) award('loop'); if (st.songDone && !c._shown) { c._shown = true; show(); } if (!st.songDone) c._shown = false; } catch (e) {} }, 1500);
   paintBadges(); window.__hit = { scoreSong, award };
 })();
+/* ---------- v116: Band-Modus (Satelliten-Handys) ---------- */
+(function bandMode() {
+  const ROLES = { lead: '🎹 Melodie', drum: '🥁 Drums', bass: '🔊 Bass', dj: '🎛 DJ' }, ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  const esc = t => String(t).replace(/[<>&"]/g, ''), now = () => performance.now();
+  const players = new Map(); let pid = 1, peer = null, hostOn = false, code = '', bc = null;
+  const c = document.createElement('div'); c.className = 'card'; c.id = 'c-band'; c.style.padding = '10px';
+  c.innerHTML = '<div class="label"><span>👥 Band-Modus (Freunde spielen mit)</span></div>'
+    + '<div style="font-size:.72rem;color:var(--muted);line-height:1.4;margin-bottom:6px;">Dein Gerät ist die Bühne und spielt den Ton. Freunde öffnen denselben Link auf ihrem Handy und spielen als <b>Satellit</b> eine Rolle (Melodie, Drums, Bass oder DJ). Töne rasten im Takt ein, damit die Internet-Verzögerung nicht stört. Am besten mit einer Box am Host-Gerät.</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;"><button id="bd-net" class="sunset-btn" style="flex:1;min-width:160px;">🌐 Band eröffnen: Raumcode</button><button id="bd-man" class="oct-btn" style="flex:1;min-width:160px;">📋 Band eröffnen: ohne Dienst</button></div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button id="bd-join" class="oct-btn" style="flex:1;min-width:160px;">📱 Ich bin Satellit (beitreten)</button><button id="bd-stop" class="oct-btn" style="flex:1;min-width:160px;display:none;">⏹ Band beenden</button></div>'
+    + '<div id="bd-info" style="margin-top:8px;font-size:.82rem;line-height:1.5;"></div><div id="bd-man-box"></div><div id="bd-list" style="margin-top:8px;"></div>';
+  const anchor = $('#c-sliders'); anchor.parentNode.insertBefore(c, anchor);
+  const info = t => { document.getElementById('bd-info').innerHTML = t; };
+  // ---- Verbindungs-Hüllen: send(obj), onmessage(obj), onclose()
+  const wrapDC = dc => { const l = { send: o => { try { if (dc.readyState === 'open') dc.send(JSON.stringify(o)); } catch (e) {} }, close: () => { try { dc.close(); } catch (e) {} }, onmessage: null, onclose: null }; dc.onmessage = e => { try { l.onmessage && l.onmessage(JSON.parse(e.data)); } catch (x) {} }; dc.onclose = () => l.onclose && l.onclose(); return l; };
+  const wrapPeer = cn => { const l = { send: o => { try { cn.send(JSON.stringify(o)); } catch (e) {} }, close: () => { try { cn.close(); } catch (e) {} }, onmessage: null, onclose: null }; cn.on('data', d => { try { l.onmessage && l.onmessage(typeof d === 'string' ? JSON.parse(d) : d); } catch (x) {} }); cn.on('close', () => l.onclose && l.onclose()); return l; };
+  const enc = d => btoa(unescape(encodeURIComponent(JSON.stringify({ t: d.type, s: d.sdp })))), dec = t => { const o = JSON.parse(decodeURIComponent(escape(atob(t.trim())))); return { type: o.t, sdp: o.s }; };
+  const gathered = pc => new Promise(r => { if (pc.iceGatheringState === 'complete') return r(); const f = () => { if (pc.iceGatheringState === 'complete') { pc.removeEventListener('icegatheringstatechange', f); r(); } }; pc.addEventListener('icegatheringstatechange', f); setTimeout(r, 5000); });
+  const loadPeer = () => new Promise((res, rej) => { if (window.Peer) return res(); const s = document.createElement('script'); s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'; s.onload = res; s.onerror = () => rej(new Error('nodienst')); document.head.appendChild(s); });
+  // ---- Host
+  function paintList() {
+    const box = document.getElementById('bd-list'); box.innerHTML = ''; if (!players.size) { box.innerHTML = hostOn ? '<div style="font-size:.78rem;color:var(--muted);">Noch niemand verbunden.</div>' : ''; return; }
+    players.forEach((p, id) => { const d = document.createElement('div'); d.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px;'; d.innerHTML = '<span style="flex:1;">' + esc(p.name) + ' · ' + (ROLES[p.role] || 'wählt Rolle …') + '</span>'; const m = document.createElement('button'); m.className = 'oct-btn' + (p.mute ? ' active' : ''); m.textContent = p.mute ? '🔇 stumm' : '🔊 an'; m.addEventListener('click', () => { p.mute = !p.mute; if (p.mute) window.__jamRemote.offAll(id + ':'); paintList(); }); const k = document.createElement('button'); k.className = 'oct-btn'; k.textContent = '✕'; k.addEventListener('click', () => { try { p.link.close(); } catch (e) {} drop(id); }); d.appendChild(m); d.appendChild(k); box.appendChild(d); });
+  }
+  function drop(id) { if (!players.has(id)) return; players.delete(id); try { window.__jamRemote.offAll(id + ':'); } catch (e) {} paintList(); }
+  function addPlayer(link) {
+    if (players.size >= 4) { try { link.send({ t: 'full' }); link.close(); } catch (e) {} return; }
+    const id = pid++, p = { name: 'Gast ' + id, role: null, mute: false, link }; players.set(id, p);
+    link.onmessage = m => handle(id, p, m); link.onclose = () => drop(id); link.send({ t: 'welcome' }); paintList();
+  }
+  const num = (v, a, b) => Math.max(a, Math.min(b, Math.round(+v) || 0));
+  function handle(id, p, m) {
+    if (!m || typeof m !== 'object') return; const R = window.__jamRemote;
+    if (m.t === 'hello') { p.name = esc(m.name || p.name).slice(0, 14) || p.name; p.role = ROLES[m.role] ? m.role : null; paintList(); return; }
+    if (p.mute) return;
+    if (m.t === 'on' && (m.k === 'lead' || m.k === 'bass')) R.on(id + ':' + num(m.i, 0, 99), m.k, num(m.d, -3, 14));
+    else if (m.t === 'off') R.off(id + ':' + num(m.i, 0, 99));
+    else if (m.t === 'drum') R.drum(num(m.d, 0, 3));
+    else if (m.t === 'dj' && ctx && chain) { const T = ctx.currentTime;
+      if (m.k === 'cut') { if (m.v == null) chain.filt.frequency.setTargetAtTime(st.songMode ? baseCut(st) : (st.chill ? 700 : baseCut(st)), T, 0.15); else chain.filt.frequency.setTargetAtTime(200 * Math.pow(90, Math.max(0, Math.min(1, +m.v || 0))), T, 0.05); }
+      else if (m.k === 'echo') { if (m.v == null) applyChainSettings(); else chain.wet.gain.setTargetAtTime(Math.max(0, Math.min(0.85, +m.v || 0)), T, 0.05); }
+      else if (m.k === 'riser') V.riser(ctx, chain.fx, T + 0.02, 3);
+      else if (m.k === 'crash') V.crash(ctx, chain.fx, T + 0.02);
+      else if (m.k === 'drop') { V.crash(ctx, chain.fx, T + 0.02); V.kick(ctx, chain.dk.kick, T + 0.02, 1.1); } }
+  }
+  setInterval(() => { if (!players.size) return; try { const bt = ctx && st.playing ? ((ctx.currentTime - songT0) / (60 / st.bpm)) : 0, o = { t: 'st', p: st.playing ? 1 : 0, bpm: Math.round(st.bpm), ph: bt - Math.floor(bt), ct: window.__jam ? __jam.chordTones() : [0, 2, 4] }; players.forEach(p => p.link.send(o)); } catch (e) {} }, 300);
+  function startHost(kind) { try { initAudio(); } catch (e) {} hostOn = true; document.getElementById('bd-stop').style.display = ''; return true; }
+  function stopHost() { hostOn = false; players.forEach(p => { try { p.link.close(); } catch (e) {} }); [...players.keys()].forEach(drop); try { peer && peer.destroy(); } catch (e) {} peer = null; document.getElementById('bd-man-box').innerHTML = ''; document.getElementById('bd-stop').style.display = 'none'; info('Band beendet.'); paintList(); }
+  document.getElementById('bd-stop').addEventListener('click', stopHost);
+  document.getElementById('bd-net').addEventListener('click', async () => {
+    startHost(); info('⏳ Verbinde mit dem Vermittler-Dienst …'); try { await loadPeer(); } catch (e) { hostOn = false; document.getElementById('bd-stop').style.display = 'none'; info('❌ Der Vermittler-Dienst ist nicht erreichbar. Das passiert im Artefakt-Fenster und ohne Internet. Öffne die App über den GitHub-Link oder nimm „ohne Dienst".'); return; }
+    code = Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join(''); try { peer && peer.destroy(); } catch (e) {} peer = new Peer('musify-' + code, { config: ICE });
+    peer.on('open', () => { const url = location.href.split('#')[0] + '#band=' + code; info('✅ Band offen! Raumcode: <b style="font-size:1.4rem;letter-spacing:3px;">' + code.toUpperCase() + '</b><br>Freunde öffnen den Link auf dem Handy: <span style="word-break:break-all;">' + url + '</span><br><button id="bd-copy" class="oct-btn" style="margin-top:6px;">📋 Link kopieren / teilen</button>'); document.getElementById('bd-copy').addEventListener('click', () => { try { if (navigator.share) navigator.share({ title: 'Musify Band', text: 'Spiel mit mir Musik!', url }); else navigator.clipboard.writeText(url); } catch (e) { try { navigator.clipboard.writeText(url); } catch (x) {} } }); });
+    peer.on('connection', cn => cn.on('open', () => addPlayer(wrapPeer(cn)))); peer.on('error', e => info('❌ Fehler beim Verbinden: ' + esc(e.type || e.message || e)));
+  });
+  document.getElementById('bd-man').addEventListener('click', () => { startHost(); info('📋 <b>Ohne Dienst:</b> Tippe „Freund hinzufügen", schicke den Code (z. B. per WhatsApp) an deinen Freund. Er fügt ihn bei „Ich bin Satellit" ein und schickt dir seinen Antwort-Code zurück.<br><button id="bd-add" class="oct-btn" style="margin-top:6px;">➕ Freund hinzufügen</button>'); document.getElementById('bd-add').addEventListener('click', addManual); });
+  async function addManual() {
+    const box = document.getElementById('bd-man-box'), w = document.createElement('div'); w.style.cssText = 'border:1px solid #333a50;border-radius:10px;padding:8px;margin-top:8px;font-size:.78rem;';
+    w.innerHTML = '<div>⏳ Code wird erstellt …</div>'; box.appendChild(w); const pc = new RTCPeerConnection(ICE), dc = pc.createDataChannel('band'); dc.onopen = () => { w.remove(); addPlayer(wrapDC(dc)); };
+    await pc.setLocalDescription(await pc.createOffer()); await gathered(pc);
+    w.innerHTML = '<div><b>1.</b> Diesen Code an deinen Freund schicken:</div><textarea readonly rows="3" style="width:100%;font-size:.7rem;"></textarea><button class="oct-btn cp">📋 Kopieren</button><div style="margin-top:6px;"><b>2.</b> Seinen Antwort-Code hier einfügen:</div><textarea rows="3" class="ans" style="width:100%;font-size:.7rem;"></textarea><button class="oct-btn go">🔗 Verbinden</button><div class="mm"></div>';
+    const ta = w.querySelector('textarea'); ta.value = enc(pc.localDescription); w.querySelector('.cp').addEventListener('click', () => { ta.select(); try { navigator.clipboard.writeText(ta.value); } catch (e) {} });
+    w.querySelector('.go').addEventListener('click', async () => { try { await pc.setRemoteDescription(dec(w.querySelector('.ans').value)); w.querySelector('.mm').textContent = '⏳ Verbinde …'; } catch (e) { w.querySelector('.mm').textContent = '❌ Der Code ist ungültig.'; } });
+  }
+  window.__band = { players, addPlayer, handle };
+  // ---- Satellit
+  let sat = null;
+  function openSat(prefill) {
+    if (sat) return; const o = document.createElement('div'); sat = o; o.style.cssText = 'position:fixed;inset:0;z-index:100000;background:var(--bg,#0b0e17);color:var(--text,#fff);overflow:auto;padding:14px;font-family:inherit;';
+    o.innerHTML = '<div style="max-width:700px;margin:0 auto;"><div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:1.1rem;">📱 Musify Satellit</b><button id="sa-x" class="oct-btn">✕ Schließen</button></div>'
+      + '<div id="sa-conn"><div style="font-size:.8rem;color:var(--muted);margin:8px 0;">Dein Name: <input id="sa-name" maxlength="14" value="' + esc(lsGet('musify-sname') || 'Freund') + '" style="padding:8px;border-radius:8px;width:150px;"></div>'
+      + '<div style="margin:8px 0;"><b>A) Mit Raumcode:</b><br><input id="sa-code" maxlength="6" placeholder="Raumcode" value="' + esc(prefill || '') + '" style="padding:12px;font-size:1.2rem;letter-spacing:3px;width:150px;text-transform:uppercase;border-radius:8px;"> <button id="sa-go" class="sunset-btn">Beitreten</button></div>'
+      + '<div style="margin:12px 0;"><b>B) Ohne Dienst:</b> Code vom Host hier einfügen<br><textarea id="sa-off" rows="3" style="width:100%;font-size:.7rem;"></textarea><button id="sa-ans" class="oct-btn">Antwort-Code erzeugen</button><div id="sa-ansbox" style="margin-top:6px;"></div></div><div id="sa-msg" style="font-size:.85rem;"></div></div>'
+      + '<div id="sa-play" style="display:none;"></div></div>';
+    document.body.appendChild(o); const $s = id => o.querySelector('#' + id), msg = t => { $s('sa-msg').innerHTML = t; };
+    $s('sa-x').addEventListener('click', () => { try { sat.link && sat.link.close(); } catch (e) {} o.remove(); sat = null; });
+    $s('sa-go').addEventListener('click', async () => { const cd = $s('sa-code').value.trim().toLowerCase(); if (cd.length < 4) { msg('Bitte den Raumcode eingeben.'); return; } lsSet('musify-sname', $s('sa-name').value); msg('⏳ Verbinde …'); try { await loadPeer(); } catch (e) { msg('❌ Der Vermittler-Dienst ist nicht erreichbar. Probiere „B) Ohne Dienst".'); return; }
+      const pr = new Peer(undefined, { config: ICE }); pr.on('error', e => msg('❌ Raum nicht gefunden oder Fehler (' + esc(e.type || '') + ').')); pr.on('open', () => { const cn = pr.connect('musify-' + cd, { reliable: true }); cn.on('open', () => session(wrapPeer(cn))); }); });
+    $s('sa-ans').addEventListener('click', async () => { lsSet('musify-sname', $s('sa-name').value); try { const pc = new RTCPeerConnection(ICE); pc.ondatachannel = e => { const dc = e.channel; dc.onopen = () => session(wrapDC(dc)); }; await pc.setRemoteDescription(dec($s('sa-off').value)); await pc.setLocalDescription(await pc.createAnswer()); msg('⏳ Antwort wird erstellt …'); await gathered(pc);
+      $s('sa-ansbox').innerHTML = '<div>Diesen Code an den Host zurückschicken, dann warten:</div><textarea readonly rows="3" style="width:100%;font-size:.7rem;"></textarea><button class="oct-btn" id="sa-cp">📋 Kopieren</button>'; const ta = $s('sa-ansbox').querySelector('textarea'); ta.value = enc(pc.localDescription); $s('sa-cp').addEventListener('click', () => { ta.select(); try { navigator.clipboard.writeText(ta.value); } catch (e) {} }); msg('Warte, bis der Host „Verbinden" tippt …'); } catch (e) { msg('❌ Der Code ist ungültig.'); } });
+    function session(link) {
+      sat.link = link; $s('sa-conn').style.display = 'none'; const pl = $s('sa-play'); pl.style.display = 'block'; let role = lsGet('musify-srole') || 'lead', ct = [0, 2, 4], ph = 0, phT = now(), bpm = 120, playing = 0; const name = $s('sa-name').value || 'Freund';
+      const send = m => link.send(m), hello = () => send({ t: 'hello', name, role });
+      pl.innerHTML = '<div id="sa-st" style="font-size:.8rem;color:var(--muted);margin:6px 0;">✅ Verbunden</div><div id="sa-roles" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div><div id="sa-pulse" style="height:8px;border-radius:4px;background:#333a50;margin-bottom:10px;"></div><div id="sa-pad" style="touch-action:none;user-select:none;-webkit-user-select:none;"></div>';
+      const pad = pl.querySelector('#sa-pad'), rl = pl.querySelector('#sa-roles'), stl = pl.querySelector('#sa-st');
+      const btn = (txt, col, on, off) => { const b = document.createElement('button'); b.className = 'oct-btn'; b.textContent = txt; b.style.cssText = 'padding:22px 0;font-size:1.1rem;font-weight:700;border-width:2px;border-color:' + col + ';touch-action:none;'; let down = false; b.addEventListener('pointerdown', e => { e.preventDefault(); down = true; try { b.setPointerCapture(e.pointerId); } catch (x) {} b.style.background = 'rgba(124,92,255,.35)'; if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {} on(e.pointerId); }); const up = e => { if (!down) return; down = false; b.style.background = ''; off && off(e.pointerId); }; b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); return b; };
+      const NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+      function build() { pad.innerHTML = ''; send({ t: 'hello', name, role }); rl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.r === role));
+        const grid = (n, cols) => { const g = document.createElement('div'); g.style.cssText = 'display:grid;gap:8px;margin-bottom:8px;grid-template-columns:repeat(' + cols + ',1fr);'; pad.appendChild(g); return g; };
+        if (role === 'lead' || role === 'bass') { const rows = role === 'lead' ? [['mittel', 7], ['tief', 0]] : [['Bass', 0]]; rows.forEach(([lb, base]) => { const g = grid(0, 7); for (let i = 0; i < 7; i++) { const d = base + i, b = btn(String.fromCharCode(0x2022) + (i + 1), role === 'lead' ? '#18d4ff' : '#ff7a45', pid2 => send({ t: 'on', i: pid2 % 100, k: role, d }), pid2 => send({ t: 'off', i: pid2 % 100 })); b.dataset.deg = i; b.textContent = lb + ' ' + (i + 1); b.style.fontSize = '.85rem'; g.appendChild(b); } }); }
+        else if (role === 'drum') { const g = grid(0, 2); ['🥁 Kick', '🪘 Snare', '🎩 Hi-Hat', '👏 Clap'].forEach((t, d) => { const b = btn(t, '#ffd54a', () => send({ t: 'drum', d })); b.style.padding = '48px 0'; b.style.fontSize = '1.3rem'; g.appendChild(b); }); }
+        else if (role === 'dj') { const mk = (lb, k) => { const w = document.createElement('div'); w.style.cssText = 'margin-bottom:10px;'; w.innerHTML = '<div style="font-size:.85rem;margin-bottom:4px;">' + lb + '</div>'; const z = document.createElement('div'); z.style.cssText = 'height:90px;border-radius:12px;background:linear-gradient(90deg,#1d2236,#7c5cff);touch-action:none;position:relative;'; const dot = document.createElement('div'); dot.style.cssText = 'position:absolute;top:0;bottom:0;width:6px;background:#fff;left:0;display:none;'; z.appendChild(dot); let last = 0, act = false; const mv = e => { const r = z.getBoundingClientRect(), v = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); dot.style.left = (v * 100) + '%'; if (now() - last > 60) { last = now(); send({ t: 'dj', k, v }); } };
+          z.addEventListener('pointerdown', e => { e.preventDefault(); act = true; try { z.setPointerCapture(e.pointerId); } catch (x) {} dot.style.display = 'block'; mv(e); }); z.addEventListener('pointermove', e => { if (act) mv(e); }); const end = () => { if (!act) return; act = false; dot.style.display = 'none'; send({ t: 'dj', k, v: null }); }; z.addEventListener('pointerup', end); z.addEventListener('pointercancel', end); w.appendChild(z); pad.appendChild(w); };
+          mk('🎚 Filter (wischen: links dumpf, rechts hell)', 'cut'); mk('🔊 Echo / Hall (wischen: mehr Echo)', 'echo'); const g = grid(0, 3); [['🚀 Riser', 'riser'], ['💥 Crash', 'crash'], ['⬇ Drop', 'drop']].forEach(([t, k]) => { const b = btn(t, '#ff4d6d', () => send({ t: 'dj', k })); g.appendChild(b); }); }
+        mark(); }
+      function mark() { pad.querySelectorAll('[data-deg]').forEach(b => { const g = ct.includes(+b.dataset.deg % 7); b.style.boxShadow = g ? '0 0 0 2px #3ddc84 inset' : ''; }); }
+      Object.keys(ROLES).forEach(r => { const b = document.createElement('button'); b.className = 'oct-btn'; b.textContent = ROLES[r]; b.dataset.r = r; b.addEventListener('click', () => { role = r; lsSet('musify-srole', r); build(); }); rl.appendChild(b); });
+      link.onmessage = m => { if (m.t === 'st') { ct = m.ct || ct; bpm = m.bpm || bpm; ph = m.ph || 0; phT = now(); playing = m.p; stl.textContent = '✅ Verbunden · ' + bpm + ' BPM · ' + (playing ? '▶ Song läuft' : '⏸ Der Host hat noch nicht gestartet'); mark(); } else if (m.t === 'full') stl.textContent = '❌ Die Band ist voll (max. 4 Satelliten).'; };
+      link.onclose = () => { stl.textContent = '❌ Verbindung getrennt. Schließe und tritt neu bei.'; };
+      (function pulse() { if (!sat) return; const bt = (ph + (now() - phT) / 1000 / (60 / bpm)) % 1; pl.querySelector('#sa-pulse').style.background = playing && bt < 0.18 ? '#18d4ff' : '#333a50'; requestAnimationFrame(pulse); })();
+      build();
+    }
+  }
+  document.getElementById('bd-join').addEventListener('click', () => openSat(''));
+  const mh = /#band=([a-z0-9]{4,8})/i.exec(location.hash); if (mh) setTimeout(() => openSat(mh[1]), 400);
+})();
+
 
 
 
