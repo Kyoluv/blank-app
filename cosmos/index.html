@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 1';
+const VERSION = 'Cosmos 2';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
   { n: 'Schlager-Techno', sc: 1, bpm: 130, pad: 'akkordeon', bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'] },
@@ -438,7 +438,6 @@ function runStep(s, t) {
     if (s % 4 === 2) V.hat(ctx, bus.d, t, 0.32, true); else if (s % 2 === 1) V.hat(ctx, bus.d, t, 0.1, false);
     if (s === 4 || s === 12) V.snare(ctx, bus.d, t, 0.45, true);
     if (s % 4 === 2) V.bass(ctx, bus.b, t, noteF(root, -1), dur * 2, w.bass, 0.5, 0.6);
-    if (s === 0 && bar % 2 === 0) { const tr = [root, root + 2, root + 4].map(d => noteF(d, 0)); V.padK(ctx, bus.p, t, tr, dur * 32 * 0.97, 0.12, 2600, w.pad); }
   }
   if (s % 4 === 0) S.beatFlash = 1;
   let n = 0; const q = S.pending; S.pending = [];
