@@ -822,16 +822,18 @@ const stP = len => { const r = len / (Math.min(W, playH()) * 0.5); return r < 0.
 const stDeg = y => clamp(Math.round(13 * (1 - y / playH())), 0, 13);
 const stAng = r => r.a0 + r.dir * 2 * Math.PI * (S.stepF - r.off) / r.P;
 const nrm = a => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-function stAddRod(x, y, len, a0, dir) { if (ST.rods.length >= 6) ST.rods.shift(); ST.rods.push({ x, y, len, a0, dir: dir || 1, P: stP(len), off: S.stepF, pa: a0, fl: 0 }); }
+function stAddRod(x, y, len, a0, dir, back) { if (ST.rods.length >= 6) ST.rods.shift(); ST.rods.push({ x, y, len, back: back || 0, a0, dir: dir || 1, P: stP(Math.max(len, back || 0)), off: S.stepF, pa: a0, fl: 0 }); }
 function stAddPt(x, y, inst) { if (ST.pts.length >= 24) ST.pts.shift(); ST.pts.push({ x, y, inst, deg: stDeg(y), fl: 0, cd: 0 }); }
-function stNearRod(x, y) { let b = null, bd = 36; ST.rods.forEach(r => { const a = stAng(r), ex = Math.cos(a) * r.len, ey = Math.sin(a) * r.len, u = clamp(((x - r.x) * ex + (y - r.y) * ey) / (r.len * r.len), 0, 1), d = Math.hypot(x - (r.x + ex * u), y - (r.y + ey * u)); if (d < bd) { bd = d; b = r; } }); return b; }
+function stNearRod(x, y) { let b = null, bd = 36; ST.rods.forEach(r => { const a = stAng(r), c = Math.cos(a), sn = Math.sin(a), u = clamp((x - r.x) * c + (y - r.y) * sn, -r.back, r.len), d = Math.hypot(x - (r.x + c * u), y - (r.y + sn * u)); if (d < bd) { bd = d; b = r; } }); return b; }
 function stNearPt(x, y) { return ST.pts.find(p => Math.hypot(p.x - x, p.y - y) < 22); }
 const STAEBE = {
-  id: 'staebe', name: 'Musify Stäbe', version: 'Stäbe 1.1', hue: 270, world: 0, inst: 'oud', defaultTool: 'stab',
+  id: 'staebe', name: 'Musify Stäbe', version: 'Stäbe 1.2', hue: 270, world: 0, inst: 'oud', defaultTool: 'stab',
   claim: 'Stäbe drehen sich. Wo sie über einen Punkt streichen, klingt er.',
-  tip: 'Stab: vom Drehpunkt ziehen (kurz = schnell) · Punkt: tippen · Tempo-Werkzeug: Stab hoch/runter ziehen',
+  tip: 'Stab: vom Drehpunkt ziehen (kurz = schnell) · Punkt: tippen · Propeller = Stab dreht um die Mitte',
   tools: [
     { id: 'stab', e: '🪃', n: 'Stab', h: 270, hint: 'Stab – zieh vom Drehpunkt nach außen, kurze Stäbe drehen schneller' },
+    { id: 'prop', e: '🌀', n: 'Propeller', h: 300, hint: 'Propeller – zieh vom Mittelpunkt nach außen, der Stab dreht sich um seine Mitte' },
+    { id: 'pivot', e: '📍', n: 'Drehpunkt', h: 20, hint: 'Drehpunkt – zieh entlang eines Stabs, um den Drehpunkt zu verschieben' },
     { id: 'punkt', e: '🔵', n: 'Punkt', h: 200, hint: 'Punkt – tippe, der Stab spielt ihn beim Vorbeistreichen' },
     { id: 'tempo', e: '⏱', n: 'Tempo', h: 55, hint: 'Tempo – zieh einen Stab nach oben (schneller) oder unten (langsamer)' },
     { id: 'flip', e: '↔️', n: 'Richtung', h: 150, hint: 'Richtung – tippe einen Stab, er dreht dann andersherum' },
@@ -843,33 +845,43 @@ const STAEBE = {
   down(x, y) {
     ST.d0 = [x, y]; ST.cur = [x, y]; const t = S.tool;
     if (t === 'erase') { const r = stNearRod(x, y), p = stNearPt(x, y); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); else if (r) ST.rods.splice(ST.rods.indexOf(r), 1); }
+    else if (t === 'pivot') { const r = stNearRod(x, y); if (r) ST.pv = r; else toast('Tippe auf einen Stab und zieh entlang'); }
     else if (t === 'tempo') { const r = stNearRod(x, y); if (r) ST.grab = { r, y0: y, P0: r.P }; else toast('Tippe auf einen Stab und zieh hoch oder runter'); }
     else if (t === 'flip') { const r = stNearRod(x, y); if (r) { const a = stAng(r); r.dir = -r.dir; r.a0 = a; r.off = S.stepF; r.pa = a; } }
   },
-  move(x, y) { ST.cur = [x, y]; if (ST.grab) stSetP(ST.grab.r, ST.grab.P0 * Math.pow(2, (y - ST.grab.y0) / 110)); if (S.tool === 'erase') { const p = stNearPt(x, y); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); } },
+  move(x, y) { ST.cur = [x, y]; if (ST.pv) { const r = ST.pv, a = stAng(r), c = Math.cos(a), sn = Math.sin(a), u = clamp((x - r.x) * c + (y - r.y) * sn, -r.back, r.len - 24); r.x += c * u; r.y += sn * u; r.len -= u; r.back += u; } if (ST.grab) stSetP(ST.grab.r, ST.grab.P0 * Math.pow(2, (y - ST.grab.y0) / 110)); if (S.tool === 'erase') { const p = stNearPt(x, y); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); } },
   up(x, y) {
-    const t = S.tool, d = ST.d0; ST.grab = null; if (!d) return;
+    const t = S.tool, d = ST.d0; ST.grab = null; ST.pv = null; if (!d) return;
     if (t === 'stab') { const L = Math.hypot(x - d[0], y - d[1]); if (L < 36) toast('Zu kurz – zieh vom Drehpunkt nach außen'); else stAddRod(d[0], d[1], Math.min(L, Math.min(W, playH()) * 0.7), Math.atan2(y - d[1], x - d[0]), 1); }
     else if (t === 'punkt') { const p = stNearPt(d[0], d[1]); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); else stAddPt(d[0], d[1], S.inst); }
+    else if (t === 'prop') { const L = Math.hypot(x - d[0], y - d[1]); if (L < 36) toast('Zu kurz – zieh vom Mittelpunkt nach außen'); else { const l = Math.min(L, Math.min(W, playH()) * 0.45); stAddRod(d[0], d[1], l, Math.atan2(y - d[1], x - d[0]), 1, l); } }
     ST.d0 = null; ST.cur = null;
   },
   update(dt) {
-    ST.pts.forEach(p => { p.fl *= 0.9; p.cd -= dt; }); ST.rods.forEach(r => { r.fl *= 0.92; const a = stAng(r), s = nrm(r.dir * (a - r.pa)); if (s > 0 && s < 1.5) ST.pts.forEach(p => {
-      const dx = p.x - r.x, dy = p.y - r.y, dist = Math.hypot(dx, dy); if (dist < 10 || dist > r.len + 10 || p.cd > 0) return; const d = nrm(r.dir * (Math.atan2(dy, dx) - r.pa)); if (d <= s) { p.cd = 0.08; p.fl = 1; r.fl = 1; qnote(p.inst, p.deg, 0.55 + 0.45 * (dist / r.len > 1 ? 1 : dist / r.len)); } }); r.pa = a; });
+    ST.pts.forEach(p => { p.fl *= 0.9; p.cd -= dt; });
+    ST.rods.forEach(r => {
+      r.fl *= 0.92; const a = stAng(r), s = nrm(r.dir * (a - r.pa));
+      if (s > 0 && s < 1.5) ST.pts.forEach(p => {
+        if (p.cd > 0) return; const dx = p.x - r.x, dy = p.y - r.y, dist = Math.hypot(dx, dy); if (dist < 10) return; const th = Math.atan2(dy, dx);
+        let L = 0; if (dist <= r.len + 10 && nrm(r.dir * (th - r.pa)) <= s) L = r.len; else if (r.back > 12 && dist <= r.back + 10 && nrm(r.dir * (th - Math.PI - r.pa)) <= s) L = r.back;
+        if (L) { p.cd = 0.08; p.fl = 1; r.fl = 1; qnote(p.inst, p.deg, 0.55 + 0.45 * Math.min(1, dist / L)); }
+      });
+      r.pa = a;
+    });
   },
   draw(dt, ph) {
-    ST.rods.forEach(r => { const a = stAng(r), ex = r.x + Math.cos(a) * r.len, ey = r.y + Math.sin(a) * r.len; g.strokeStyle = hsl(270, 20, 50, 0.18); g.lineWidth = 1; g.beginPath(); g.arc(r.x, r.y, r.len, 0, 7); g.stroke();
-      g.strokeStyle = hsl(270, 90, 62 + 22 * r.fl, 0.95); g.lineWidth = 5 + 3 * r.fl; g.lineCap = 'round'; g.shadowColor = hsl(270, 100, 65); g.shadowBlur = 8 + 18 * r.fl; g.beginPath(); g.moveTo(r.x, r.y); g.lineTo(ex, ey); g.stroke(); g.shadowBlur = 0;
+    ST.rods.forEach(r => { const a = stAng(r), ex = r.x + Math.cos(a) * r.len, ey = r.y + Math.sin(a) * r.len, bx = r.x - Math.cos(a) * r.back, by = r.y - Math.sin(a) * r.back; g.strokeStyle = hsl(270, 20, 50, 0.18); g.lineWidth = 1; g.beginPath(); g.arc(r.x, r.y, r.len, 0, 7); g.stroke(); if (r.back > 12) { g.beginPath(); g.arc(r.x, r.y, r.back, 0, 7); g.stroke(); }
+      g.strokeStyle = hsl(270, 90, 62 + 22 * r.fl, 0.95); g.lineWidth = 5 + 3 * r.fl; g.lineCap = 'round'; g.shadowColor = hsl(270, 100, 65); g.shadowBlur = 8 + 18 * r.fl; g.beginPath(); g.moveTo(bx, by); g.lineTo(ex, ey); g.stroke(); g.shadowBlur = 0; if (r.back > 12) { g.fillStyle = hsl(270, 95, 75); g.beginPath(); g.arc(bx, by, 6, 0, 7); g.fill(); }
       g.fillStyle = '#fff'; g.beginPath(); g.arc(r.x, r.y, 7, 0, 7); g.fill(); g.fillStyle = hsl(270, 95, 75); g.beginPath(); g.arc(ex, ey, 6, 0, 7); g.fill(); g.fillStyle = '#9aa5bb'; g.font = '700 11px system-ui'; g.textAlign = 'center'; g.fillText((r.dir > 0 ? '↻ ' : '↺ ') + Math.round(r.P * 10) / 10, r.x, r.y - 14); });
     ST.pts.forEach(p => { const I = IM[p.inst], r = 12 + 10 * p.fl; const gg = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 1.8); gg.addColorStop(0, '#fff'); gg.addColorStop(0.4, hsl(I.h, 95, 62)); gg.addColorStop(1, hsl(I.h, 95, 55, 0)); g.fillStyle = gg; g.beginPath(); g.arc(p.x, p.y, r * 1.8, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = '13px system-ui'; g.textAlign = 'center'; g.fillText(I.e, p.x, p.y + 4.5); });
     if (S.tool === 'stab' && ST.d0 && ST.cur) { g.strokeStyle = 'rgba(255,255,255,0.7)'; g.setLineDash([6, 6]); g.lineWidth = 3; g.beginPath(); g.moveTo(ST.d0[0], ST.d0[1]); g.lineTo(ST.cur[0], ST.cur[1]); g.stroke(); g.setLineDash([]); }
   },
-  getState() { const ph = playH(), m = Math.min(W, ph); return { r: ST.rods.map(r => [r.x / W, r.y / ph, r.len / m, r3(nrm(stAng(r))), r.dir, r3(r.P)]).map(a => a.map(v => typeof v === 'number' ? r3(v) : v)), p: ST.pts.map(p => [r3(p.x / W), r3(p.y / ph), p.inst]) }; },
-  setState(d) { const ph = playH(), m = Math.min(W, ph); ST.rods = []; (d.r || []).forEach(a => { ST.rods.push({ x: a[0] * W, y: a[1] * ph, len: a[2] * m, a0: a[3], dir: a[4] || 1, P: a[5] || stP(a[2] * m), off: S.stepF || 0, pa: a[3], fl: 0 }); }); ST.pts = []; (d.p || []).filter(a => IM[a[2]]).forEach(a => stAddPt(a[0] * W, a[1] * ph, a[2])); },
+  getState() { const ph = playH(), m = Math.min(W, ph); return { r: ST.rods.map(r => [r.x / W, r.y / ph, r.len / m, r3(nrm(stAng(r))), r.dir, r3(r.P), r.back / m]).map(a => a.map(v => typeof v === 'number' ? r3(v) : v)), p: ST.pts.map(p => [r3(p.x / W), r3(p.y / ph), p.inst]) }; },
+  setState(d) { const ph = playH(), m = Math.min(W, ph); ST.rods = []; (d.r || []).forEach(a => { ST.rods.push({ x: a[0] * W, y: a[1] * ph, back: (a[6] || 0) * m, len: a[2] * m, a0: a[3], dir: a[4] || 1, P: a[5] || stP(a[2] * m), off: S.stepF || 0, pa: a[3], fl: 0 }); }); ST.pts = []; (d.p || []).filter(a => IM[a[2]]).forEach(a => stAddPt(a[0] * W, a[1] * ph, a[2])); },
   clear() { ST.rods = []; ST.pts = []; },
   dice() {
     ST.rods = []; ST.pts = []; const w = WORLDS[S.world], ph = playH(), m = Math.min(W, ph);
-    [[0.3, 0.45, 0.22], [0.7, 0.45, 0.3], [0.5, 0.6, 0.14]].forEach(([fx, fy, fl], i) => stAddRod(fx * W, fy * ph, fl * m * 2, rnd(0, 6.28), i === 1 ? -1 : 1));
+    [[0.3, 0.45, 0.22], [0.7, 0.45, 0.3], [0.5, 0.6, 0.14]].forEach(([fx, fy, fl], i) => stAddRod(fx * W, fy * ph, fl * m * 2, rnd(0, 6.28), i === 1 ? -1 : 1, i === 1 ? fl * m * 2 : 0));
     const I = [...w.leads, ...w.leads, w.bass === 'tuba' ? 'tuba' : 'bass', pick(['tabla', 'dhol']), 'hat', 'snare', 'kick'];
     I.forEach(inst => { const r = pick(ST.rods), a = rnd(0, 6.28), d = rnd(0.35, 1) * r.len; stAddPt(clamp(r.x + Math.cos(a) * d, 20, W - 20), clamp(r.y + Math.sin(a) * d, 20, ph - 20), inst); });
   },
