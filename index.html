@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 111</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 112</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -1161,6 +1161,59 @@ function playTrack(ctx, ch, k, tr, s, tt, dur, nf, chordDeg) {
   } else if (k === 'tuba' || k === 'bone') V.horn(ctx, ch[k], tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.95, tr.type, 0.08);
   else V.horn(ctx, ch.horn, tt, nf(chordDeg + nn, tr.oct), dur * tr.len * 0.95, tr.type, 0.12);
 }
+/* ---------- v112: Akkord-Klangvielfalt je Stil ---------- */
+const CHST = {
+  dance: { t: 'add9', v: 'open', pad: 'strings', comp: 'off', stab: 'pluck' }, techno: { t: 'p5', v: 'open', pad: 'warm', comp: 'pluck', stab: 'saw' }, berlin: { t: 'sus2', v: 'open', pad: 'glass', comp: 'hold', stab: 'organ' },
+  western: { t: 'p5', v: 'open', pad: 'warm', comp: 'strum', stab: 'gtr' }, summer: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, phonk: { t: 'sus4', v: 'open', pad: 'choir', comp: 'hold', stab: 'bell' },
+  tw20: { t: 'sev', v: 'drop2', pad: 'organ', comp: 'charl', stab: 'brass' }, sw30: { t: 'sev', v: 'drop2', pad: 'strings', comp: 'charl', stab: 'brass' }, big40: { t: 'sev', v: 'drop2', pad: 'brass', comp: 'off', stab: 'brass' },
+  rock50: { t: 'tri', v: 'tri', pad: 'organ', comp: 'pluck', stab: 'gtr' }, s60: { t: 'tri', v: 'tri', pad: 'organ', comp: 'pluck', stab: 'gtr' }, disco70: { t: 'sev', v: 'open', pad: 'strings', comp: 'off', stab: 'epiano' },
+  synth80: { t: 'sev', v: 'open', pad: 'supersaw', comp: 'pluck', stab: 'saw' }, euro90: { t: 'tri', v: 'tri', pad: 'supersaw', comp: 'pluck', stab: 'saw' }, y2000: { t: 'sev', v: 'open', pad: 'glass', comp: 'off', stab: 'pluck' },
+  y2010: { t: 'add9', v: 'tri', pad: 'supersaw', comp: 'off', stab: 'saw' }, y2020: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, trap: { t: 'sus2', v: 'open', pad: 'glass', comp: 'hold', stab: 'bell' },
+  reggaeton: { t: 'tri', v: 'tri', pad: 'warm', comp: 'off', stab: 'pluck' }, afro: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, dnb: { t: 'sev', v: 'open', pad: 'strings', comp: 'hold', stab: 'pluck' },
+  lofi: { t: 'cl', v: 'drop2', pad: 'epiano', comp: 'pluck', stab: 'epiano' }, schlager: { t: 'tri', v: 'tri', pad: 'strings', comp: 'pluck', stab: 'brass' }
+};
+const CHT = { tri: [0, 2, 4], sev: [0, 2, 4, 6], add9: [0, 2, 4, 8], sus2: [0, 1, 4], sus4: [0, 3, 4], p5: [0, 4, 7], cl: [0, 2, 4, 6, 8], m6: [0, 2, 4, 5] };
+function chordOffs(type, voic, inv) {
+  let k = (CHT[type] || CHT.tri).slice(); if (inv) k = k.map((x, i) => i < inv ? x + 7 : x);
+  if (voic === 'open' && k.length >= 3) k = [k[0], k[2], k[1] + 7].concat(k.slice(3));
+  if (voic === 'drop2' && k.length >= 4) { const q = k.slice().sort((a, b) => a - b), d = q[q.length - 2] - 7; k = [d].concat(q.filter((_, i) => i !== q.length - 2)); }
+  return k;
+}
+V.padK = function (ctx, out, t, freqs, dur, v, cut, kind) {
+  const n = freqs.length, att = { strings: 0.5, organ: 0.03, epiano: 0.005, warm: 0.3, glass: 0.7, brass: 0.07, choir: 0.45, supersaw: 0.1 }[kind] || 0.2, rel = Math.min(0.5, dur * 0.3);
+  freqs.forEach((fr, i) => {
+    const lp = ctx.createBiquadFilter(), g = ctx.createGain(), pn = ctx.createStereoPanner ? ctx.createStereoPanner() : null; lp.type = 'lowpass'; lp.Q.value = 0.6;
+    const vv = v * (kind === 'organ' ? 0.9 : kind === 'supersaw' ? 0.55 : 1) * (n > 3 ? 0.85 : 1), co = Math.min(cut * 0.4 + 300, 3000);
+    let oscs = [], lfo = null, lg = null;
+    const mo = (type, m, det, gn, dest) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; o.frequency.value = fr * m; o.detune.value = det; og.gain.value = gn; o.connect(og); og.connect(dest || lp); o.start(t); o.stop(t + dur + rel + 0.1); oscs.push(o); return og; };
+    if (kind === 'strings') { lp.frequency.setValueAtTime(co * 0.5 + 200, t); lp.frequency.linearRampToValueAtTime(co + 500, t + dur * 0.5); [-14, 0, 14].forEach(d => mo('sawtooth', 1, d, 0.4)); }
+    else if (kind === 'organ') { lp.frequency.value = 7000; [[1, 1], [2, 0.7], [3, 0.45], [4, 0.3], [6, 0.2]].forEach(([m, gn]) => mo('sine', m, 0, gn * 0.4)); lfo = ctx.createOscillator(); lg = ctx.createGain(); lfo.frequency.value = 6; lg.gain.value = v * 0.12; lfo.connect(lg); lg.connect(g.gain); lfo.start(t); lfo.stop(t + dur + rel + 0.1); }
+    else if (kind === 'epiano') { lp.frequency.value = 5000; mo('sine', 1, 0, 0.6); const md = ctx.createOscillator(), mg = ctx.createGain(); md.type = 'sine'; md.frequency.value = fr; mg.gain.setValueAtTime(fr * 2.2, t); mg.gain.exponentialRampToValueAtTime(fr * 0.15, t + 0.4); md.connect(mg); const car = ctx.createOscillator(), cg = ctx.createGain(); car.type = 'sine'; car.frequency.value = fr; mg.connect(car.frequency); cg.gain.value = 0.7; car.connect(cg); cg.connect(lp); md.start(t); car.start(t); md.stop(t + dur + rel + 0.1); car.stop(t + dur + rel + 0.1); }
+    else if (kind === 'warm') { lp.frequency.value = Math.min(co, 1100); mo('triangle', 1, -5, 0.5); mo('triangle', 1, 5, 0.5); mo('sine', 0.5, 0, 0.35); }
+    else if (kind === 'glass') { lp.frequency.value = 6500; mo('sine', 1, 0, 0.5); mo('sine', 2, 3, 0.22); mo('sine', 3, -4, 0.12); mo('triangle', 0.5, 0, 0.2); lfo = ctx.createOscillator(); lg = ctx.createGain(); lfo.frequency.value = 0.25; lg.gain.value = 600; lfo.connect(lg); lg.connect(lp.frequency); lfo.start(t); lfo.stop(t + dur + rel + 0.1); }
+    else if (kind === 'brass') { lp.frequency.setValueAtTime(350, t); lp.frequency.linearRampToValueAtTime(Math.min(2400, co + 900), t + 0.18); mo('sawtooth', 1, -5, 0.5); mo('sawtooth', 1, 5, 0.5); }
+    else if (kind === 'choir') { lp.frequency.value = 6000; const mix = ctx.createGain(); mix.gain.value = 1; [[700, 6], [1100, 7], [2500, 8]].forEach(([fc, q], j) => { const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fc; bp.Q.value = q; const bg = ctx.createGain(); bg.gain.value = [1, 0.7, 0.4][j] * 1.6; bp.connect(bg); bg.connect(lp); [-8, 0, 8].forEach(d => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr; o.detune.value = d; o.connect(bp); o.start(t); o.stop(t + dur + rel + 0.1); }); }); }
+    else if (kind === 'supersaw') { lp.frequency.value = 4800; [-24, -12, 0, 12, 24].forEach(d => mo('sawtooth', 1, d, 0.25)); }
+    else { lp.frequency.value = co; [-9, 9].forEach(d => mo('sawtooth', 1, d, 0.5)); }
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vv, t + att);
+    if (kind === 'epiano') { g.gain.setTargetAtTime(vv * 0.35, t + 0.05, 0.6); } else g.gain.setValueAtTime(vv, Math.max(t + att, t + dur * 0.8));
+    g.gain.setTargetAtTime(0.0001, t + dur * (kind === 'epiano' ? 1 : 0.97), rel / 3);
+    lp.connect(g); if (pn) { pn.pan.value = n > 1 ? (i / (n - 1) - 0.5) * 0.8 : 0; g.connect(pn); pn.connect(out); } else g.connect(out);
+  });
+};
+V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
+  freqs.forEach((fr, i) => {
+    const lp = ctx.createBiquadFilter(), g = ctx.createGain(), pn = ctx.createStereoPanner ? ctx.createStereoPanner() : null; lp.type = 'lowpass'; const L = len || 0.2, e = t + L + 0.12; let dv = v;
+    const mo = (type, m, det, gn) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; o.frequency.value = fr * m; o.detune.value = det; og.gain.value = gn; o.connect(og); og.connect(lp); o.start(t); o.stop(e); };
+    if (kind === 'pluck') { lp.frequency.setValueAtTime(Math.min(cut + 3000, 7000), t); lp.frequency.exponentialRampToValueAtTime(500, t + 0.18); mo('sawtooth', 1, -6, 0.5); mo('sawtooth', 1, 6, 0.5); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(dv, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25); }
+    else if (kind === 'organ') { lp.frequency.value = 6000; [[1, 1], [2, 0.6], [3, 0.4], [4, 0.25]].forEach(([m, gn]) => mo('sine', m, 0, gn * 0.5)); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(dv, t + 0.01); g.gain.setValueAtTime(dv, t + L * 0.7); g.gain.linearRampToValueAtTime(0.0001, t + L); }
+    else if (kind === 'brass') { lp.frequency.setValueAtTime(400, t); lp.frequency.linearRampToValueAtTime(Math.min(2800, cut + 1000), t + 0.06); mo('sawtooth', 1, -5, 0.5); mo('sawtooth', 1, 5, 0.5); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(dv * 1.1, t + 0.025); g.gain.setValueAtTime(dv, t + L * 0.6); g.gain.linearRampToValueAtTime(0.0001, t + L * 1.1); }
+    else if (kind === 'epiano') { lp.frequency.value = 5500; const md = ctx.createOscillator(), mg = ctx.createGain(), car = ctx.createOscillator(), cg = ctx.createGain(); md.frequency.value = fr; mg.gain.setValueAtTime(fr * 1.8, t); mg.gain.exponentialRampToValueAtTime(fr * 0.1, t + 0.3); md.connect(mg); car.frequency.value = fr; mg.connect(car.frequency); car.connect(cg); cg.gain.value = 0.8; cg.connect(lp); md.start(t); car.start(t); md.stop(e + 0.3); car.stop(e + 0.3); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(dv, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55); }
+    else if (kind === 'bell') { lp.frequency.value = 8000; mo('sine', 2, 0, 0.5); mo('sine', 5.4, 0, 0.18); mo('sine', 1, 0, 0.3); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(dv * 0.8, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7); }
+    else { lp.frequency.value = Math.min(cut + 800, 8000); mo('sawtooth', 1, 0, 0.5); mo('square', 1, 7, 0.3); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(dv, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); }
+    lp.connect(g); if (pn) { pn.pan.value = freqs.length > 1 ? (i / (freqs.length - 1) - 0.5) * 0.7 : 0; g.connect(pn); pn.connect(out); } else g.connect(out);
+  });
+};
 function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const sty = STYLES[S.style], sc = SCALES[S.scaleIdx], pat = S.beat ? { ...sty, ...S.beat } : sty;
   const s = n % 16, bar = Math.floor(n / 16);
@@ -1247,10 +1300,12 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   if (rep && hatOn && !inBuild && !B && s % 2 === 1) V.hat(ctx, ch.dk.hat, tt, 0.07 + 0.03 * rr(n, 96), false);
   if (rep && !B && s === 0 && bar % 4 === 0 && sec.barIn > 0) V.crash(ctx, ch.fx, tt);
   // Akkorde
-  const inv = rr(bar, 5) < vary * 0.45;
-  const triad = (inv ? [2, 4, 7] : [0, 2, 4]).map(k => nf(chordDeg + k, 0));
-  if (!S.chordsOff && s === 0 && (!B || S.chordA)) V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth');
-  if (!S.chordsOff && stabOn && pat.stab[s] === 'x') V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, 0.062 * (sty.quiet || 1) * ((S.mix && S.mix.pad != null ? S.mix.pad : 0.4) / 0.4));
+  const inv = rr(bar, 5) < vary * 0.45, cs = CHST[S.style] || { t: 'tri', v: 'tri', pad: null, comp: null, stab: null };
+  const cType = (song && vary > 0.3 && bar % 8 === 7 && K !== 'outro' && K !== 'intro' && cs.t !== 'p5') ? 'sus4' : cs.t;
+  const triad = chordOffs(cType, cs.v, inv ? 1 : 0).map(k => nf(chordDeg + k, 0));
+  if (!S.chordsOff && s === 0 && (!B || S.chordA)) { if (cs.pad && !B) { V.padK(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, cs.pad); if (song && K === 'chorus') V.padK(ctx, ch.pad, tt, triad.map(f => f * 2), dur * 16 * 0.97, padV * 0.4, cut, cs.pad); } else V.pad(ctx, ch.pad, tt, triad, dur * 16 * 0.97, padV, cut, S.padWave || 'sawtooth'); }
+  { const cm = cs.comp, hit2 = !cm || B ? pat.stab[s] === 'x' : cm === 'off' ? s % 4 === 2 : cm === 'pluck' ? s % 4 === 0 : cm === 'strum' ? (s === 0 || s === 8) : cm === 'charl' ? (s === 0 || s === 6 || s === 8 || s === 14) : false;
+    if (!S.chordsOff && stabOn && hit2) { const sv = 0.062 * (sty.quiet || 1) * ((S.mix && S.mix.pad != null ? S.mix.pad : 0.4) / 0.4); if (cs.stab === 'gtr' && !B) triad.forEach((f, j) => V.guitar(ctx, ch.lead, tt + j * 0.014, f, dur * 3, 'ac', 0.16 - j * 0.02)); else if (cs.stab && !B) V.stabK(ctx, ch.lead, tt, triad.map(f => f * 2), cut, sv, cs.stab, dur * (cm === 'strum' ? 3 : 1.6)); else V.stab(ctx, ch.lead, tt, triad.map(f => f * 2), cut, sv); } }
 
   // Schlagzeug
   if (kickOn) {
@@ -3045,7 +3100,7 @@ const SING = (function () {
         while (tau < n && safety++ < 200000) {
           const ta = p.a + tau / sv; let mi = 0, bd = 1e9; for (let q = 0; q < m.length; q++) { const d = Math.abs(m[q] - ta); if (d < bd) { bd = d; mi = q; } else if (m[q] > ta) break; }
           const Pa = Math.max(20, Math.round(((m[Math.min(m.length - 1, mi + 1)] - m[Math.max(0, mi - 1)]) / Math.max(1, Math.min(m.length - 1, mi + 1) - Math.max(0, mi - 1))))), c = m[mi];
-          const { f, sBeg, i: si0 } = fAt(vt + tau); const amp = (0.8 + 0.2 * Math.min(1, W[si0].d / 0.5) + (si0 === 0 ? 0.08 : 0)) * 1; const sinceNote = vt + tau - sBeg; let fm = f; if (vibD) { const ramp = Math.max(0, Math.min(1, (sinceNote / SR - 0.18) / 0.35)); fm *= Math.pow(2, (vibD * ramp * Math.sin(2 * Math.PI * 5.4 * (op + tau) / SR) + 6 * Math.sin(2 * Math.PI * 0.8 * (op + tau) / SR)) / 1200); }
+          const { f, sBeg, i: si0 } = fAt(vt + tau); const amp = (0.8 + 0.2 * Math.min(1, W[si0].d / 0.5) + (si0 === 0 ? 0.08 : 0)) * 1; const sinceNote = vt + tau - sBeg; let fm = f; if (vibD) { const ramp = Math.max(0, Math.min(1, (sinceNote / SR - 0.32) / 0.4)); fm *= Math.pow(2, (vibD * ramp * Math.sin(2 * Math.PI * 5.4 * (op + tau) / SR) + 6 * Math.sin(2 * Math.PI * 0.8 * (op + tau) / SR)) / 1200); }
           if (voice !== 'robot' && !rap) { const sc0 = 0.09 * SR; if (sinceNote < sc0 && sinceNote >= 0) fm *= Math.pow(2, -38 * Math.pow(1 - sinceNote / sc0, 2) / 1200); fm *= 1 + (Math.random() - 0.5) * 0.004; }
           if (rap) fm = (SR / Pa) * ratio; const Ps = SR / fm, g = Ps / Pa * amp * (1 + (Math.random() - 0.5) * 0.02); for (let i = -Pa; i < Pa; i++) { const si = c + i, di = op + Math.round(tau) + i; if (si < 0 || si >= x.length || di < 0 || di >= out.length) continue; out[di] += x[si] * (0.5 + 0.5 * Math.cos(Math.PI * i / Pa)) * g; }
           tau += Ps;
@@ -3096,11 +3151,11 @@ const SING = (function () {
     const BASE = [1, 3, 2, 4, 0, 3, 2, 5], CT = [0, 2, 4, 7, 9, -3, -1];
     let prevDeg = 2, lineCount = 0;
     const degFor = (idx, rep) => {
-      const L = lineOf[idx]; if (!L) return prevDeg; const first = L.p === 0, last = L.p === L.n - 1, ph = L.n > 1 ? L.p / (L.n - 1) : 0;
-      const base = BASE[(L.li + rep * 3) % BASE.length] + (rep % 2 ? 1 : 0); let d;
+      const L = lineOf[idx]; if (!L) return prevDeg; let sd = (L.li % 4) * 977 + L.p * 131 + 17; const R = () => { sd = (Math.imul(sd, 1103515245) + 12345) & 0x7fffffff; return sd / 0x7fffffff; }; const first = L.p === 0, last = L.p === L.n - 1, ph = L.n > 1 ? L.p / (L.n - 1) : 0;
+      const base = BASE[(L.li % 4) * 2 % BASE.length]; let d;
       if (last) { d = CT.reduce((b, c) => Math.abs(c + (L.li % 2 ? 0 : 0) - (base + 1)) < Math.abs(b - (base + 1)) ? c : b, 0); if (L.li % 2 === 1) d = [0, 7].reduce((b, c) => Math.abs(c - prevDeg) < Math.abs(b - prevDeg) ? c : b, 0); }
-      else { const arc = Math.round(3.2 * Math.sin(Math.PI * ph)); d = base + arc + (Math.random() < 0.35 ? (Math.random() < 0.5 ? -1 : 1) : 0) + (Math.random() < 0.12 ? (Math.random() < 0.5 ? -3 : 3) : 0); }
-      if (first && Math.random() < 0.4) d = base - 1; d = Math.max(-3, Math.min(9, d)); if (!last && d === prevDeg && Math.random() < 0.6) d += Math.random() < 0.5 ? 1 : -1; prevDeg = d; return d;
+      else { const arc = Math.round(3.2 * Math.sin(Math.PI * ph)); d = base + arc + (R() < 0.35 ? (R() < 0.5 ? -1 : 1) : 0) + (R() < 0.12 ? (R() < 0.5 ? -3 : 3) : 0); }
+      if (first && R() < 0.4) d = base - 1; d = Math.max(-3, Math.min(9, d)); if (!last && d === prevDeg && R() < 0.6) d += R() < 0.5 ? 1 : -1; prevDeg = d; return d;
     };
     let repNo = 0; const barSec = 240 / bpm;
     const pass = (u, t0, ni0, ri0) => {
@@ -3109,7 +3164,7 @@ const SING = (function () {
         if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
         let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
         const d = units * u; let dg = degFor(idx, repNo);
-        if (barSec) { const gt = t - VOFF, bar = Math.floor(gt / barSec + 1e-6), e8 = Math.round(gt / (barSec / 8)); if (d >= barSec / 8 * 1.5 || e8 % 4 === 0) { const root = chordAt(bar); let best = dg, bd = 99; for (let k = -3; k <= 3; k++) [0, 2, 4].forEach(q => { const tn = root + q + 7 * k, dd = Math.abs(tn - dg); if (dd < bd || (dd === bd && tn > best)) { bd = dd; best = tn; } }); dg = Math.max(-4, Math.min(10, best)); prevDeg = dg; } }
+        if (barSec) { const gt = t - VOFF, bar = Math.floor(gt / barSec + 1e-6), e8 = Math.round(gt / (barSec / 8)); if (d >= barSec / 8 * 1.5 || e8 % 2 === 0) { const root = chordAt(bar); let best = dg, bd = 99; for (let k = -3; k <= 3; k++) [0, 2, 4].forEach(q => { const tn = root + q + 7 * k, dd = Math.abs(tn - dg); if (dd < bd || (dd === bd && tn > best)) { bd = dd; best = tn; } }); dg = Math.max(-4, Math.min(10, best)); prevDeg = dg; } }
         ev.push({ s, t, d, f: fDeg(dg) }); n++; t += d;
       });
       repNo++; return { t, ni: n, ri };
