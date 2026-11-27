@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 6.1';
+const VERSION = 'Cosmos 6.2';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -595,6 +595,7 @@ function physics(dt) {
         const n = S.portals.length, q = n > 1 ? S.portals[(i + 1) % n] : { x: b.r + Math.random() * (W - 2 * b.r), y: b.r + Math.random() * (ph - 2 * b.r), r: 20 }, sp0 = Math.hypot(b.vx, b.vy) || 1;
         S.ripples.push({ x: p.x, y: p.y, a: 0, h: p.h }); b.x = q.x + (b.vx / sp0) * (q.r + b.r + 6); b.y = q.y + (b.vy / sp0) * (q.r + b.r + 6); b.x = Math.max(b.r, Math.min(W - b.r, b.x)); b.y = Math.max(b.r, Math.min(ph - b.r, b.y)); b.cool = 0.45; b.tr.length = 0;
         S.ripples.push({ x: b.x, y: b.y, a: 0, h: p.h + 40 });
+        S.pending.push({ inst: IM.snare, deg: 0, vel: 0.6 });
         break;
       } }
     b.tr.push(b.x, b.y); if (b.tr.length > 28) b.tr.splice(0, 2);
