@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 4';
+const VERSION = 'Cosmos 5';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
   { n: 'Schlager-Techno', sc: 1, bpm: 130, pad: 'akkordeon', bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'] },
@@ -402,7 +402,7 @@ const ACTIONS = [
   { a: 'dice', e: '🎲', n: 'Kosmos' }, { a: 'grav', e: '🌐', n: 'Schwere' }, { a: 'rec', e: '🔴', n: 'Audio' }, { a: 'json', e: '📄', n: 'Datei' }, { a: 'clear', e: '🗑', n: 'Leeren' }
 ];
 const S = {
-  world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, strings: [], balls: [], ripples: [], toasts: [],
+  world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, strings: [], portals: [], balls: [], ripples: [], toasts: [],
   started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
 };
 let ctx = null, bus = null, W = 0, H = 0, DPR = 1, cv, g;
@@ -475,6 +475,15 @@ function addString(x1, y1, x2, y2, inst) {
   if (S.strings.length >= 28) S.strings.shift();
   const s = { x1, y1, x2, y2, inst, len, wob: 0, last: 0, name: '' }; S.strings.push(s); save(); return s;
 }
+function addPortal(x, y, r) { if (S.portals.length >= 6) S.portals.shift(); S.portals.push({ x, y, r, h: 0 }); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360); save(); }
+function circleOf(pts) {
+  if (pts.length < 8) return null; let L = 0, x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (let i = 0; i < pts.length; i++) { const p = pts[i]; if (i) L += Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = x1 - x0, h = y1 - y0; if (w < 44 || h < 44 || Math.max(w, h) / Math.min(w, h) > 1.8) return null;
+  const f = pts[0], l = pts[pts.length - 1]; if (Math.hypot(f[0] - l[0], f[1] - l[1]) > Math.max(34, 0.3 * (w + h) / 2)) return null;
+  let sr = 0; pts.forEach(p => sr += Math.hypot(p[0] - cx, p[1] - cy)); const ar = sr / pts.length; let v = 0; pts.forEach(p => v += Math.pow(Math.hypot(p[0] - cx, p[1] - cy) - ar, 2)); if (Math.sqrt(v / pts.length) / ar > 0.3) return null;
+  if (L < 5 * ar || L > 9 * ar) return null; return { x: cx, y: cy, r: Math.max(26, Math.min(95, ar)) };
+}
 function spawnBall(x, y, ang, sp) {
   const a = ang == null ? Math.random() * 6.283 : ang, v = (sp || 300) * Math.min(1.3, Math.min(W, H) / 650 + 0.3);
   if (S.balls.length >= 12) S.balls.shift();
@@ -509,6 +518,15 @@ function physics(dt) {
         b.x = cx + nx * (b.r + 2.5); b.y = cy + ny * (b.r + 2.5);
       }
     }
+    b.cool = (b.cool || 0) - dt;
+    if (S.portals.length && b.cool <= 0) for (let i = 0; i < S.portals.length; i++) { const p = S.portals[i];
+      if (Math.hypot(b.x - p.x, b.y - p.y) < p.r) {
+        const n = S.portals.length, q = n > 1 ? S.portals[(i + 1) % n] : { x: b.r + Math.random() * (W - 2 * b.r), y: b.r + Math.random() * (ph - 2 * b.r), r: 20 }, sp0 = Math.hypot(b.vx, b.vy) || 1;
+        S.ripples.push({ x: p.x, y: p.y, a: 0, h: p.h }); b.x = q.x + (b.vx / sp0) * (q.r + b.r + 6); b.y = q.y + (b.vy / sp0) * (q.r + b.r + 6); b.x = Math.max(b.r, Math.min(W - b.r, b.x)); b.y = Math.max(b.r, Math.min(ph - b.r, b.y)); b.cool = 0.45; b.tr.length = 0;
+        S.ripples.push({ x: b.x, y: b.y, a: 0, h: p.h + 40 });
+        const dg = 7 + Math.floor(Math.random() * 6); S.pending.push({ inst: IM.bell, deg: dg, vel: 0.7 }); S.pending.push({ inst: IM.bell, deg: dg + 4, vel: 0.5 });
+        break;
+      } }
     b.tr.push(b.x, b.y); if (b.tr.length > 28) b.tr.splice(0, 2);
   }
 }
@@ -534,7 +552,7 @@ function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'grav') { S.grav = (S.grav + 1) % 3; toast(['Schwerkraft aus', 'Schwerkraft: nach unten', 'Schwerkraft: zur Mitte'][S.grav]); }
-  else if (a === 'clear') { S.strings = []; S.balls = []; toast('Leer'); }
+  else if (a === 'clear') { S.strings = []; S.portals = []; S.balls = []; toast('Leer'); }
   else if (a === 'dice') dice();
   else if (a === 'rec') record();
   else if (a === 'json') exportJson();
@@ -542,9 +560,10 @@ function act(a) {
   save();
 }
 function dice() {
-  S.strings = []; S.balls = []; const w = WORLDS[S.world], ph = playH(), r = (a, b) => a + Math.random() * (b - a);
+  S.strings = []; S.portals = []; S.balls = []; const w = WORLDS[S.world], ph = playH(), r = (a, b) => a + Math.random() * (b - a);
   const mk = (inst, n, lmin, lmax) => { for (let i = 0; i < n; i++) { const L = r(lmin, lmax) * Math.min(W, ph), a = r(0, 3.14), cx = r(0.15 * W, 0.85 * W), cy = r(0.15 * ph, 0.85 * ph); addString(cx - Math.cos(a) * L / 2, cy - Math.sin(a) * L / 2, cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2, inst); } };
   w.leads.forEach(l => mk(l, 1, 0.18, 0.5)); mk(w.bass === 'tuba' ? 'tuba' : 'bass', 1, 0.4, 0.7); mk(['tabla', 'dhol', 'hat'][Math.floor(Math.random() * 3)], 2, 0.2, 0.4); mk('snare', 1, 0.25, 0.4);
+  for (let i = 0; i < 2; i++) addPortal(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(30, 50));
   for (let i = 0; i < 4; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
 }
 async function saveFile(name, blob) {
@@ -575,7 +594,7 @@ function record() {
   } catch (e) { S.rec = null; toast('Aufnahme geht hier nicht'); }
 }
 function exportJson() {
-  const d = { app: 'Musify Cosmos', world: WORLDS[S.world].n, bpm: Math.round(S.bpm), pulse: S.pulse, strings: S.strings.map(s => ({ instrument: s.inst, x1: +(s.x1 / W).toFixed(3), y1: +(s.y1 / H).toFixed(3), x2: +(s.x2 / W).toFixed(3), y2: +(s.y2 / H).toFixed(3) })) };
+  const d = { app: 'Musify Cosmos', world: WORLDS[S.world].n, bpm: Math.round(S.bpm), pulse: S.pulse, portals: S.portals.map(p => ({ x: +(p.x / W).toFixed(3), y: +(p.y / H).toFixed(3), r: Math.round(p.r) })), strings: S.strings.map(s => ({ instrument: s.inst, x1: +(s.x1 / W).toFixed(3), y1: +(s.y1 / H).toFixed(3), x2: +(s.x2 / W).toFixed(3), y2: +(s.y2 / H).toFixed(3) })) };
   saveFile('kosmos.json', new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' }));
 }
 
@@ -591,26 +610,26 @@ function onDown(ev) {
   const d = dockHit(x, y);
   if (d) { if (d.type === 'inst') { S.tool = d.id; toast(d.n + ' – ziehe eine Saite'); } else act(d.id); return; }
   if (y > playH()) return;
-  gest = { x0: x, y0: y, x, y, t0: performance.now(), mode: null, id: ev.pointerId };
+  gest = { x0: x, y0: y, x, y, t0: performance.now(), mode: null, id: ev.pointerId, pts: [[x, y]] };
   gest.lp = setTimeout(() => { if (gest && !gest.mode) { gest.mode = 'well'; S.well = { x: gest.x, y: gest.y }; if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {} } }, 420);
 }
 function onMove(ev) {
-  if (!gest || ev.pointerId !== gest.id) return; gest.x = ev.clientX; gest.y = Math.min(ev.clientY, playH() - 2);
+  if (!gest || ev.pointerId !== gest.id) return; gest.x = ev.clientX; gest.y = Math.min(ev.clientY, playH() - 2); gest.pts.push([gest.x, gest.y]);
   if (!gest.mode && Math.hypot(gest.x - gest.x0, gest.y - gest.y0) > 14) { clearTimeout(gest.lp); gest.mode = S.tool === 'erase' ? 'erase' : 'draw'; }
   if (gest.mode === 'well') S.well = { x: gest.x, y: gest.y };
-  if (gest.mode === 'erase') { const n = S.strings.length; S.strings = S.strings.filter(s => distSeg(gest.x, gest.y, s) > 26); if (S.strings.length !== n) save(); }
+  if (gest.mode === 'erase') { const n = S.strings.length; S.strings = S.strings.filter(s => distSeg(gest.x, gest.y, s) > 26); S.portals = S.portals.filter(p => Math.hypot(gest.x - p.x, gest.y - p.y) > p.r + 10); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360); if (S.strings.length !== n) save(); }
 }
 function distSeg(px, py, s) { const ex = s.x2 - s.x1, ey = s.y2 - s.y1, u = Math.max(0, Math.min(1, ((px - s.x1) * ex + (py - s.y1) * ey) / (ex * ex + ey * ey))); return Math.hypot(px - (s.x1 + ex * u), py - (s.y1 + ey * u)); }
 function onUp(ev) {
   if (!gest || ev.pointerId !== gest.id) return; clearTimeout(gest.lp);
-  if (gest.mode === 'draw') { if (S.tool !== 'erase') { const s = addString(gest.x0, gest.y0, gest.x, gest.y, S.tool); if (!s) toast('Zu kurz – zieh weiter'); } }
-  else if (!gest.mode) { if (S.tool === 'erase') { const n = S.strings.length; S.strings = S.strings.filter(s => distSeg(gest.x0, gest.y0, s) > 26); if (S.strings.length !== n) save(); } else spawnBall(gest.x0, gest.y0); }
+  if (gest.mode === 'draw') { const ci = S.tool !== 'erase' ? circleOf(gest.pts) : null; if (ci) { addPortal(ci.x, ci.y, ci.r); toast(S.portals.length > 1 ? 'Portal ' + S.portals.length + ' – Kugeln springen zum nächsten Portal' : 'Loch – Kugeln tauchen irgendwo wieder auf'); } else if (S.tool !== 'erase') { const s = addString(gest.x0, gest.y0, gest.x, gest.y, S.tool); if (!s) toast('Zu kurz – zieh weiter'); } }
+  else if (!gest.mode) { if (S.tool === 'erase') { const n = S.strings.length; S.strings = S.strings.filter(s => distSeg(gest.x0, gest.y0, s) > 26); S.portals = S.portals.filter(p => Math.hypot(gest.x0 - p.x, gest.y0 - p.y) > p.r + 10); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360); save(); } else spawnBall(gest.x0, gest.y0); }
   S.well = null; gest = null; S.hint++;
 }
 
 /* ---------- Speichern ---------- */
-function save() { try { localStorage.setItem('cosmos', JSON.stringify({ w: S.world, bpm: S.bpm, p: S.pulse, s: S.strings.map(s => [s.x1 / W, s.y1 / H, s.x2 / W, s.y2 / H, s.inst]) })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem('cosmos') || 'null'); if (!d) return; S.world = d.w || 0; S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; S.strings = d.s.map(a => ({ x1: a[0] * W, y1: a[1] * H, x2: a[2] * W, y2: a[3] * H, inst: IM[a[4]] ? a[4] : 'oud', len: Math.hypot((a[2] - a[0]) * W, (a[3] - a[1]) * H), wob: 0, last: 0, name: '' })); } catch (e) {} }
+function save() { try { localStorage.setItem('cosmos', JSON.stringify({ w: S.world, bpm: S.bpm, p: S.pulse, s: S.strings.map(s => [s.x1 / W, s.y1 / H, s.x2 / W, s.y2 / H, s.inst]), po: S.portals.map(p => [p.x / W, p.y / H, p.r / Math.min(W, H)]) })); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem('cosmos') || 'null'); if (!d) return; S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: a[1] * H, r: a[2] * Math.min(W, H), h: (i * 70 + 190) % 360 })); S.world = d.w || 0; S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; S.strings = d.s.map(a => ({ x1: a[0] * W, y1: a[1] * H, x2: a[2] * W, y2: a[3] * H, inst: IM[a[4]] ? a[4] : 'oud', len: Math.hypot((a[2] - a[0]) * W, (a[3] - a[1]) * H), wob: 0, last: 0, name: '' })); } catch (e) {} }
 
 /* ---------- Zeichnen ---------- */
 const hsl = (h, s, l, a = 1) => `hsla(${h},${s}%,${l}%,${a})`;
@@ -622,6 +641,11 @@ function draw(dt) {
   g.strokeStyle = hsl(w.hue, 60, 50, 0.35 + 0.3 * bf); g.lineWidth = 2; g.strokeRect(1, 1, W - 2, ph - 2);
   // Ripples
   S.ripples = S.ripples.filter(r => r.a < 1); S.ripples.forEach(r => { r.a += dt * 2.2; g.strokeStyle = hsl(r.h, 90, 65, 1 - r.a); g.lineWidth = 2; g.beginPath(); g.arc(r.x, r.y, 8 + r.a * 46, 0, 7); g.stroke(); });
+  // Portale
+  S.portals.forEach((p, i) => { const t = performance.now() / 1000, n = S.portals.length;
+    for (let k = 0; k < 3; k++) { g.strokeStyle = hsl(p.h, 95, 62, 0.75 - k * 0.2); g.lineWidth = 3 - k * 0.6; g.setLineDash([10 + k * 6, 8]); g.lineDashOffset = -t * (60 + k * 40) * (k % 2 ? -1 : 1); g.beginPath(); g.arc(p.x, p.y, p.r - k * 7, 0, 7); g.stroke(); }
+    g.setLineDash([]); const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); gr.addColorStop(0, 'rgba(0,0,0,0.85)'); gr.addColorStop(1, hsl(p.h, 90, 40, 0.15)); g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, p.r - 2, 0, 7); g.fill();
+    g.fillStyle = hsl(p.h, 100, 85); g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(n > 1 ? (i + 1) + ' → ' + ((i + 1) % n + 1) : 'Loch', p.x, p.y + 4); });
   // Saiten
   S.strings.forEach(s => {
     const inst = IM[s.inst]; s.wob *= 0.93; const mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2, nx = -(s.y2 - s.y1) / s.len, ny = (s.x2 - s.x1) / s.len, amp = s.wob * 12 * Math.sin(performance.now() / 22);
@@ -654,7 +678,7 @@ function draw(dt) {
   // Hinweise
   S.toasts.forEach((t, i) => { t.a += dt; });
   S.toasts = S.toasts.filter(t => t.a < 3.2); S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = g.measureText(t.t).width + 28; g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 56 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 75 + i * 34); });
-  if (S.hint < 3 && S.started && !S.toasts.length) { g.fillStyle = 'rgba(255,255,255,0.55)'; g.textAlign = 'center'; g.font = '600 13px system-ui'; if (W < 640) { g.fillText('Ziehen = Saite · Tippen = Kugel', W / 2, ph - 30); g.fillText('Halten = Dirigent (zieht Kugeln an)', W / 2, ph - 12); } else g.fillText('Ziehen = Saite · Tippen = Kugel · Halten = Dirigent (zieht die Kugeln an)', W / 2, ph - 14); }
+  if (S.hint < 3 && S.started && !S.toasts.length) { g.fillStyle = 'rgba(255,255,255,0.55)'; g.textAlign = 'center'; g.font = '600 13px system-ui'; if (W < 640) { g.fillText('Ziehen = Saite · Kreis = Portal · Tippen = Kugel', W / 2, ph - 30); g.fillText('Halten = Dirigent (zieht Kugeln an)', W / 2, ph - 12); } else g.fillText('Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent (zieht die Kugeln an)', W / 2, ph - 14); }
   if (!S.started) { g.fillStyle = 'rgba(5,7,14,0.88)'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.fillStyle = hsl(w.hue, 95, 70); g.font = '800 ' + Math.min(44, W / 9) + 'px system-ui'; g.fillText('MUSIFY COSMOS', W / 2, H / 2 - 50); g.fillStyle = '#e6ebf5'; g.font = '600 16px system-ui'; g.fillText('Zeichne Saiten. Kugeln spielen sie.', W / 2, H / 2 - 14); g.fillStyle = '#8b95a8'; g.font = '14px system-ui'; g.fillText('Weltklänge: Oud, Sitar, Shehnai, Tuba, Tabla …', W / 2, H / 2 + 12); const p = 0.6 + 0.4 * Math.sin(performance.now() / 300); g.fillStyle = `rgba(0,230,118,${p})`; g.font = '800 20px system-ui'; g.fillText('▶ Tippen zum Starten', W / 2, H / 2 + 60); }
 }
 function drawBpm() {
