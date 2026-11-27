@@ -89,6 +89,18 @@ const STYLES = {
   afro:   { name:'Afrobeats', bpm:106, scales:[2,1,0], progs:[0,1,4], swing:0.1,
     kick:'x.....x...x.....', snare:'....x.......x...', clap:true, hat:'.x.x.x.x.x.x.x.x', open:'..x...x...x...x.',
     bass:'x..x..x...x..x..', bassType:'808', lead:'x.x..x..x..x.x..', leadType:'marimba', stab:'..x..x....x..x..' },
+  melodic:{ name:'Melodic House', bpm:122, scales:[5,6,4], progs:[0,1,4], swing:0,
+    kick:'x...x...x...x...', snare:false, clap:true, hat:'..x...x...x...x.', open:'..x...x...x...x.',
+    bass:'.x..x..x.x..x..x', bassType:'saw', lead:'x.x.x.x.x.x.x.x.', leadType:'pluck', stab:'..x...x...x...x.' },
+  french: { name:'French Touch', bpm:123, scales:[1,9,2], progs:[0,1,4], swing:0.06, lp:7000,
+    kick:'x...x...x...x...', snare:'....x.......x...', clap:true, hat:'.x.x.x.x.x.x.x.x', open:'..x...x...x...x.',
+    bass:'x.x.x.x.x.x.x.x.', bassType:'saw', lead:'x..x..x...x..x..', leadType:'supersaw', stab:'.x..x..x.x..x..x' },
+  ukg:    { name:'Speed Garage', bpm:132, scales:[0,4,6], progs:[0,2,3], swing:0.2,
+    kick:'x.....x...x.....', snare:'....x..x....x...', clap:false, hat:'x.xxx.xxx.xxx.xx', open:'..x...x...x...x.',
+    bass:'x..x....x..x..x.', bassType:'808', lead:'x..x.x....x..x..', leadType:'bell', stab:'..x..x..x....x..' },
+  hyper:  { name:'Hyperpop', bpm:160, scales:[1,9,8], progs:[0,1,4], swing:0,
+    kick:'x...x...x...x..x', snare:'....x.......x...', clap:true, hat:'xxxxxxxxxxxxxxxx', open:'..x...x...x...x.',
+    bass:'x..x..x...x.x...', bassType:'808', lead:'x.x.x.xx.x.x.xx.', leadType:'supersaw', stab:'x...x...x...x...' },
   dnb:    { name:'Drum & Bass', bpm:174, scales:[0,4,3], progs:[0,2,3], swing:0,
     kick:'x.........x.....', snare:'....x.......x...', clap:false, hat:'x.x.x.x.x.x.x.x.', open:'..x...x...x...xx',
     bass:'x..x.....x.x....', bassType:'saw', lead:'x..x..x...x.x...', leadType:'pluck', stab:'................' },
@@ -112,7 +124,7 @@ const st = {
   fx: { autodj:false, acid:false, vocal:false, arp:false, sub:false, echo:false, gate:false, trem:false, phone:false, half:false, straight:false, stutter:false },
   chill: false, seed: 20261120, playing: false, build: null,
   scaleIdx: 0, prog: [0,5,3,4], prog2: [0,3,4,3], melody: [], acidLine: [], vox: [], autoOff: {},
-  songMode: false, songDone: false, melodyLock: false, scaleLock: false, form: 'standard', formPick: null, beat: null, chordA: null, chordB: null, leadType: null, padWave: 'sawtooth', melodyB: [], voiceRaw: null, voiceWet: null, voiceFx: 'hall', nudge: 40,
+  songMode: false, songDone: false, melodyLock: false, scaleLock: false, form: 'stream', formPick: null, beat: null, chordA: null, chordB: null, leadType: null, padWave: 'sawtooth', melodyB: [], voiceRaw: null, voiceWet: null, voiceFx: 'hall', nudge: 40,
   mix: { tone: 0.8, kick: 1, snare: 1, cl: 1, hat: 1, open: 1, tom: 1, drums: 0.85, bass: 0.72, lead: 1.0, pad: 0.4, pump: 0.5, hall: 0.3, loud: 0.75, vox: 0.8, vary: 0.6, gtr: 0.75, horn: 0.75, tuba: 0.8, bone: 0.8 },
   tracks: noTracks(), blank: false
 };
@@ -404,6 +416,7 @@ const V = {
 
 /* ---------- Song-Aufbau ---------- */
 const FORMS = {
+  stream: { name: 'Streaming-Hit', plan: [['chorus','Hook',4],['verse','Strophe',8],['build','Aufbau',2],['chorus','Refrain',8],['verse','Strophe 2',8],['build','Aufbau',2],['chorus','Refrain',8],['outro','Schluss',2]] },
   standard: { name: 'Standard', plan: [['intro','Intro',8],['verse','Strophe',16],['build','Aufbau',4],['chorus','Refrain',16],['brk','Break',8],['build','Aufbau',4],['chorus','Refrain',16],['outro','Outro',8]] },
   radio: { name: 'Radio-Edit', plan: [['intro','Intro',4],['verse','Strophe',12],['build','Aufbau',4],['chorus','Refrain',12],['brk','Break',4],['build','Aufbau',4],['chorus','Refrain',12],['outro','Outro',4]] },
   club: { name: 'Club-Mix', plan: [['intro','Intro',16],['verse','Strophe',16],['build','Aufbau',8],['chorus','Refrain',16],['brk','Break',16],['build','Aufbau',8],['chorus','Refrain',16],['outro','Outro',16]] },
@@ -551,6 +564,7 @@ const CHST = {
   rock50: { t: 'tri', v: 'tri', pad: 'organ', comp: 'pluck', stab: 'gtr' }, s60: { t: 'tri', v: 'tri', pad: 'organ', comp: 'pluck', stab: 'gtr' }, disco70: { t: 'sev', v: 'open', pad: 'strings', comp: 'off', stab: 'epiano' },
   synth80: { t: 'sev', v: 'open', pad: 'supersaw', comp: 'pluck', stab: 'saw' }, euro90: { t: 'tri', v: 'tri', pad: 'supersaw', comp: 'pluck', stab: 'saw' }, y2000: { t: 'sev', v: 'open', pad: 'glass', comp: 'off', stab: 'pluck' },
   y2010: { t: 'add9', v: 'tri', pad: 'supersaw', comp: 'off', stab: 'saw' }, y2020: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, trap: { t: 'sus2', v: 'open', pad: 'glass', comp: 'hold', stab: 'bell' },
+  melodic: { t: 'add9', v: 'open', pad: 'supersaw', comp: 'pluck', stab: 'pluck' }, french: { t: 'sev', v: 'open', pad: 'strings', comp: 'off', stab: 'saw' }, ukg: { t: 'sev', v: 'drop2', pad: 'epiano', comp: 'off', stab: 'epiano' }, hyper: { t: 'tri', v: 'tri', pad: 'supersaw', comp: 'pluck', stab: 'saw' },
   reggaeton: { t: 'tri', v: 'tri', pad: 'warm', comp: 'off', stab: 'pluck' }, afro: { t: 'add9', v: 'open', pad: 'epiano', comp: 'off', stab: 'bell' }, dnb: { t: 'sev', v: 'open', pad: 'strings', comp: 'hold', stab: 'pluck' },
   lofi: { t: 'cl', v: 'drop2', pad: 'epiano', comp: 'pluck', stab: 'epiano' }, schlager: { t: 'tri', v: 'tri', pad: 'strings', comp: 'pluck', stab: 'brass' }
 };
@@ -778,6 +792,7 @@ let ctx = null, chain = null, analyser = null, timer = null, nextT = 0, stepN = 
 function initAudio() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
+    (function trackSrc(c) { const live = c.__live = new Set(); ['createOscillator', 'createBufferSource'].forEach(k => { const o = c[k].bind(c); c[k] = function () { const n = o(); if (st.playing) { live.add(n); n.addEventListener('ended', () => live.delete(n)); } return n; }; }); })(ctx);
     chain = buildChain(ctx);
     analyser = ctx.createAnalyser(); analyser.fftSize = 64;
     chain.master.connect(analyser); analyser.connect(ctx.destination);
@@ -839,6 +854,7 @@ function stop() {
   clearInterval(timer); st.playing = false; st.build = null; setUIBuild(false);
   const b = $('#btn-play'), sb = $('#btn-song');
   b.textContent = '▶ PLAY'; b.classList.remove('stop'); sb.textContent = '▶ Ganzen Song spielen'; sb.classList.remove('stop');
+  if (chain && ctx.__live && ctx.__live.size) { const t0 = ctx.currentTime, g = chain.L.kill.gain; g.cancelScheduledValues(0); g.setValueAtTime(g.value, t0); g.linearRampToValueAtTime(0, t0 + 0.03); const dead = [...ctx.__live]; ctx.__live.clear(); setTimeout(() => { dead.forEach(n => { try { n.stop(); } catch (e) {} }); const t1 = ctx.currentTime; g.cancelScheduledValues(0); g.setValueAtTime(0, t1); g.linearRampToValueAtTime(1, t1 + 0.04); }, 60); }
   if (chain) { chain.fade.gain.cancelScheduledValues(0); chain.fade.gain.setValueAtTime(1, ctx.currentTime); try { chain.duck.gain.cancelScheduledValues(0); chain.duck.gain.setValueAtTime(1, ctx.currentTime); chain.pocket.gain.cancelScheduledValues(0); chain.pocket.gain.setValueAtTime(0, ctx.currentTime); } catch (e) {} chain.dB.gain.cancelScheduledValues(0); chain.dB.gain.value = 1; chain.dL.gain.cancelScheduledValues(0); chain.dL.gain.value = 1; chain.dP.gain.cancelScheduledValues(0); chain.dP.gain.value = 1; }
   st.songMode = false; updateTimeline(-1);
   try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {}
@@ -1146,7 +1162,7 @@ function setChill(on) {
   applyChainSettings();
 }
 function setUIBuild(on) { $('#btn-build').classList.toggle('active-pink', on); }
-function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.melodyLock = false; Object.keys(ST0.mix).forEach(k => setMix(k, ST0.mix[k])); setPad(ST0.px, ST0.py); st.nudge = 40; $('#nudge').value = 40; $('#nudge-val').textContent = '40 ms'; renderEditor(); renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
+function newHit(noUndo) { if (!noUndo) undoPoint(); if (st.blank) { st.blank = false; st.beat = null; st.tracks = noTracks(); st.chordA = null; st.chordB = null; st.melodyLock = false; Object.keys(ST0.mix).forEach(k => setMix(k, ST0.mix[k])); setPad(ST0.px, ST0.py); st.nudge = 40; $('#nudge').value = 40; $('#nudge-val').textContent = '40 ms'; renderEditor(); renderBeat(); renderAllRolls(); renderChords(); } st.seed = (Math.random() * 4294967295) >>> 0; if (st.form === 'random') { st.formPick = ['stream', 'standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 5)]; if (!(st.playing && st.songMode)) setForm(activeForm()); } regen(); updateStatus(); refreshNotesMsg(); renderEditor(); }
 
 /* Auto-DJ: verändert alle paar Takte Energie, Oktave und Effekte */
 function autoDJ(bar) {
@@ -1661,7 +1677,7 @@ $('#ne-rand').addEventListener('click', () => { audibleMelody(); undoPoint(); co
 function resetSettings() {
   const fx = {}; Object.keys(st.fx).forEach(k => { fx[k] = false; });
   st.blank = false;
-  applySlot({ style: ST0.style, bpm: ST0.bpm, px: ST0.px, py: ST0.py, oct: ST0.oct, chaos: false, fx, seed: (Math.random() * 4294967295) >>> 0, mix: { ...ST0.mix }, melody: [], melodyLock: false, scaleLock: false, form: 'standard', beat: null, chordA: null, chordB: null, tracks: noTracks(), blank: false });
+  applySlot({ style: ST0.style, bpm: ST0.bpm, px: ST0.px, py: ST0.py, oct: ST0.oct, chaos: false, fx, seed: (Math.random() * 4294967295) >>> 0, mix: { ...ST0.mix }, melody: [], melodyLock: false, scaleLock: false, form: 'stream', beat: null, chordA: null, chordB: null, tracks: noTracks(), blank: false });
 }
 let resetArm = 0;
 $('#btn-resetall').addEventListener('click', () => {
@@ -1714,7 +1730,7 @@ $('#ne-new32').addEventListener('click', () => { undoPoint(); st.melody = Array(
 $('#ne-ext32').addEventListener('click', () => { undoPoint(); const m = st.melody.slice(), n0 = m.length; while (st.melody.length < MAX_NOTES) st.melody.push(m[st.melody.length % n0]); st.melodyLock = true; renderEditor(); $('#ne-msg').textContent = 'Auf 32 Noten verlängert (Melodie wiederholt, jetzt änderbar).'; });
 $('#ne-apply').addEventListener('click', applyTyped);
 $('#ne-scale').addEventListener('change', ev => { undoPoint(); st.scaleIdx = +ev.target.value; st.scaleLock = true; updateStatus(); renderEditor(); playMelody(); });
-$('#song-form').addEventListener('change', ev => { st.form = ev.target.value; if (st.form === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; if (!(st.playing && st.songMode)) setForm(activeForm()); });
+$('#song-form').addEventListener('change', ev => { st.form = ev.target.value; if (st.form === 'random') st.formPick = ['stream', 'standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 5)]; if (!(st.playing && st.songMode)) setForm(activeForm()); });
 $('#btn-rec').addEventListener('click', () => (rec.active ? stop() : startRec()));
 $('#btn-mictest').addEventListener('click', micTest);
 refreshMicUI(); try { navigator.permissions.query({ name: 'microphone' }).then(p => { p.onchange = refreshMicUI; }); } catch (e) {}
@@ -1822,7 +1838,7 @@ function megaHit() {
   T0(() => { const bpm = Math.round(rngR(76, 168)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm; });
   T0(() => { st.scaleIdx = wPick(SCALES.map((_, i) => i), 'scale:'); st.scaleLock = true; });
   T0(() => { st.leadType = pickR(['pluck', 'square', 'marimba', 'brass', 'bell', 'supersaw', 'twang']); st.padWave = pickR(['triangle', 'triangle', 'sawtooth', 'sine', 'square']); });
-  T0(() => { const f = ['standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 5)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 4)]; });
+  T0(() => { const f = ['stream', 'stream', 'standard', 'radio', 'club', 'bridge', 'random'][Math.floor(Math.random() * 7)]; $('#song-form').value = f; st.form = f; if (f === 'random') st.formPick = ['stream', 'standard', 'radio', 'club', 'bridge'][Math.floor(Math.random() * 5)]; });
   T0(() => { const r = Math.round(rngR(0, 60)); $('#gen-rest').value = r; st.swingX = Math.random() < 0.45 ? rngR(0, 0.38) : null; });
   T0(() => { const t = emptyTrack('bass'); const bt = bassFromBeat(); if (Math.random() < 0.35) { const rb = randomBeat(); st.beat = { ...(st.beat || styleBeat()), kick: rb.kick, hat: rb.hat, snare: rb.snare }; } t.n = bt.n; t.type = pickR(['fing', 'pick', '808', 'walk', 'saw']); st.tracks.bass = t; });
   ['gtr', 'horn', 'tuba', 'bone'].forEach(k => T0(() => {
@@ -2928,7 +2944,7 @@ function setWorld(id, quiet, off) {
     return c;
   }
   const OPP = { 0: 1, 1: 0, 2: 4, 4: 2, 5: 10, 10: 5, 6: 9, 9: 6, 7: 8, 8: 7, 3: 13, 13: 3, 11: 12, 12: 11, 14: 1 };
-  const FAST = ['techno', 'berlin', 'dnb', 'phonk', 'trap', 'y2010', 'euro90', 'dance', 'y2000'], SLOW = ['lofi', 'schlager', 'synth80', 's60', 'sw30', 'big40', 'tw20', 'disco70', 'summer', 'afro', 'reggaeton', 'y2020', 'rock50', 'western'];
+  const FAST = ['techno', 'berlin', 'dnb', 'phonk', 'trap', 'y2010', 'euro90', 'dance', 'y2000'], SLOW = ['melodic', 'french', 'lofi', 'schlager', 'synth80', 's60', 'sw30', 'big40', 'tw20', 'disco70', 'summer', 'afro', 'reggaeton', 'y2020', 'rock50', 'western'];
   function revolt(p, full) {
     const c = JSON.parse(JSON.stringify(p)), ax = () => full || Math.random() < 0.7;
     if (ax()) c.bpm = Math.round(clamp(240 - p.bpm + (full ? 0 : rr(-8, 8)), 70, 175));
@@ -3733,4 +3749,43 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   const ta = c.querySelector('textarea'); let v = lsGet(KEY); if (v === null) v = def; ta.value = v;
   ta.addEventListener('input', () => { lsSet(KEY, ta.value); });
   ph.after(c);
+})();
+
+/* ---------- v126: Trend-Hit, Haptik ---------- */
+(function trendHit() {
+  const TR = ['melodic', 'french', 'ukg', 'hyper', 'afro', 'reggaeton', 'dance'];
+  $('#btn-trend').addEventListener('click', () => {
+    if (st.playing) stop(); megaHit();
+    const k = TR[Math.floor(Math.random() * TR.length)]; setStyle(k);
+    const bpm = Math.round(STYLES[k].bpm + (Math.random() * 8 - 4)); st.bpm = bpm; $('#bpm-slider').value = bpm; $('#bpm-val').textContent = bpm;
+    st.form = 'stream'; $('#song-form').value = 'stream'; setForm('stream'); regen(); play(true);
+    try { msg('🔥 Trend-Hit: ' + STYLES[k].name + ', ' + bpm + ' BPM, Hook zuerst, ca. 1:45.'); } catch (e) {}
+  });
+  let hap = true; try { hap = localStorage.getItem('musify-haptic') !== '0'; } catch (e) {}
+  const vib = ms => { try { if (hap && navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (!b) return; vib(b.classList.contains('play-btn') || b.id === 'jam-stopall' ? [12] : [6]); }, true);
+  const pad = document.getElementById('jam-stopall');
+  if (pad && pad.parentNode) { const t = document.createElement('button'); t.id = 'hap-tg'; t.textContent = hap ? '📳 Haptik: an' : '📳 Haptik: aus'; t.addEventListener('click', () => { hap = !hap; try { localStorage.setItem('musify-haptic', hap ? '1' : '0'); } catch (e) {} t.textContent = hap ? '📳 Haptik: an' : '📳 Haptik: aus'; vib(15); }); pad.parentNode.appendChild(t); }
+})();
+
+/* ---------- v126: Song-Code (Song als kurzer Code teilen/laden) ---------- */
+(function songCode() {
+  const host = document.getElementById('btn-trend'); if (!host || !host.parentNode) return;
+  const w = document.createElement('div'); w.style.cssText = 'display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;';
+  w.innerHTML = '<button id="sc-get" style="flex:1;min-width:140px">🔗 Song-Code erzeugen</button><input id="sc-in" placeholder="Song-Code einfügen" style="flex:2;min-width:140px;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel);color:var(--text)"><button id="sc-load" style="flex:1;min-width:120px">📥 Code laden</button><div id="sc-msg" style="width:100%;font-size:13px;opacity:.85"></div>';
+  host.parentNode.insertBefore(w, host.nextSibling);
+  const m = t => { document.getElementById('sc-msg').textContent = t; };
+  document.getElementById('sc-get').addEventListener('click', () => {
+    const c = ['M1', st.style, st.bpm, st.scaleIdx, st.seed >>> 0, st.form === 'random' ? activeForm() : st.form].join('.');
+    try { navigator.clipboard.writeText(c).then(() => m('Kopiert: ' + c + ' – schick ihn Freunden, sie fügen ihn bei „Code laden“ ein.'), () => m('Dein Code: ' + c)); } catch (e) { m('Dein Code: ' + c); }
+    document.getElementById('sc-in').value = c;
+  });
+  document.getElementById('sc-load').addEventListener('click', () => {
+    const p = document.getElementById('sc-in').value.trim().split('.');
+    if (p[0] !== 'M1' || p.length < 6 || !STYLES[p[1]] || !FORMS[p[5]]) { m('Dieser Code passt nicht. Er beginnt mit M1. und hat 6 Teile.'); return; }
+    if (st.playing) stop();
+    setStyle(p[1]); st.bpm = +p[2] || st.bpm; $('#bpm-slider').value = st.bpm; $('#bpm-val').textContent = st.bpm;
+    st.scaleIdx = +p[3] || 0; st.scaleLock = true; st.seed = +p[4] >>> 0; st.form = p[5]; $('#song-form').value = p[5]; setForm(p[5]);
+    regen(); m('Song geladen: ' + STYLES[p[1]].name + ', ' + st.bpm + ' BPM. Drück Play!'); play(true);
+  });
 })();
