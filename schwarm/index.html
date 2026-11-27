@@ -866,27 +866,30 @@ function exportJson() { saveFile(APP.id + '.json', new Blob([JSON.stringify({ ap
 
 
 /* ===== SCHWARM – Ein Schwarm spielt die Steine ===== */
-const SW = { n: 24, b: [], stones: [], tx: 0.5, ty: 0.4, hold: false, auto: true, wt: 0 };
+const SW = { n: 24, b: [], stones: [], tx: 0.5, ty: 0.4, hold: false, auto: true, wt: 0, shape: 0, fr: [0.12, 0.12, 0.76, 0.76], fd: null };
+function swFr() { const ph = playH(); return { x: SW.fr[0] * W, y: SW.fr[1] * ph, w: SW.fr[2] * W, h: SW.fr[3] * ph }; }
+function swIn(f, x, y) { return SW.shape === 2 ? ((x - f.x - f.w / 2) / (f.w / 2)) ** 2 + ((y - f.y - f.h / 2) / (f.h / 2)) ** 2 <= 1 : x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h; }
 const swDeg = y => clamp(Math.round(10 * (1 - y / playH())), 0, 10);
 function swAdd(x, y, inst) { if (SW.stones.length >= 40) SW.stones.shift(); SW.stones.push({ x, y, r: 26, inst, deg: swDeg(y), fl: 0, cd: 0 }); }
 function swNear(x, y) { return SW.stones.find(s => Math.hypot(s.x - x, s.y - y) < s.r + 10); }
 const SCHWARM = {
-  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.8', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
+  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.9', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
   claim: 'Ein Schwarm folgt dir. Wo er Steine berührt, klingt es.',
   tip: 'Kurz tippen = Stein setzen (Klang unten wählen) · Ziehen = Schwarm führen',
   tools: [
     { id: 'leader', e: '🐦', n: 'Führen', h: 160, hint: 'Führen – zieh den Finger, der Schwarm folgt' },
+    { id: 'frame', e: '🖼', n: 'Rahmen', h: 200, hint: 'Rahmen – zieh ein Rechteck auf, der Schwarm bleibt darin' },
     { id: 'stone', e: '🪨', n: 'Stein', h: 40, hint: 'Stein – tippe, er spielt den gewählten Klang' },
     { id: 'erase', e: '🧽', n: 'Radierer', h: 200, hint: 'Radierer – tippe einen Stein an' }
   ],
-  acts: [{ id: 'count', e: '🐝', n: 'Anzahl' }, { id: 'scatter', e: '💫', n: 'Streuen' }, { id: 'auto', e: '🧭', n: 'Auto-Flug' }, { id: 'zs', e: '🎲', n: 'Zufalls-Stein' }],
-  label(id) { return id === 'count' ? SW.n + ' Vögel' : id === 'auto' ? 'Auto-Flug ' + (SW.auto ? 'an' : 'aus') : null; },
-  act(a) { if (a === 'auto') { SW.auto = !SW.auto; toast('Auto-Flug ' + (SW.auto ? 'an – der Schwarm fliegt selbst' : 'aus')); } else if (a === 'zs') { const w = WORLDS[S.world], ph = playH(), pool = [...w.leads, ...w.leads, 'hat', 'snare', 'tabla', 'dhol', 'bell']; const n = 1 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) { const I = pick(pool.filter(k => IM[k])); swAdd(rnd(0.08, 0.92) * W, rnd(0.1, 0.9) * ph, I); } toast('Zufall: ' + n + ' neue Steine'); } else if (a === 'count') { SW.n = SW.n === 12 ? 24 : SW.n === 24 ? 48 : 12; toast(SW.n + ' Vögel'); } else if (a === 'scatter') { SW.b.forEach(b => { b.vx = rnd(-250, 250); b.vy = rnd(-250, 250); }); } },
-  down(x, y) { if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); SW.hold = true; SW.d0 = [x, y, performance.now()]; SW.mv = 0; } else if (S.tool === 'stone') { const s = swNear(x, y); if (!s) swAdd(x, y, S.inst); else SW.stones.splice(SW.stones.indexOf(s), 1); } else { const s = swNear(x, y); if (s) SW.stones.splice(SW.stones.indexOf(s), 1); } },
-  move(x, y) { if (SW.d0) SW.mv = Math.max(SW.mv, Math.hypot(x - SW.d0[0], y - SW.d0[1])); if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); } },
-  up(x, y) { SW.hold = false; const d = SW.d0; SW.d0 = null; if (d && S.tool === 'leader' && SW.mv < 14 && performance.now() - d[2] < 350 && !swNear(d[0], d[1])) { swAdd(d[0], d[1], S.inst); toast('Stein gesetzt – Klang: ' + (IM[S.inst] ? IM[S.inst].n : '')); } },
+  acts: [{ id: 'count', e: '🐝', n: 'Anzahl' }, { id: 'scatter', e: '💫', n: 'Streuen' }, { id: 'auto', e: '🧭', n: 'Auto-Flug' }, { id: 'shape', e: '⬜', n: 'Rahmen-Form' }, { id: 'zs', e: '🎲', n: 'Zufalls-Stein' }],
+  label(id) { return id === 'count' ? SW.n + ' Vögel' : id === 'shape' ? 'Rahmen: ' + ['aus', 'eckig', 'rund'][SW.shape] : id === 'auto' ? 'Auto-Flug ' + (SW.auto ? 'an' : 'aus') : null; },
+  act(a) { if (a === 'shape') { SW.shape = (SW.shape + 1) % 3; toast('Rahmen: ' + ['aus – freier Flug', 'eckig', 'rund'][SW.shape] + (SW.shape ? ' (Werkzeug 🖼 zum Aufziehen)' : '')); } else if (a === 'auto') { SW.auto = !SW.auto; toast('Auto-Flug ' + (SW.auto ? 'an – der Schwarm fliegt selbst' : 'aus')); } else if (a === 'zs') { const w = WORLDS[S.world], ph = playH(), pool = [...w.leads, ...w.leads, 'hat', 'snare', 'tabla', 'dhol', 'bell']; const n = 1 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) { const I = pick(pool.filter(k => IM[k])); swAdd(rnd(0.08, 0.92) * W, rnd(0.1, 0.9) * ph, I); } toast('Zufall: ' + n + ' neue Steine'); } else if (a === 'count') { SW.n = SW.n === 12 ? 24 : SW.n === 24 ? 48 : 12; toast(SW.n + ' Vögel'); } else if (a === 'scatter') { SW.b.forEach(b => { b.vx = rnd(-250, 250); b.vy = rnd(-250, 250); }); } },
+  down(x, y) { if (S.tool === 'frame') { SW.fd = [x, y, x, y]; } else if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); SW.hold = true; SW.d0 = [x, y, performance.now()]; SW.mv = 0; } else if (S.tool === 'stone') { const s = swNear(x, y); if (!s) swAdd(x, y, S.inst); else SW.stones.splice(SW.stones.indexOf(s), 1); } else { const s = swNear(x, y); if (s) SW.stones.splice(SW.stones.indexOf(s), 1); } },
+  move(x, y) { if (SW.fd) { SW.fd[2] = x; SW.fd[3] = y; } if (SW.d0) SW.mv = Math.max(SW.mv, Math.hypot(x - SW.d0[0], y - SW.d0[1])); if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); } },
+  up(x, y) { SW.hold = false; if (SW.fd) { const f = SW.fd; SW.fd = null; const w = Math.abs(f[2] - f[0]), h = Math.abs(f[3] - f[1]); if (w > 70 && h > 70) { const ph = playH(); SW.fr = [Math.min(f[0], f[2]) / W, Math.min(f[1], f[3]) / ph, w / W, h / ph]; if (!SW.shape) SW.shape = 1; toast('Rahmen gesetzt – ' + (SW.shape === 2 ? 'rund' : 'eckig')); } else toast('Zu klein – zieh ein größeres Feld auf'); return; } const d = SW.d0; SW.d0 = null; if (d && S.tool === 'leader' && SW.mv < 14 && performance.now() - d[2] < 350 && !swNear(d[0], d[1])) { swAdd(d[0], d[1], S.inst); toast('Stein gesetzt – Klang: ' + (IM[S.inst] ? IM[S.inst].n : '')); } },
   update(dt) {
-    const ph = playH(), tx = SW.tx * W, ty = SW.ty * ph, B = SW.b;
+    const ph = playH(); let tx = SW.tx * W, ty = SW.ty * ph; const B = SW.b; if (SW.shape) { const f = swFr(); if (!swIn(f, tx, ty)) { tx = clamp(tx, f.x + 10, f.x + f.w - 10); ty = clamp(ty, f.y + 10, f.y + f.h - 10); if (!swIn(f, tx, ty)) { tx = f.x + f.w / 2; ty = f.y + f.h / 2; } } }
     while (B.length < SW.n) B.push({ x: tx + rnd(-40, 40), y: ty + rnd(-40, 40), vx: rnd(-60, 60), vy: rnd(-60, 60) }); B.length = SW.n;
     let cx = 0, cy = 0, avx = 0, avy = 0; B.forEach(b => { cx += b.x; cy += b.y; avx += b.vx; avy += b.vy; }); cx /= B.length; cy /= B.length; avx /= B.length; avy /= B.length;
     if (SW.auto && !SW.hold) { SW.wt -= dt; if (SW.wt <= 0) { SW.wt = rnd(1.5, 3.5); const st = SW.stones.length && Math.random() < 0.6 ? pick(SW.stones) : null; SW.tx = st ? clamp(st.x / W + rnd(-0.08, 0.08), 0.05, 0.95) : rnd(0.1, 0.9); SW.ty = st ? clamp(st.y / ph + rnd(-0.08, 0.08), 0.05, 0.95) : rnd(0.1, 0.9); } }
@@ -896,16 +899,18 @@ const SCHWARM = {
       B.forEach(o => { if (o !== b) { const dx = b.x - o.x, dy = b.y - o.y, d = Math.hypot(dx, dy); if (d < 20 && d > 0.1) { ax += dx / d * 260; ay += dy / d * 260; } } });
       b.vx += ax * dt; b.vy += ay * dt; const sp = Math.hypot(b.vx, b.vy) || 1, k = clamp(sp, 70, 230) / sp; b.vx *= k; b.vy *= k; b.x += b.vx * dt; b.y += b.vy * dt;
       if (b.x < 6) { b.x = 6; b.vx = Math.abs(b.vx); } if (b.x > W - 6) { b.x = W - 6; b.vx = -Math.abs(b.vx); } if (b.y < 6) { b.y = 6; b.vy = Math.abs(b.vy); } if (b.y > ph - 6) { b.y = ph - 6; b.vy = -Math.abs(b.vy); }
+      if (SW.shape) { const f = swFr(); if (SW.shape === 1) { if (b.x < f.x) { b.x = f.x; b.vx = Math.abs(b.vx); } if (b.x > f.x + f.w) { b.x = f.x + f.w; b.vx = -Math.abs(b.vx); } if (b.y < f.y) { b.y = f.y; b.vy = Math.abs(b.vy); } if (b.y > f.y + f.h) { b.y = f.y + f.h; b.vy = -Math.abs(b.vy); } } else { const a = f.w / 2, c = f.h / 2, ex = (b.x - f.x - a) / a, ey = (b.y - f.y - c) / c, q = ex * ex + ey * ey; if (q > 1) { let nx = ex / a, ny = ey / c; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl; const dot = b.vx * nx + b.vy * ny; if (dot > 0) { b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny; } const k = 1 / Math.sqrt(q); b.x = f.x + a + (b.x - f.x - a) * k * 0.995; b.y = f.y + c + (b.y - f.y - c) * k * 0.995; } } }
       SW.stones.forEach(s => { const dx = b.x - s.x, dy = b.y - s.y, d = Math.hypot(dx, dy); if (d < s.r + 4) { const nx = dx / (d || 1), ny = dy / (d || 1), dot = b.vx * nx + b.vy * ny; if (dot < 0) { b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny; } b.x = s.x + nx * (s.r + 5); b.y = s.y + ny * (s.r + 5); if (s.cd <= 0) { s.cd = 0.12; s.fl = 1; qnote(s.inst, s.deg, clamp(0.5 + Math.abs(dot) / 400, 0.5, 1)); } } });
     });
   },
   draw(dt, ph) {
+    if (SW.shape || SW.fd) { const f = SW.fd ? { x: Math.min(SW.fd[0], SW.fd[2]), y: Math.min(SW.fd[1], SW.fd[3]), w: Math.abs(SW.fd[2] - SW.fd[0]), h: Math.abs(SW.fd[3] - SW.fd[1]) } : swFr(); g.save(); g.strokeStyle = hsl(160, 90, 65, SW.fd ? 0.9 : 0.6); g.lineWidth = 3; g.shadowColor = hsl(160, 100, 60); g.shadowBlur = 14; g.setLineDash(SW.fd ? [8, 6] : []); g.beginPath(); if (SW.shape === 2) g.ellipse(f.x + f.w / 2, f.y + f.h / 2, Math.max(1, f.w / 2), Math.max(1, f.h / 2), 0, 0, 7); else g.rect(f.x, f.y, f.w, f.h); g.stroke(); g.restore(); }
     const tx = SW.tx * W, ty = SW.ty * ph; g.strokeStyle = hsl(160, 80, 70, SW.hold ? 0.7 : 0.25); g.lineWidth = 2; g.beginPath(); g.arc(tx, ty, 16, 0, 7); g.stroke();
     SW.stones.forEach(s => { const I = IM[s.inst]; const gg = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 1.4); gg.addColorStop(0, hsl(I.h, 60, 60 + 25 * s.fl)); gg.addColorStop(0.7, hsl(I.h, 70, 35 + 20 * s.fl)); gg.addColorStop(1, hsl(I.h, 70, 30, 0)); g.fillStyle = gg; g.beginPath(); g.arc(s.x, s.y, s.r * 1.4, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = '16px system-ui'; g.textAlign = 'center'; g.fillText(I.e, s.x, s.y + 6); });
     SW.b.forEach(b => { const a = Math.atan2(b.vy, b.vx); g.fillStyle = hsl(160, 85, 68, 0.9); g.beginPath(); g.moveTo(b.x + Math.cos(a) * 7, b.y + Math.sin(a) * 7); g.lineTo(b.x + Math.cos(a + 2.5) * 5, b.y + Math.sin(a + 2.5) * 5); g.lineTo(b.x + Math.cos(a - 2.5) * 5, b.y + Math.sin(a - 2.5) * 5); g.closePath(); g.fill(); });
   },
-  getState() { return { au: SW.auto ? 1 : 0, n: SW.n, s: SW.stones.map(s => [r3(s.x / W), r3(s.y / playH()), s.inst]) }; },
-  setState(d) { SW.n = d.n || 24; SW.auto = d.au == null ? true : !!d.au; SW.stones = (d.s || []).filter(a => IM[a[2]]).map(a => ({ x: a[0] * W, y: a[1] * playH(), r: 26, inst: a[2], deg: swDeg(a[1] * playH()), fl: 0, cd: 0 })); },
+  getState() { return { sh: SW.shape, fr: SW.fr.map(r3), au: SW.auto ? 1 : 0, n: SW.n, s: SW.stones.map(s => [r3(s.x / W), r3(s.y / playH()), s.inst]) }; },
+  setState(d) { SW.shape = d.sh | 0; if (d.fr && d.fr.length === 4) SW.fr = d.fr; SW.n = d.n || 24; SW.auto = d.au == null ? true : !!d.au; SW.stones = (d.s || []).filter(a => IM[a[2]]).map(a => ({ x: a[0] * W, y: a[1] * playH(), r: 26, inst: a[2], deg: swDeg(a[1] * playH()), fl: 0, cd: 0 })); },
   clear() { SW.stones = []; },
   dice() { SW.stones = []; const w = WORLDS[S.world], ph = playH(), I = [...w.leads, ...w.leads, w.bass === 'tuba' ? 'tuba' : 'bass', pick(['tabla', 'dhol']), 'hat', 'snare']; I.forEach((inst, i) => swAdd(rnd(0.1, 0.9) * W, rnd(0.12, 0.88) * ph, inst)); SW.n = 24; },
   morph(lv) {
