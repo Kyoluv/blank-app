@@ -477,7 +477,7 @@ function runStep(s, t, abs) {
     else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, S.bassOv || w.bass, 0.24, 0.4);
   }
   if (s % 4 === 0) S.beatFlash = 1;
-  if (s === 0 && S.morph && (S.morph === 2 || bar % 2 === 1)) morphStep();
+  if (s === 0 && S.morph && mDue(bar)) morphStep();
   if (APP.step) APP.step(abs, s, t, bar);
 }
 function tick() {
@@ -485,11 +485,14 @@ function tick() {
   while (S.nextT < ctx.currentTime + 0.14) { runStep(S.step % 16, S.nextT, S.step); S.nextT += stepDur(); S.step++; if (S.step % 16 === 0) S.bar++; }
 }
 /* ---------- Morph: 3 Stufen ---------- */
+function mDue(bar) { const L = S.morph || 0; return L >= 3 || (L === 2 && bar % 2 === 1) || (L === 1 && bar % 4 === 3); }
+const MREPS = [0, 1, 1, 1, 2, 2, 3, 3, 4];
+function morphMsg() { const L = S.morph; toast(L ? 'Morph Stufe ' + L + ' von 8' + (L <= 2 ? ' – ganz sanft' : L <= 4 ? ' – spürbar' : ' – kräftig, große Sprünge') : 'Morph aus'); }
 function morphStep() {
   const lv = S.morph; S.mc++;
-  const reps = lv === 2 ? 2 : 1; for (let i = 0; i < reps; i++) { try { APP.morph(lv); } catch (e) {} }
-  if (S.mc % (lv === 2 ? 3 : 6) === 0) S.shift = (S.shift + 1) % 4;
-  if (lv === 2 && S.mc % 4 === 0) { // großes Ereignis
+  const reps = MREPS[lv]; for (let i = 0; i < reps; i++) { try { APP.morph(lv); } catch (e) {} }
+  if (S.mc % (lv >= 5 ? 3 : 6) === 0) S.shift = (S.shift + 1) % 4;
+  if (lv >= 6 && S.mc % 4 === 0) { // großes Ereignis
     const k = S.mc / 4 % 3;
     if (k === 1) { S.bpm = clamp(S.bpm + pick([-8, -5, 5, 8]), 90, 160); }
     else if (k === 2) { S.patOv = pick(Object.keys(PATS)); S.patEnd = S.bar + 2; toast('Morph: Groove wechselt kurz'); }
@@ -587,7 +590,7 @@ function act(a) {
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'clear') { APP.clear(); toast('Leer'); }
   else if (a === 'dice') { APP.dice(); toast('Neu gewürfelt in „' + WORLDS[S.world].n + '“'); }
-  else if (a === 'morph') { S.morph = (S.morph + 1) % 3; toast(['Morph aus', 'Morph leicht – kleine Änderungen alle 2 Takte', 'Morph stark – jeden Takt deutliche Sprünge'][S.morph]); }
+  else if (a === 'morph') { S.morph = (S.morph + 1) % 9; morphMsg(); }
   else if (a === 'gm') gmCycle();
   else if (a === 'mic') recordMic();
   else if (a === 'rec') record(0);
@@ -631,7 +634,7 @@ function draw(dt) {
   g.strokeStyle = hsl(w.hue, 60, 50, 0.35 + 0.3 * bf); g.lineWidth = 2; g.strokeRect(1, 1, W - 2, ph - 2);
   APP.draw(dt, ph, now);
   g.textAlign = 'left'; g.fillStyle = hsl(APP.hue, 90, 75); g.font = '800 15px system-ui'; g.fillText(APP.name.toUpperCase(), 12, 46);
-  g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM` + (S.morph ? ' · 🧬 ' + MORPH_N[S.morph] : ''), 12, 64);
+  g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM` + (S.morph ? ' · 🧬 ' + S.morph + '/8' : ''), 12, 64);
   g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(APP.version, W - 12, 44); g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', W - 12, 64); S.bpmBox = { x: W - 82, y: 50, w: 82, h: 20 };
   if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / 1:00' : ''), W - 98, 44); }
   if (S.micOn) { g.fillStyle = '#ff2a55'; g.font = '800 18px system-ui'; g.textAlign = 'center'; g.fillText('🎙 JETZT SINGEN …', W / 2, ph / 2); }
@@ -643,7 +646,7 @@ function draw(dt) {
   dock.forEach(d => {
     const on = toolActive(d), hue = d.h != null ? d.h : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
-    const lab = d.id === 'morph' ? 'Morph ' + MORPH_N[S.morph] : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund aus') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
+    const lab = d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund aus') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(lab, d.x + d.w / 2, y0 + d.h - 7, d.w - 4);
   });
@@ -739,7 +742,7 @@ function pAdd(f, inst) {
 }
 function pNear(x, y, ph, d) { let b = null, bd = d; PEN.pl.forEach(p => { const q = pXY(p, ph), dd = Math.hypot(q.x - x, q.y - y); if (dd < bd) { bd = dd; b = p; } }); return b; }
 const PENDEL = {
-  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 1.2', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
+  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 1.3', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
   claim: 'Pendel in verschiedenen Längen – sie laufen auseinander und finden wieder zusammen.',
   tip: 'Tippen = Pendel (links langsam, rechts schnell) · Pendel nach oben/unten ziehen = Länge',
   tools: [
@@ -793,11 +796,11 @@ const PENDEL = {
   },
   morph(lv) {
     const P = PEN.pl; if (!P.length) return; const p = pick(P), k = Math.random();
-    if (k < 0.35) { const f = clamp(p.f + pick(lv === 2 ? [-3, -2, 2, 3] : [-1, 1]), 3, 16); if (!P.find(q => q.f === f)) p.f = f; }
+    if (k < 0.35) { const f = clamp(p.f + pick(lv >= 5 ? [-3, -2, 2, 3] : [-1, 1]), 3, 16); if (!P.find(q => q.f === f)) p.f = f; }
     else if (k < 0.65) p.inst = swapInst(p.inst);
     else if (k < 0.82) pAdd(Math.floor(rnd(3, 17)), pick(WORLDS[S.world].leads));
     else if (P.length > 4) P.splice(P.indexOf(p), 1);
-    if (lv === 2 && Math.random() < 0.15) PEN.p0 = Math.ceil(S.stepF / 16) * 16;
+    if (lv >= 6 && Math.random() < 0.15) PEN.p0 = Math.ceil(S.stepF / 16) * 16;
   }
 };
 boot(PENDEL);
