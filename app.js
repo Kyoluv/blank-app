@@ -3697,3 +3697,14 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   setInterval(() => { if (document.body.classList.contains('tl')) document.querySelectorAll('input[type=range]').forEach(fillR); }, 500);
   try { applyView(); } catch (e) {}
 })();
+
+/* ---------- v123: angepinnte Notiz ganz oben ---------- */
+(function pinNote() {
+  const KEY = 'musify-pinnote', def = '📌 Offen: Verbreitung der App (Teilen, Bewertung, Abzeichen, Tagessong). Später wieder aufgreifen.';
+  const ph = document.getElementById('pagehead'); if (!ph) return;
+  const c = document.createElement('div'); c.className = 'card'; c.id = 'c-pin'; c.style.cssText = 'padding:8px 10px;margin-top:8px;';
+  c.innerHTML = '<div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">📌 Meine Notiz (bleibt auf diesem Gerät gespeichert)</div><textarea id="pin-txt" rows="2" maxlength="500" placeholder="Schreibe hier etwas auf, das du nicht vergessen willst." style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.85rem;resize:vertical;"></textarea>';
+  const ta = c.querySelector('textarea'); let v = lsGet(KEY); if (v === null) v = def; ta.value = v;
+  ta.addEventListener('input', () => { lsSet(KEY, ta.value); });
+  ph.after(c);
+})();

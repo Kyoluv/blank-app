@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 122</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 123</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -4314,6 +4314,17 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   document.addEventListener('input', e => { if (e.target && e.target.type === 'range') fillR(e.target); }, true);
   setInterval(() => { if (document.body.classList.contains('tl')) document.querySelectorAll('input[type=range]').forEach(fillR); }, 500);
   try { applyView(); } catch (e) {}
+})();
+
+/* ---------- v123: angepinnte Notiz ganz oben ---------- */
+(function pinNote() {
+  const KEY = 'musify-pinnote', def = '📌 Offen: Verbreitung der App (Teilen, Bewertung, Abzeichen, Tagessong). Später wieder aufgreifen.';
+  const ph = document.getElementById('pagehead'); if (!ph) return;
+  const c = document.createElement('div'); c.className = 'card'; c.id = 'c-pin'; c.style.cssText = 'padding:8px 10px;margin-top:8px;';
+  c.innerHTML = '<div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">📌 Meine Notiz (bleibt auf diesem Gerät gespeichert)</div><textarea id="pin-txt" rows="2" maxlength="500" placeholder="Schreibe hier etwas auf, das du nicht vergessen willst." style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.85rem;resize:vertical;"></textarea>';
+  const ta = c.querySelector('textarea'); let v = lsGet(KEY); if (v === null) v = def; ta.value = v;
+  ta.addEventListener('input', () => { lsSet(KEY, ta.value); });
+  ph.after(c);
 })();
 
 </script>
