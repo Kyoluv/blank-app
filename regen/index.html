@@ -501,7 +501,7 @@ const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', '
 const TABS = ['Klänge', 'Werkzeuge', 'Raum', 'Szenen', 'Mixer', 'Sichern', 'Jam'];
 const MORPH_N = ['aus', 'leicht', 'stark'];
 const S = {
-  world: 0, bpm: 130, inst: 'oud', tool: '', reg: 2, pulse: true, playing: true, tab: 0, morph: 0, shift: 0, mc: 0, toasts: [], voice: null, started: false, hint: 0,
+  world: 0, bpm: 130, inst: 'oud', tool: '', reg: 2, harm: 2, pulse: true, playing: true, tab: 0, morph: 0, shift: 0, mc: 0, toasts: [], voice: null, started: false, hint: 0,
   scOv: null, solo: null, scenes: [null, null, null, null], sover: false, sauto: false, sceneI: -1, q: [],
   step: 0, stepF: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null, patOv: null, patEnd: 0
 };
@@ -529,6 +529,7 @@ function initAudio() {
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
+const HARMP = [0.3, 0.6, 0.85, 1], HARMN = ['frei', 'normal', 'harmonisch', 'rein'];
 const REGMAX = [99999, 800, 560, 400], REGHS = [-8, -10, -12, -15], REGN = ['normal', 'etwas weniger', 'weniger', 'viel weniger'];
 function applyReg() { if (bus && bus.hs) bus.hs.gain.value = REGHS[S.reg]; }
 const sc = () => SCALES[S.scOv != null ? S.scOv : WORLDS[S.world].sc];
@@ -549,7 +550,7 @@ function playInst(inst, deg, vel, t, root, oct) {
     return;
   }
   const A = [0, 2, 4, 7]; let d = deg;
-  if (!S.noSnap && Math.random() < 0.6) { let best = d, bd = 99; for (let o = -7; o <= 14; o += 7) A.forEach(a => { const c = root + a + o; if (Math.abs(c - d) < bd) { bd = Math.abs(c - d); best = c; } }); d = best; }
+  if (!S.noSnap && Math.random() < HARMP[S.harm]) { let best = d, bd = 99; for (let o = -7; o <= 14; o += 7) A.forEach(a => { const c = root + a + o; if (Math.abs(c - d) < bd) { bd = Math.abs(c - d); best = c; } }); d = best; }
   if (inst.k === 'voice') {
     if (!S.voice) return; const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = S.voice; src.playbackRate.value = Math.max(0.4, Math.min(3.2, noteF(d, oct) / sc().root));
     gn.gain.value = 0.9 * (0.5 + 0.5 * vel); src.connect(gn); gn.connect(o); src.start(t); return;
@@ -689,7 +690,7 @@ function buildItems() {
     ...APP.tools.map(t => ({ tab: 1, kind: 'tool', id: t.id, e: t.e, n: t.n, h: t.h })),
     ...(APP.acts || []).map(a => ({ tab: 1, kind: 'act', id: a.id, e: a.e, n: a.n })),
     { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Hintergrund' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'scale', e: '🎼', n: 'Skala' }, { tab: 2, kind: 'act', id: 'reg', e: '🔉', n: 'Höhen' }, { tab: 2, kind: 'act', id: 'solo', e: '🎧', n: 'Solo' }, { tab: 2, kind: 'act', id: 'rand', e: '🎰', n: 'Zufall' }, { tab: 2, kind: 'act', id: 'fill', e: '💥', n: 'Fill' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Hintergrund' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'scale', e: '🎼', n: 'Skala' }, { tab: 2, kind: 'act', id: 'reg', e: '🔉', n: 'Höhen' }, { tab: 2, kind: 'act', id: 'harm', e: '🎶', n: 'Harmonie' }, { tab: 2, kind: 'act', id: 'solo', e: '🎧', n: 'Solo' }, { tab: 2, kind: 'act', id: 'rand', e: '🎰', n: 'Zufall' }, { tab: 2, kind: 'act', id: 'fill', e: '💥', n: 'Fill' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
     { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' }, { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
     { tab: 5, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 5, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 5, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 5, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 5, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
   ];
@@ -716,6 +717,7 @@ function act(a) {
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'undo') undo();
   else if (a === 'scale') { S.scOv = S.scOv == null ? 0 : (S.scOv + 1 >= SCALES.length ? null : S.scOv + 1); toast(S.scOv == null ? 'Tonleiter: vom Stil' : 'Tonleiter: ' + SCALES[S.scOv].name); }
+  else if (a === 'harm') { S.harm = (S.harm + 1) % 4; toast('Harmonie: ' + HARMN[S.harm] + (S.harm === 3 ? ' – alle Töne passen zum Akkord' : '')); }
   else if (a === 'reg') { S.reg = (S.reg + 1) % 4; applyReg(); toast('Höhen: ' + REGN[S.reg]); }
   else if (a === 'solo') { S.solo = S.solo ? null : selInst(); applyMix(); toast(S.solo ? 'Solo: nur ' + IM[S.solo].n + ' (Groove aus)' : 'Solo aus'); }
   else if (a === 'rand') { pushHist(); S.world = Math.floor(Math.random() * WORLDS.length); S.bpm = WORLDS[S.world].bpm; S.scOv = null; S.gp = null; S.bassOv = null; APP.dice(); toast('Zufall: ' + WORLDS[S.world].n); }
@@ -783,7 +785,7 @@ function draw(dt) {
   dock.forEach(d => {
     const on = toolActive(d), hue = d.h != null ? d.h : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
-    const lab = d.id === 'scale' ? (S.scOv == null ? 'Skala: Stil' : SCALES[S.scOv].name) : d.id === 'reg' ? (S.reg ? 'Höhen −' + S.reg : 'Höhen voll') : d.id === 'pulse' ? (S.pulse ? 'Musik an' : 'Musik aus') : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
+    const lab = d.id === 'scale' ? (S.scOv == null ? 'Skala: Stil' : SCALES[S.scOv].name) : d.id === 'harm' ? 'Harmonie: ' + HARMN[S.harm] : d.id === 'reg' ? (S.reg ? 'Höhen −' + S.reg : 'Höhen voll') : d.id === 'pulse' ? (S.pulse ? 'Musik an' : 'Musik aus') : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(lab, d.x + d.w / 2, y0 + d.h - 7, d.w - 4);
   });
@@ -871,7 +873,7 @@ function rgAdd(x1, y1, x2, y2, inst) { const L = Math.hypot(x2 - x1, y2 - y1); i
 const rgDist = (px, py, s) => { const ex = s.x2 - s.x1, ey = s.y2 - s.y1, u = clamp(((px - s.x1) * ex + (py - s.y1) * ey) / (ex * ex + ey * ey || 1), 0, 1); return Math.hypot(px - (s.x1 + ex * u), py - (s.y1 + ey * u)); };
 function rgErase(x, y) { RG.lines = RG.lines.filter(s => rgDist(x, y, s) > 22); }
 const REGEN = {
-  id: 'regen', name: 'Musify Regen', version: 'Regen 1.4', hue: 200, world: 6, inst: 'bell', defaultTool: 'line',
+  id: 'regen', name: 'Musify Regen', version: 'Regen 1.5', hue: 200, world: 6, inst: 'bell', defaultTool: 'line',
   claim: 'Es regnet Töne. Jede Linie ist ein Instrument.',
   tip: 'Ziehen = Linie (länger = tiefer) · Tropfen treffen sie und spielen · Wetter ändert die Dichte',
   tools: [
