@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 6.4';
+const VERSION = 'Cosmos 6.5';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -551,7 +551,7 @@ function morphStep() {
   else if (k === 'stretch' && st && !st.rot) { const f = r(0.82, 1.2), mx = (st.x1 + st.x2) / 2, my = (st.y1 + st.y2) / 2; st.tgt = { x1: mx + (st.x1 - mx) * f, y1: my + (st.y1 - my) * f, x2: mx + (st.x2 - mx) * f, y2: my + (st.y2 - my) * f }; }
   else if (k === 'swap' && st) { const kind = IM[st.inst].k, pool = INST.filter(i => i.k === kind && i.id !== st.inst && (i.k !== 'voice')); if (pool.length) st.inst = (kind === 'lead' && Math.random() < 0.6 ? WORLDS[S.world].leads.filter(l => l !== st.inst) : pool.map(i => i.id)).sort(() => Math.random() - 0.5)[0] || st.inst; }
   else if (k === 'nudge') { const L = [...S.portals, ...S.fields, ...S.mags]; if (L.length) { const o = pick(L); o.x += r(-0.05, 0.05) * W; o.y += r(-0.05, 0.05) * ph; } }
-  else if (k === 'ball') { if (S.balls.length < 9) spawnBall(r(0.1, 0.9) * W, r(0.1, 0.8) * ph); else S.balls.shift(); }
+  else if (k === 'ball') { if (S.balls.length < 8) spawnBall(r(0.1, 0.9) * W, r(0.1, 0.8) * ph); else S.balls.shift(); }
   else if (k === 'chord') { S.shift = (S.shift + 1) % 4; }
   S.strings.forEach(x => { x.x1 = Math.max(6, Math.min(W - 6, x.x1)); x.x2 = Math.max(6, Math.min(W - 6, x.x2)); });
   save();
@@ -716,7 +716,7 @@ function dice() {
   w.leads.forEach(l => mk(l, 1, 0.18, 0.5)); mk(w.bass === 'tuba' ? 'tuba' : 'bass', 1, 0.4, 0.7); mk(['tabla', 'dhol', 'hat'][Math.floor(Math.random() * 3)], 2, 0.2, 0.4); mk('snare', 1, 0.25, 0.4);
   for (let i = 0; i < 2; i++) addPortal(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(30, 50));
   addField(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(60, 90), ['fast', 'echo', 'up'][Math.floor(Math.random() * 3)]); addMag(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), Math.random() < 0.6 ? 1 : -1);
-  for (let i = 0; i < 6; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
+  for (let i = 0; i < 5; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
 }
 
 /* ---------- Eingabe ---------- */
@@ -732,7 +732,7 @@ function distSeg(px, py, s) { const ex = s.x2 - s.x1, ey = s.y2 - s.y1, u = Math
 function hitRect(list, x, y) { return list.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h); }
 function onDown(ev) {
   ev.preventDefault(); const x = ev.clientX, y = ev.clientY;
-  if (!S.started) { S.started = true; initAudio(); ctx.resume(); if (!S.strings.length && !S.shared) dice(); else { for (let i = 0; i < 6; i++) spawnBall(Math.random() * W, Math.random() * playH() * 0.8 + 20); } return; }
+  if (!S.started) { S.started = true; initAudio(); ctx.resume(); if (!S.strings.length && !S.shared) dice(); else { for (let i = 0; i < 5; i++) spawnBall(Math.random() * W, Math.random() * playH() * 0.8 + 20); } return; }
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const top = H - dockH();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
