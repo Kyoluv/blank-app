@@ -55,10 +55,21 @@ function ksBuf(ctx, freq, len, bright) {
 const DIST = (() => { const c = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; c[i] = Math.tanh(x * 1.7) / Math.tanh(1.7); } return c; })();
 const STEPCURVE = (() => { const c = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; c[i] = Math.round(x * 6) / 6; } return c; })();
 
+const KITS = {
+  tight: { kf: 165, kt: 46, kd: 0.32, sf: 2000, sd: 0.2, hf: 6000, hd: 0.045, hv: 1, snr: 'clap' },
+  deep: { kf: 130, kt: 36, kd: 0.62, sf: 1500, sd: 0.3, hf: 7500, hd: 0.03, hv: 0.8, snr: 'clap' },
+  punch: { kf: 210, kt: 52, kd: 0.2, sf: 2200, sd: 0.14, hf: 8500, hd: 0.035, hv: 1.1, snr: 'clap' },
+  tabla: { kf: 118, kt: 88, kd: 0.28, sf: 3400, sd: 0.07, hf: 9500, hd: 0.03, hv: 0.5, snr: 'rim' },
+  dry: { kf: 105, kt: 52, kd: 0.22, sf: 1100, sd: 0.14, hf: 4200, hd: 0.05, hv: 0.9, snr: 'snare' },
+  wood: { kf: 150, kt: 62, kd: 0.2, sf: 3000, sd: 0.08, hf: 5500, hd: 0.04, hv: 0.8, snr: 'rim' },
+  rock: { kf: 140, kt: 55, kd: 0.3, sf: 2600, sd: 0.22, hf: 7000, hd: 0.06, hv: 1, snr: 'snare' },
+  soft: { kf: 95, kt: 50, kd: 0.4, sf: 900, sd: 0.25, hf: 4000, hd: 0.08, hv: 0.6, snr: 'snare' }
+};
+let KIT = KITS.tight;
 const V = {
   kick(ctx, out, t, v = 1) {
-    const o = ctx.createOscillator(), g = envGain(ctx, t, 0.002, v, 0.32);
-    o.frequency.setValueAtTime(165, t); o.frequency.exponentialRampToValueAtTime(46, t + 0.12);
+    const o = ctx.createOscillator(), g = envGain(ctx, t, 0.002, v, KIT.kd);
+    o.frequency.setValueAtTime(KIT.kf, t); o.frequency.exponentialRampToValueAtTime(KIT.kt, t + 0.12);
     o.connect(g).connect(out); o.start(t); o.stop(t + 0.42);
     const o2 = ctx.createOscillator(), g2 = envGain(ctx, t, 0.004, 0.3 * v, 0.34);
     o2.frequency.setValueAtTime(75, t); o2.frequency.exponentialRampToValueAtTime(48, t + 0.1); o2.connect(g2).connect(out); o2.start(t); o2.stop(t + 0.5);
@@ -70,17 +81,18 @@ const V = {
     o.frequency.value = 42; o.connect(g).connect(out); o.start(t); o.stop(t + 0.6);
   },
   snare(ctx, out, t, v = 1, clap = false) {
+    if (clap && KIT.snr !== 'clap') { if (KIT.snr === 'rim') { const n = noiseSrc(ctx, t, 0.1), f = ctx.createBiquadFilter(), g = envGain(ctx, t, 0.001, 0.8 * v, KIT.sd); f.type = 'bandpass'; f.frequency.value = KIT.sf; f.Q.value = 2.5; n.connect(f).connect(g).connect(out); const o = ctx.createOscillator(), og = envGain(ctx, t, 0.001, 0.35 * v, 0.05); o.type = 'triangle'; o.frequency.value = 480; o.connect(og).connect(out); o.start(t); o.stop(t + 0.1); return; } clap = false; v *= 1.6; }
     const bursts = clap ? [0, 0.011, 0.022, 0.034] : [0];
     bursts.forEach((dt, i) => {
-      const n = noiseSrc(ctx, t + dt, 0.3), f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = clap ? 1400 : 2000; f.Q.value = 0.8;
-      const g = envGain(ctx, t + dt, 0.002, 0.9 * v, i === bursts.length - 1 ? 0.2 : 0.02);
+      const n = noiseSrc(ctx, t + dt, 0.3), f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = clap ? 1400 : KIT.sf; f.Q.value = 0.8;
+      const g = envGain(ctx, t + dt, 0.002, 0.9 * v, i === bursts.length - 1 ? Math.max(KIT.sd, 0.12) : 0.02);
       n.connect(f).connect(g).connect(out);
     });
     if (!clap) { const o = ctx.createOscillator(), g = envGain(ctx, t, 0.002, 0.4 * v, 0.09); o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(130, t + 0.08); o.connect(g).connect(out); o.start(t); o.stop(t + 0.15); }
   },
   hat(ctx, out, t, v = 0.3, open = false) {
-    const n = noiseSrc(ctx, t, 0.3), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000;
-    const g = envGain(ctx, t, 0.001, v, open ? 0.2 : 0.045); n.connect(f).connect(g).connect(out);
+    const n = noiseSrc(ctx, t, 0.3), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = KIT.hf;
+    const g = envGain(ctx, t, 0.001, v * KIT.hv, open ? 0.2 : KIT.hd); n.connect(f).connect(g).connect(out);
   },
   bass(ctx, out, t, freq, dur, type, v = 0.5, sub = 0) {
     if (sub) { const so = ctx.createOscillator(), sg = envGain(ctx, t, 0.006, v * sub, dur * 1.15); so.type = 'sine'; so.frequency.value = freq; so.connect(sg).connect(out); so.start(t); so.stop(t + dur * 1.15 + 0.05); }
@@ -116,6 +128,14 @@ const V = {
     o.connect(f).connect(g).connect(out); o.start(t); o.stop(t + dur + 0.05);
   },
 
+  chord(ctx, out, t, freqs, dur, kind, v = 0.1) {
+    const f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = 'lowpass'; f.Q.value = 0.7;
+    const att = kind === 'pad' ? Math.min(0.6, dur * 0.3) : 0.008, ty = kind === 'pad' ? 'triangle' : kind === 'arp' ? 'square' : 'sawtooth';
+    f.frequency.setValueAtTime(kind === 'pad' ? 700 : kind === 'arp' ? 1800 : 1400, t); if (kind !== 'pad') f.frequency.exponentialRampToValueAtTime(400, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + att); g.gain.setValueAtTime(v, t + Math.max(att, dur * 0.6)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.1);
+    freqs.forEach((fr, i) => { const o = ctx.createOscillator(); o.type = ty; o.frequency.value = fr; o.detune.value = (i % 2 ? 5 : -5); o.connect(f); o.start(t); o.stop(t + dur + 0.2); });
+    f.connect(g).connect(out);
+  },
   tom(ctx, out, t, v = 1, kind) {
     if (kind === 'tabla') {
       const o = ctx.createOscillator(), g = envGain(ctx, t, 0.002, 0.7 * v, 0.35); o.type = 'sine'; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(110, t + 0.3); o.connect(g).connect(out); o.start(t); o.stop(t + 0.45);
@@ -353,21 +373,34 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 const WORLDS = [
-  { n: 'Schlager-Techno', sc: 1, bpm: 130, bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'], pat: 'four' },
-  { n: 'Bollywood', sc: 15, bpm: 118, bass: 'tuba', prog: [0, 0, 3, 0], hue: 320, leads: ['shehnai', 'santoor', 'bansuri'], pat: 'four' },
-  { n: 'Raga-Nacht', sc: 18, bpm: 112, bass: 'saw', prog: [0, 0, 1, 0], hue: 265, leads: ['sitar', 'bansuri', 'santoor'], pat: 'four' },
-  { n: 'Orient-Club', sc: 16, bpm: 122, bass: '808', prog: [0, 3, 0, 4], hue: 170, leads: ['oud', 'shehnai', 'bell'], pat: 'four' },
-  { n: 'Balkan-Party', sc: 14, bpm: 128, bass: 'tuba', prog: [0, 3, 4, 0], hue: 8, leads: ['brass', 'oud', 'bell'], pat: 'four' },
-  { n: 'Techno-Kern', sc: 0, bpm: 134, bass: 'saw', prog: [0, 5, 3, 4], hue: 195, leads: ['supersaw', 'bell', 'oud'], pat: 'four' },
-  { n: 'Disco', sc: 0, bpm: 118, bass: 'walk', prog: [0, 5, 3, 4], hue: 300, leads: ['brass', 'bell', 'oud'], pat: 'disco' },
-  { n: 'House', sc: 11, bpm: 124, bass: 'saw', prog: [0, 3, 0, 4], hue: 215, leads: ['bell', 'supersaw', 'brass'], pat: 'four' },
-  { n: 'Trap', sc: 4, bpm: 140, bass: '808', prog: [0, 5, 3, 4], hue: 275, leads: ['bell', 'supersaw', 'oud'], pat: 'trap' },
-  { n: 'Reggaeton', sc: 0, bpm: 96, bass: '808', prog: [0, 5, 3, 4], hue: 25, leads: ['brass', 'bell', 'oud'], pat: 'dembow' },
-  { n: 'Lo-Fi', sc: 1, bpm: 84, bass: 'walk', prog: [0, 5, 3, 4], hue: 160, leads: ['bell', 'santoor', 'oud'], pat: 'lofi' }
+  { n: 'Schlager-Techno', ch: 'oompah', sc: 1, bpm: 130, bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'], pat: 'four', kit: 'tight' },
+  { n: 'Bollywood', ch: 'arp', sc: 15, bpm: 118, bass: 'tuba', prog: [0, 0, 3, 0, 4, 3], hue: 320, leads: ['shehnai', 'santoor', 'bansuri'], pat: 'tala', kit: 'tabla' },
+  { n: 'Raga-Nacht', ch: 'drone', sc: 18, bpm: 96, bass: 'saw', prog: [0, 0, 0, 4], hue: 265, leads: ['sitar', 'bansuri', 'santoor'], pat: 'drone', kit: 'tabla' },
+  { n: 'Orient-Club', ch: 'arp', sc: 16, bpm: 122, bass: '808', prog: [0, 1, 0, 6, 3, 1], hue: 170, leads: ['oud', 'shehnai', 'bell'], pat: 'maqsum', kit: 'wood' },
+  { n: 'Balkan-Party', ch: 'oompah', sc: 14, bpm: 138, bass: 'tuba', prog: [0, 4, 0, 4, 3, 4], hue: 8, leads: ['brass', 'oud', 'bell'], pat: 'polka', kit: 'wood' },
+  { n: 'Techno-Kern', ch: 'stab', sc: 0, bpm: 134, bass: 'saw', prog: [0, 0, 0, 6], hue: 195, leads: ['supersaw', 'bell', 'oud'], pat: 'four', kit: 'punch' },
+  { n: 'Disco', ch: 'stab', sc: 0, bpm: 116, bass: 'walk', prog: [0, 5, 3, 4], hue: 300, leads: ['brass', 'bell', 'oud'], pat: 'disco', kit: 'tight' },
+  { n: 'House', ch: 'stab', sc: 11, bpm: 124, bass: 'saw', prog: [0, 3, 0, 4], hue: 215, leads: ['bell', 'supersaw', 'brass'], pat: 'house', kit: 'punch' },
+  { n: 'Trap', ch: 'pad', sc: 4, bpm: 140, bass: '808', prog: [0, 0, 5, 6], hue: 275, leads: ['bell', 'supersaw', 'oud'], pat: 'trap', kit: 'deep' },
+  { n: 'Reggaeton', ch: 'pad', sc: 0, bpm: 96, bass: '808', prog: [0, 5, 3, 4], hue: 25, leads: ['brass', 'bell', 'oud'], pat: 'dembow', kit: 'deep' },
+  { n: 'Lo-Fi', ch: 'pad7', sc: 1, bpm: 78, bass: 'walk', prog: [1, 4, 0, 5], hue: 160, leads: ['bell', 'santoor', 'oud'], pat: 'lofi', kit: 'dry' },
+  { n: 'Drum & Bass', ch: 'pad', sc: 4, bpm: 172, bass: 'saw', prog: [0, 0, 5, 3], hue: 130, leads: ['supersaw', 'bell', 'santoor'], pat: 'dnb', kit: 'punch' },
+  { n: 'Reggae', ch: 'skank', sc: 12, bpm: 76, bass: 'walk', prog: [0, 3, 0, 4], hue: 95, leads: ['bell', 'brass', 'oud'], pat: 'onedrop', kit: 'soft' },
+  { n: 'Ambient', ch: 'pad7', sc: 13, bpm: 70, bass: 'sub', prog: [0, 2, 4, 1], hue: 235, leads: ['bansuri', 'bell', 'santoor'], pat: 'amb', kit: 'soft' },
+  { n: 'Breakbeat', ch: 'stab2', sc: 7, bpm: 132, bass: 'saw', prog: [0, 6, 5, 6], hue: 15, leads: ['oud', 'bell', 'brass'], pat: 'break', kit: 'rock' }
 ];
 const WSW = { 'Bollywood': 0.1, 'Raga-Nacht': 0.07, 'Orient-Club': 0.06, 'Techno-Kern': 0.0, 'House': 0.06, 'Schlager-Techno': 0.03, 'Balkan-Party': 0.04 };
 WORLDS.forEach(w => { if (WSW[w.n] != null) w.sw = WSW[w.n]; });
 const PATS = {
+  tala: { sw: 0.02, g: [3, 7, 14], gs: [3, 7, 11, 15], k: [0, 6, 10], c: [4, 12], b: [0, 6, 10], oh: [], h: 'all' },
+  drone: { sw: 0, g: [], gs: [], k: [0, 8], c: [12], b: [0], oh: [], h: 'even' },
+  maqsum: { sw: 0.03, g: [11, 15], gs: [3, 14], k: [0, 6, 10], c: [4, 12], b: [0, 6, 10], oh: [], h: 'odd' },
+  polka: { sw: 0.01, g: [14], gs: [], k: [0, 4, 8, 12], c: [2, 6, 10, 14], b: [0, 4, 8, 12], oh: [], h: 'even' },
+  house: { sw: 0.05, g: [3, 11], gs: [7], k: [0, 4, 8, 12], c: [4, 12], b: [2, 6, 10, 14], oh: [2, 6, 10, 14], h: 'odd' },
+  dnb: { sw: 0, g: [7, 15], gs: [3, 7, 14], k: [0, 10], c: [4, 12], b: [0, 10], oh: [], h: 'all' },
+  onedrop: { sw: 0.12, g: [3, 14], gs: [], k: [8], c: [8], b: [0, 3, 6, 8, 11], oh: [], h: 'odd' },
+  amb: { sw: 0, g: [], gs: [], k: [0], c: [], b: [0], oh: [], h: 'none' },
+  break: { sw: 0.06, g: [11, 14], gs: [3, 7, 9, 15], k: [0, 3, 10], c: [4, 12], b: [0, 3, 10], oh: [14], h: 'even' },
   four: { sw: 0.03, g: [11, 15], k: [0, 4, 8, 12], c: [4, 12], b: [2, 6, 10, 14], oh: [2, 6, 10, 14], h: 'odd' },
   disco: { sw: 0.07, g: [5, 13], k: [0, 4, 8, 12], c: [4, 12], b: [2, 3, 6, 7, 10, 11, 14, 15], oh: [2, 6, 10, 14], h: 'odd' },
   trap: { sw: 0.05, g: [13], gs: [3, 14], k: [0, 7, 10], c: [8], b: [0, 7, 10], oh: [], h: 'all' },
@@ -531,17 +564,28 @@ function note(instId, deg, vel, t, opt) {
 function runStep(s, t, abs) {
   if (s === 0 && S.gm && gmDue(S.bar)) gmStep(S.gm);
   const w = WORLDS[S.world], dur = stepDur(), bar = S.bar;
-  const P = (S.patOv && bar < S.patEnd ? PATS[S.patOv] : S.gp ? S.gp : PATS[w.pat]) || PATS.four, swg = S.gp && !(S.patOv && bar < S.patEnd) ? S.gp.sw : w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
+  KIT = KITS[w.kit] || KITS.tight; const P = (S.patOv && bar < S.patEnd ? PATS[S.patOv] : S.gp ? S.gp : PATS[w.pat]) || PATS.four, swg = S.gp && !(S.patOv && bar < S.patEnd) ? S.gp.sw : w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
   const root = chordRoot(bar); t += (s % 2 === 1 ? swg * dur : 0);
   if (s === 0) S.fill = bar % 4 === 3 && Math.random() < 0.6;
   if (S.pulse) {
     if (P.k.includes(s)) { V.kick(ctx, bus.d, t, s === 0 ? 1 : 0.85); duck(t); }
     else if (S.fill && s === 15) V.kick(ctx, bus.d, t, 0.7);
     if (P.oh.includes(s)) V.hat(ctx, bus.d, t + hz(), 0.32, true);
-    else if (P.h === 'odd' ? s % 2 === 1 : P.h === 'even' ? s % 2 === 0 : true) V.hat(ctx, bus.d, t + hz(), (P.h === 'all' ? (s % 2 ? 0.12 : 0.2) : 0.1) * [1.5, 0.6, 1.1, 0.6][s % 4] * (0.85 + Math.random() * 0.3), false);
+    else if (P.h === 'none') { } else if (P.h === 'odd' ? s % 2 === 1 : P.h === 'even' ? s % 2 === 0 : true) V.hat(ctx, bus.d, t + hz(), (P.h === 'all' ? (s % 2 ? 0.12 : 0.2) : 0.1) * [1.5, 0.6, 1.1, 0.6][s % 4] * (0.85 + Math.random() * 0.3), false);
     if (P.c.includes(s)) V.snare(ctx, bus.d, t, 0.45, true);
     else if ((P.gs || [7, 15]).includes(s) && !(S.fill && s > 11) && Math.random() < 0.4) V.snare(ctx, bus.d, t + hz(), 0.14, false);
     if (S.fill && s >= 12 && s !== 15 && P.c.indexOf(s) < 0) V.snare(ctx, bus.d, t, 0.18 + (s - 12) * 0.07, false);
+    if (w.ch && w.ch !== 'none') {
+      const tri = [0, 2, 4].map(i => noteF(root + i, 0)), tri7 = [0, 2, 4, 6].map(i => noteF(root + i, 0)), q = (a) => a.includes(s);
+      if (w.ch === 'pad' && s === 0 && bar % 2 === 0) V.chord(ctx, bus.p, t, tri.map(f => f / 1), dur * 30, 'pad', 0.09);
+      else if (w.ch === 'pad7' && s === 0 && bar % 2 === 0) V.chord(ctx, bus.p, t, tri7, dur * 30, 'pad', 0.07);
+      else if (w.ch === 'drone' && s === 0 && bar % 2 === 0) V.chord(ctx, bus.p, t, [noteF(root, -1), noteF(root + 4, -1), noteF(root, 0)], dur * 30, 'pad', 0.1);
+      else if (w.ch === 'stab' && q([2, 6, 10, 14])) V.chord(ctx, bus.p, t, tri, dur * 1.4, 'stab', 0.07);
+      else if (w.ch === 'stab2' && q([6, 14])) V.chord(ctx, bus.p, t, tri7, dur * 1.2, 'stab', 0.07);
+      else if (w.ch === 'oompah') { if (q([0, 8])) V.chord(ctx, bus.p, t, [noteF(root, -1)], dur * 1.8, 'stab', 0.1); else if (q([4, 12])) V.chord(ctx, bus.p, t, tri, dur * 1.6, 'stab', 0.08); }
+      else if (w.ch === 'skank' && q([4, 12])) V.chord(ctx, bus.p, t, tri, dur * 1.0, 'stab', 0.08);
+      else if (w.ch === 'arp' && s % 2 === 0) V.chord(ctx, bus.p, t, [noteF(root + [0, 2, 4, 7, 4, 2, 0, 4][(s >> 1) % 8], 0)], dur * 1.6, 'arp', 0.07);
+    }
     if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), S.bassOv || w.bass, s % 4 === 0 ? 0.55 : 0.46 + 0.06 * Math.random(), 0.6);
     else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, S.bassOv || w.bass, 0.24, 0.4);
   }
@@ -823,7 +867,7 @@ function lbCell(x, y) { const b = lbBox(), c = Math.floor((x - b.x) / b.cw), r =
 const lbBlocked = (c, r) => c < 0 || r < 0 || c >= LB.C || r >= LB.R || LB.w[r][c];
 function lbBall(c, r, dx, dy, inst) { if (LB.balls.length >= 8) LB.balls.shift(); LB.w[r][c] = 0; const b = lbBox(); LB.balls.push({ c, r, dx, dy, inst, fl: 0, px: b.x + (c + 0.5) * b.cw, py: b.y + (r + 0.5) * b.cw }); }
 const LABYRINTH = {
-  id: 'labyrinth', name: 'Musify Labyrinth', version: 'Labyrinth 1.1', hue: 45, world: 5, inst: 'brass', defaultTool: 'wall',
+  id: 'labyrinth', name: 'Musify Labyrinth', version: 'Labyrinth 1.2', hue: 45, world: 5, inst: 'brass', defaultTool: 'wall',
   claim: 'Baue ein Labyrinth. Kugeln rollen und spielen an jeder Wand.',
   tip: 'Wand: Tippen/Wischen · Kugel: Tippen, Wischrichtung = Fahrtrichtung · Höhe = Tonhöhe',
   tools: [
