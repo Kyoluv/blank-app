@@ -752,7 +752,8 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
     let M = S.melody, d0;
     if (song && K === 'verse') { if (S.melodyLock) { d0 = S.melody[idx % M.length]; if (d0 !== REST) d0 += [0, 2, -1, 1][idx % 4]; } else { M = S.melodyB && S.melodyB.length ? S.melodyB : S.melody; d0 = M[idx % M.length]; } }
     else d0 = M[idx % M.length];
-    const deg = S.melodyLock ? d0 : mutDeg(S, d0, idx, bar);
+    let deg = S.melodyLock ? d0 : mutDeg(S, d0, idx, bar);
+    if (song && K === 'chorus' && !B && !S.melodyLock && vary > 0.15 && !chill) deg = chordDeg + hookOff(seed, bar, s >> 1, false);
     if (deg !== REST) V.lead(ctx, ch.lead, tt, nf(deg, 1 + octFor(S, s, bar, n)), dur, leadT, chill ? cut * 0.4 : cut, (chill ? 0.1 : leadSoft ? 0.11 : 0.17) * (sty.quiet || 1));
     if (rep && !chill && deg !== REST) V.lead(ctx, ch.lead, tt, nf(deg, 2 + octFor(S, s, bar, n)), dur, leadT, cut, 0.07 * (sty.quiet || 1));
   }
@@ -800,7 +801,7 @@ function applyChainSettings() {
 }
 function tick() {
   const dur = 60 / st.bpm / 4;
-  while (nextT < ctx.currentTime + 0.12) {
+  while (nextT < ctx.currentTime + 0.25) {
     if (st.songMode && stepN >= SONG_BARS * 16) {
       if (!st.songDone) { st.songDone = true; setTimeout(() => { if (st.playing && st.songDone) stop(); }, Math.max(0, nextT - ctx.currentTime + 2.5) * 1000); }
       return;
@@ -2256,6 +2257,17 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
 })();
 
 /* ---------- Text zu Gesang (Formant-Synthese, offline) ---------- */
+/* ---------- v113: Ohrwurm-Motiv (Lead im Refrain + Gesang) ---------- */
+const HOOKS = [[0, 2, 4, 2, 0, 2, 4, 5], [4, 4, 5, 4, 2, 2, 4, 2], [2, 4, 7, 4, 2, 4, 2, 0], [4, 5, 4, 2, 0, 2, 4, 4], [0, 0, 2, 4, 4, 5, 4, 2], [7, 5, 4, 5, 2, 4, 2, 0], [4, 2, 4, 7, 5, 4, 2, 4], [0, 2, 0, 4, 2, 4, 5, 4]];
+function hookOff(seed, bar, slot, alt) {
+  const n = HOOKS.length, i = Math.floor(H(seed, 901, alt ? 1 : 0) * n), j = (i + 1 + Math.floor(H(seed, 902, 0) * (n - 1))) % n, h = alt ? HOOKS[j] : HOOKS[i], ph = bar % 4;
+  let o = h[slot & 7];
+  if (ph === 2) o += 1;                 /* Antwort: eine Stufe höher */
+  if (ph === 3 && slot >= 6) o = slot === 7 ? 0 : 2;  /* Ende: Auflösung zum Grundton */
+  if (!alt && ph === 1 && slot === 7) o = 4;
+  return o;
+}
+function hookDeg(bar, slot) { const S = st, sec = sectionAt(bar), main = sec.kind === 'chorus' || sec.kind === 'outro'; return chordAt(bar) + hookOff(S.seed || 1, bar, slot, !main) + (main ? 0 : -1); }
 function chordAt(bar) {
   const sc = SCALES[st.scaleIdx], sec = sectionAt(Math.max(0, bar)), K = sec.kind, useB = (K === 'verse' || K === 'build' || K === 'brk');
   const prog = useB ? (st.chordB || st.chordA || st.prog2) : (st.chordA || st.prog), fx = (useB ? (st.chordB || st.chordA) : st.chordA) ? ((c, d) => d) : fixDeg;
@@ -2546,7 +2558,7 @@ const SING = (function () {
         if (s.pause) { t += s.pause * u; return; } if (s.lineEnd) { if (ev.length) ev[ev.length - 1].d += u * 1.5, t += u * 1.5; return; }
         let units = RHY[ri++ % RHY.length]; const nextIsEnd = sy[idx + 1] && (sy[idx + 1].pause || sy[idx + 1].lineEnd); if (s.wordEnd && !nextIsEnd) units = Math.max(units, 1); if (nextIsEnd) units = Math.max(units, 2);
         const d = units * u; let dg = degFor(idx, repNo);
-        if (barSec) { const gt = t - VOFF, bar = Math.floor(gt / barSec + 1e-6), e8 = Math.round(gt / (barSec / 8)); if (d >= barSec / 8 * 1.5 || e8 % 2 === 0) { const root = chordAt(bar); let best = dg, bd = 99; for (let k = -3; k <= 3; k++) [0, 2, 4].forEach(q => { const tn = root + q + 7 * k, dd = Math.abs(tn - dg); if (dd < bd || (dd === bd && tn > best)) { bd = dd; best = tn; } }); dg = Math.max(-4, Math.min(10, best)); prevDeg = dg; } }
+        if (barSec) { const gt = t - VOFF, bar = Math.floor(gt / barSec + 1e-6), e8 = Math.round(gt / (barSec / 8)); if (st.songMode !== false && SONG_SECS && SONG_SECS.length) dg = Math.max(-3, Math.min(9, hookDeg(Math.max(0, bar), ((e8 % 8) + 8) % 8))); if (d >= barSec / 8 * 1.5 || e8 % 2 === 0) { const root = chordAt(bar); let best = dg, bd = 99; for (let k = -3; k <= 3; k++) [0, 2, 4].forEach(q => { const tn = root + q + 7 * k, dd = Math.abs(tn - dg); if (dd < bd || (dd === bd && tn > best)) { bd = dd; best = tn; } }); dg = Math.max(-4, Math.min(10, best)); prevDeg = dg; } }
         ev.push({ s, t, d, f: fDeg(dg) }); n++; t += d;
       });
       repNo++; return { t, ni: n, ri };
