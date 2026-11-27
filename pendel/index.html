@@ -519,7 +519,7 @@ function gmStep(lv) {
   if (!P.k.includes(0)) P.k.push(0); if (!P.b.includes(0)) P.b.push(0); if (P.k.length > 9) P.k.length = 9; if (P.b.length > 8) P.b.length = 8;
 }
 function gmDue(bar) { const L = S.gm || 0; return L >= 3 || (L === 2 && bar % 2 === 1) || (L === 1 && bar % 4 === 3); }
-function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – Original-Groove'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
+function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – der Groove bleibt original und läuft weiter (Ausschalten: Knopf Puls 💗)'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
 function swapInst(id) {
   const cur = IM[id]; if (!cur || cur.k === 'voice') return id; const pool = INST.filter(i => i.k === cur.k && i.id !== id && i.k !== 'voice');
   if (cur.k === 'lead' && Math.random() < 0.6) { const L = WORLDS[S.world].leads.filter(l => l !== id); if (L.length) return pick(L); }
@@ -646,7 +646,7 @@ function draw(dt) {
   dock.forEach(d => {
     const on = toolActive(d), hue = d.h != null ? d.h : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
-    const lab = d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund aus') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
+    const lab = d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(lab, d.x + d.w / 2, y0 + d.h - 7, d.w - 4);
   });
@@ -742,7 +742,7 @@ function pAdd(f, inst) {
 }
 function pNear(x, y, ph, d) { let b = null, bd = d; PEN.pl.forEach(p => { const q = pXY(p, ph), dd = Math.hypot(q.x - x, q.y - y); if (dd < bd) { bd = dd; b = p; } }); return b; }
 const PENDEL = {
-  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 1.3', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
+  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 1.4', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
   claim: 'Pendel in verschiedenen Längen – sie laufen auseinander und finden wieder zusammen.',
   tip: 'Tippen = Pendel (links langsam, rechts schnell) · Pendel nach oben/unten ziehen = Länge',
   tools: [

@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 7.5';
+const VERSION = 'Cosmos 7.6';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -455,7 +455,7 @@ function gmStep(lv) {
   if (!P.k.includes(0)) P.k.push(0); if (!P.b.includes(0)) P.b.push(0); if (P.k.length > 9) P.k.length = 9; if (P.b.length > 8) P.b.length = 8;
 }
 function gmDue(bar) { const L = S.gm || 0; return L >= 3 || (L === 2 && bar % 2 === 1) || (L === 1 && bar % 4 === 3); }
-function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – Original-Groove'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
+function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – der Groove bleibt original und läuft weiter (Ausschalten: Knopf Puls 💗)'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
 function chordRoot(bar) { const w = WORLDS[S.world]; return w.prog[(Math.floor(bar / 2) + S.shift) % w.prog.length]; }
 function playInst(inst, deg, vel, t, root, oct) {
   const dur = stepDur(); oct = oct || 0;
@@ -872,7 +872,7 @@ function draw(dt) {
     const on = toolActive(d), full = d.kind === 'scene' ? !!S.scenes[+d.id] : false, hue = d.kind === 'inst' ? IM[d.id].h : d.kind === 'tool' ? TOOLS[d.id].h : d.kind === 'scene' ? 150 : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : full ? 'rgba(30,90,70,0.65)' : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
-    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund aus') : d.n, d.x + d.w / 2, y0 + d.h - 7);
+    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.n, d.x + d.w / 2, y0 + d.h - 7);
   });
   S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
   S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 84 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 103 + i * 34, W - 30); });
