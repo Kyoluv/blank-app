@@ -696,7 +696,7 @@ function buildItems() {
   ];
 }
 function layoutDock() {
-  g.font = '700 12px system-ui'; let x = 8, y = 6; stylePills = [];
+  g.font = '700 12px system-ui'; let x = 8, y = 6 + (APP && APP.tip ? 24 : 0); stylePills = [];
   WORLDS.forEach((w, i) => { const pw = g.measureText(w.n).width + 22; if (x + pw > W - 6) { x = 8; y += 32; } stylePills.push({ i, x, y, w: pw, h: 26 }); x += pw + 6; }); styH = y + 32;
   const tw = (W - 16) / TABS.length; tabPills = TABS.map((n, i) => ({ i, n, x: 8 + i * tw, y: styH + 2, w: tw - 4, h: TABH - 6 }));
   const c = dockCols(), sz = Math.min(56, W / c), top = styH + TABH + 2, its = ITEMS.filter(it => it.tab === S.tab);
@@ -778,8 +778,8 @@ function draw(dt) {
   if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / ' + Math.floor(S.rec.max / 60) + ':' + String(S.rec.max % 60).padStart(2, '0') : ''), W - 98, 44); }
   if (S.micOn) { g.fillStyle = '#ff2a55'; g.font = '800 18px system-ui'; g.textAlign = 'center'; g.fillText('🎙 JETZT SINGEN …', W / 2, ph / 2); }
   // Tipp oben im Musikfeld (immer sichtbar)
-  if (S.started && APP.tip) { g.textAlign = 'center'; g.font = '600 12px system-ui'; const tw = Math.min(W - 16, g.measureText(APP.tip).width + 22); g.fillStyle = 'rgba(0,0,0,0.35)'; rr(W / 2 - tw / 2, 4, tw, 22, 11); g.fill(); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText(APP.tip, W / 2, 19, W - 30); }
   const dh = dockH(), top = H - dh; g.fillStyle = 'rgba(14,18,30,0.94)'; g.fillRect(0, top, W, dh); g.strokeStyle = '#232a3d'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, top); g.lineTo(W, top); g.stroke();
+  if (S.started && APP.tip) { g.textAlign = 'center'; g.font = '600 12px system-ui'; g.fillStyle = 'rgba(0,229,255,0.85)'; g.fillText('💡 ' + APP.tip, W / 2, top + 19, W - 16); }
   stylePills.forEach(p => { const on = p.i === S.world, h0 = WORLDS[p.i].hue; g.fillStyle = on ? hsl(h0, 80, 42, 0.95) : 'rgba(40,48,72,0.7)'; rr(p.x, top + p.y, p.w, p.h, 13); g.fill(); if (on) { g.strokeStyle = hsl(h0, 100, 72); g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#b6c0d6'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(WORLDS[p.i].n, p.x + p.w / 2, top + p.y + 17); });
   tabPills.forEach(p => { const on = p.i === S.tab; g.fillStyle = on ? 'rgba(0,229,255,0.22)' : 'rgba(30,36,56,0.8)'; rr(p.x, top + p.y, p.w, p.h, 10); g.fill(); if (on) { g.strokeStyle = '#00e5ff'; g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#9aa5bb'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(p.n, p.x + p.w / 2, top + p.y + 18, p.w - 4); });
   dock.forEach(d => {
@@ -892,7 +892,7 @@ function zEvolve() {
 }
 function zStamp(name, c0, r0, v) { ZST[name].forEach(([dx, dy]) => { ZEL.grid[(r0 + dy + ZR) % ZR][(c0 + dx + ZC) % ZC] = v; }); }
 const ZELLEN = {
-  id: 'zellen', name: 'Musify Zellen', version: 'Zellen 3.5', hue: 140, world: 4, inst: 'bell', defaultTool: 'paint',
+  id: 'zellen', name: 'Musify Zellen', version: 'Zellen 3.6', hue: 140, world: 4, inst: 'bell', defaultTool: 'paint',
   claim: 'Lebende Zellen spielen Musik – und das Muster wandert von selbst.',
   tip: 'Wischen = Zellen setzen · jeder Takt entwickelt sich das Muster weiter · Reihe = Tonhöhe',
   tools: [
