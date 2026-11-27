@@ -3875,3 +3875,60 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   const five = document.getElementById('c-five'); if (five) { const b = mk(); b.addEventListener('click', act); five.appendChild(b); }
   const so = document.getElementById('sing-solo'); if (so && so.parentNode) { const b = mk(); b.style.marginTop = '0'; b.addEventListener('click', act); so.parentNode.after(b); }
 })();
+
+/* ---------- v134: Klang-Check (Misstöne sichtbar machen) ---------- */
+(function klangCheck() {
+  const ph = document.getElementById('c-five') || document.getElementById('pagehead'); if (!ph) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = '<div class="card" id="c-check"><div class="label"><span>🔬 Klang-Check</span></div><div style="font-size:.9rem;opacity:.85;margin-bottom:8px">Rechnet deinen Song nach und zeigt pro Takt: <b>Misstöne</b> (rot = unangenehm) und <b>Töne außerhalb der Tonart</b>.</div><button id="kc-go" class="oct-btn" style="width:100%;min-height:44px">🔬 Song prüfen</button><canvas id="kc-cv" height="150" style="width:100%;margin-top:8px;border-radius:8px;background:#0b0f1a;display:none"></canvas><div id="kc-out" style="margin-top:8px;font-size:.92rem;line-height:1.45"></div></div>';
+  ph.after(...wrap.childNodes);
+  const SR = 22050, NF = 8192;
+  const fft = (re, im) => { const n = re.length; for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } } for (let len = 2; len <= n; len <<= 1) { const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang); for (let i = 0; i < n; i += len) { let cr = 1, ci = 0; for (let k = 0; k < len / 2; k++) { const a = i + k, b = a + len / 2, xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr; re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi; const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t; } } } };
+  const hann = new Float32Array(NF); for (let i = 0; i < NF; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NF - 1));
+  const rough = (f1, a1, f2, a2) => { const fl = Math.min(f1, f2), d = Math.abs(f2 - f1), s = 0.24 / (0.0207 * fl + 18.96), x = d * s; return a1 * a2 * (Math.exp(-3.5 * x) - Math.exp(-5.75 * x)); };
+  function analyze(d, bpm, scale, nBeats, bt) {
+    const out = [], re = new Float32Array(NF), im = new Float32Array(NF), inScale = new Array(12).fill(false);
+    scale.notes.forEach(n => { inScale[(scale.rs + n) % 12] = true; });
+    for (let b = 0; b < nBeats; b++) {
+      const c = Math.floor((0.05 + b * bt + bt / 2) * SR), s0 = c - NF / 2; if (s0 < 0 || s0 + NF > d.length) break;
+      let rms = 0; for (let i = 0; i < NF; i++) { const v = d[s0 + i]; re[i] = v * hann[i]; im[i] = 0; rms += v * v; } fft(re, im);
+      const mag = new Float32Array(NF / 2); let mx = 0; for (let k = 1; k < NF / 2; k++) { mag[k] = Math.hypot(re[k], im[k]); if (mag[k] > mx) mx = mag[k]; }
+      const pk = []; for (let k = 2; k < NF / 2 - 1; k++) { const f = k * SR / NF; if (f < 90 || f > 2500) continue; if (mag[k] > mag[k - 1] && mag[k] >= mag[k + 1] && mag[k] > mx * 0.03) { let loc = 0; for (let q = -24; q <= 24; q++) loc += mag[Math.max(1, Math.min(NF / 2 - 1, k + q))]; loc /= 49; if (mag[k] > loc * 3) pk.push([f, mag[k]]); } }
+      pk.sort((a, b2) => b2[1] - a[1]); const top = pk.slice(0, 12); let R = 0, A2 = 0; for (let i = 0; i < top.length; i++) { A2 += top[i][1] * top[i][1]; for (let j = i + 1; j < top.length; j++) R += rough(top[i][0], top[i][1], top[j][0], top[j][1]); }
+      const dis = A2 > 0 ? R / A2 * 4 : 0; let tot = 0, off = 0;
+      top.forEach(([f, a]) => { const midi = 69 + 12 * Math.log2(f / 440), pc = ((Math.round(midi) % 12) + 12) % 12, dev = Math.abs(midi - Math.round(midi)); if (dev > 0.35) return; tot += a * a; if (!inScale[pc]) off += a * a; });
+      out.push({ dis: Math.min(1, dis), off: tot > 0 ? off / tot : 0, rms: Math.sqrt(rms / NF) });
+    }
+    return out;
+  }
+  const col = v => { const h = 120 - 120 * Math.max(0, Math.min(1, v)); return 'hsl(' + h + ',75%,48%)'; };
+  async function run() {
+    const msg = document.getElementById('kc-out'), btn = document.getElementById('kc-go'); btn.disabled = true; msg.textContent = 'Rechne … (ein paar Sekunden)';
+    try {
+      await new Promise(r => setTimeout(r, 30));
+      const S = JSON.parse(JSON.stringify({ world: st.world || 0, swingX: st.swingX, style: st.style, px: st.px, py: st.py, oct: st.oct, chaos: st.chaos, fx: st.fx, chill: st.chill, scaleIdx: st.scaleIdx, prog: st.prog, prog2: st.prog2, melody: st.melody, melodyB: st.melodyB, melodyLock: st.melodyLock, leadType: st.leadType, padWave: st.padWave, seed: st.seed, beat: st.beat, chordA: st.chordA, chordB: st.chordB, tracks: st.tracks, blank: st.blank, chordsOff: st.chordsOff, acidLine: st.acidLine, vox: st.vox, mix: st.mix }));
+      S.build = null; S.fx.autodj = false; S.songMode = true; S.chill = false;
+      if (!(st.playing && st.songMode)) setForm(activeForm());
+      const bars = Math.min(SONG_BARS, 40), dur = 60 / st.bpm / 4, bt = dur * 4, secs = bars * 16 * dur + 1.5;
+      const octx = new OfflineAudioContext(2, Math.ceil(secs * SR), SR), ch = buildChain(octx); applyMix(ch, S.mix, 0, false); ch.master.connect(octx.destination);
+      ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = baseCut(S); applyFxNodes(ch, S, 0, false);
+      for (let n = 0; n < bars * 16; n++) scheduleStep(octx, ch, S, n, 0.05 + n * dur, dur, false);
+      const rb = await octx.startRendering(), d = rb.getChannelData(0);
+      let pk = 0, clip = 0; for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > pk) pk = a; if (a > 0.99) clip++; }
+      const sc = SCALES[st.scaleIdx], A = analyze(d, st.bpm, sc, bars * 4, bt);
+      const mean = k => A.reduce((s, x) => s + x[k], 0) / Math.max(1, A.length), dis = mean('dis'), off = mean('off'), rmsDb = 20 * Math.log10(Math.max(1e-6, Math.sqrt(A.reduce((s, x) => s + x.rms * x.rms, 0) / Math.max(1, A.length)))), pkDb = 20 * Math.log10(Math.max(1e-6, pk));
+      const hot = A.filter(x => x.dis > 0.55).length / Math.max(1, A.length);
+      let score = 100 - Math.min(40, Math.max(0, dis - 0.2) * 110) - Math.min(25, off * 60) - (clip > 20 ? 10 : 0) - (rmsDb < -26 ? 10 : 0) - (rmsDb > -9 ? 8 : 0); score = Math.max(0, Math.round(score));
+      const res = { score, dis: +dis.toFixed(3), off: +off.toFixed(3), hot: +hot.toFixed(2), rmsDb: +rmsDb.toFixed(1), peakDb: +pkDb.toFixed(1), clip, bars, style: st.style, scale: sc.name, series: A.map(x => [+x.dis.toFixed(2), +x.off.toFixed(2)]) };
+      window.__klang = res;
+      const cv = document.getElementById('kc-cv'); cv.style.display = 'block'; cv.width = Math.max(300, cv.clientWidth * 2); const g = cv.getContext('2d'), W = cv.width, H = cv.height; g.clearRect(0, 0, W, H); g.fillStyle = '#9aa3b5'; g.font = '20px sans-serif';
+      const cw = W / Math.max(1, A.length); g.fillText('Misstöne', 4, 22); g.fillText('Töne außerhalb der Tonart', 4, 82); g.fillText('Lautstärke', 4, 142);
+      A.forEach((x, i) => { g.fillStyle = col((x.dis - 0.15) * 1.7); g.fillRect(i * cw, 28, cw + 0.5, 36); g.fillStyle = col(x.off * 1.8); g.fillRect(i * cw, 88, cw + 0.5, 36); const lv = Math.max(0, Math.min(1, (20 * Math.log10(Math.max(1e-6, x.rms)) + 40) / 40)); g.fillStyle = '#4aa3ff'; g.fillRect(i * cw, 148 - 20 * lv, cw + 0.5, 20 * lv); });
+      for (let b = 0; b < bars; b++) { g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(b * 4 * cw, 28, 1, 96); }
+      const tips = []; if (dis > 0.4) tips.push('Viele Misstöne: Nimm eine ruhigere Tonart (Dur) oder schalte Effekte wie Acid oder Arp aus.'); if (off > 0.25) tips.push('Viele Töne außerhalb der Tonart: Drück bei „Melodie" neu oder aktiviere die Tonart-Sperre.'); if (clip > 20) tips.push('Der Klang übersteuert: Dreh Drums oder Bass im Mixer etwas runter.'); if (rmsDb < -26) tips.push('Der Song ist recht leise.'); if (rmsDb > -9) tips.push('Der Song ist sehr laut gemischt.');
+      msg.innerHTML = '<b style="font-size:1.1rem">Note: ' + score + ' / 100</b> ' + (score >= 80 ? '🟢 klingt stimmig' : score >= 60 ? '🟡 geht, mit kleinen Misstönen' : '🔴 viele Misstöne') + '<br>Spannung/Misstöne: ' + Math.round(dis * 100) + ' % (Dur-Akkord ≈ 20 %, Cluster ≈ 70 %), außerhalb der Tonart: ' + Math.round(off * 100) + ' %, Lautstärke ' + res.rmsDb + ' dB, Spitze ' + res.peakDb + ' dB<br>' + (tips.length ? '• ' + tips.join('<br>• ') : 'Keine Auffälligkeiten.') + '<div style="opacity:.6;font-size:.8rem;margin-top:4px">Die App rechnet nur nach. Sie hört nicht, ob dir der Song gefällt.</div>';
+    } catch (e) { msg.textContent = 'Das hat nicht geklappt: ' + e.message; }
+    btn.disabled = false;
+  }
+  document.getElementById("kc-go").addEventListener("click", run); window.__klangRun = run; window.__kcAn = analyze;
+})();
