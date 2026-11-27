@@ -1278,7 +1278,8 @@ async function exportWav(song) {
   if (song && needsRetune()) { try { await renderVoice(); } catch (e) {} }
   const fmt = $('#fmt').value, mp3 = fmt === 'mp3', msg = $('#wav-msg'), btns = [$('#btn-wav'), $('#btn-wav-song'), $('#btn-easy-save')]; btns.forEach(b => { b.disabled = true; });
   if (song && !(st.playing && st.songMode)) setForm(activeForm());
-  const bars = song ? SONG_BARS : 8;
+  const US = window.__userSong; if (US) song = false;
+  const bars = US ? Math.ceil(US.buf.duration / (240 / st.bpm)) + 1 : (song ? SONG_BARS : 8);
   msg.style.color = ''; msg.textContent = song ? 'Ein langer Song braucht 1 bis 3 Minuten. Bitte die App offen lassen.' : '';
   setProg(0, 'Vorbereiten …');
   try {
@@ -1293,6 +1294,7 @@ async function exportWav(song) {
     const withVoice = !!(song && st.voiceWet && !st.voiceMute);
     if (withVoice) { const vs = octx.createBufferSource(); vs.buffer = st.voiceWet; vs.connect(ch.vox); try { const vr = octx.createGain(); vr.gain.value = 0.45; vs.connect(vr); vr.connect(ch.rvSend); } catch (e) {} vs.start(0.05, Math.min(st.nudge / 1000 + (st.voiceOff || 0), st.voiceWet.duration - 0.01)); try { applyPocket(ch, octx, 0.05, st.voiceWet, st.nudge / 1000 + (st.voiceOff || 0)); } catch (e) {} }
     ch.wet.gain.value = echoAmount(S); ch.filt.frequency.value = S.chill ? 700 : baseCut(S); applyFxNodes(ch, S, 0, false);
+    if (US) { const us = octx.createBufferSource(); us.buffer = US.buf; const ug = octx.createGain(); ug.gain.value = US.vol; us.connect(ug); ug.connect(ch.master); const wh = 0.05 - US.off; if (wh >= 0) us.start(wh); else us.start(0, -wh); }
     const total = bars * 16;
     for (let n = 0; n < total; n++) { scheduleStep(octx, ch, S, n, 0.05 + n * dur, dur, false); if (n % 48 === 47) { setProg(0.02 + 0.18 * n / total, 'Vorbereiten …'); await yieldUI(); } }
     const N = 20;
@@ -3893,6 +3895,7 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   ph.after(...wrap.childNodes);
   const SR = 22050, NF = 8192;
   const fft = (re, im) => { const n = re.length; for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } } for (let len = 2; len <= n; len <<= 1) { const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang); for (let i = 0; i < n; i += len) { let cr = 1, ci = 0; for (let k = 0; k < len / 2; k++) { const a = i + k, b = a + len / 2, xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr; re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi; const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t; } } } };
+  window.__fft = fft;
   const hann = new Float32Array(NF); for (let i = 0; i < NF; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NF - 1));
   const rough = (f1, a1, f2, a2) => { const fl = Math.min(f1, f2), d = Math.abs(f2 - f1), s = 0.24 / (0.0207 * fl + 18.96), x = d * s; return a1 * a2 * (Math.exp(-3.5 * x) - Math.exp(-5.75 * x)); };
   function analyze(d, bpm, scale, nBeats, bt) {
@@ -3962,3 +3965,62 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
 
 
 try { if (!STYLES[st.style]) setStyle('dance'); } catch (e) {}
+
+/* ---------- v142: Eigenes Lied laden und mit Musify bearbeiten ---------- */
+(function ownSong() {
+  const host = document.getElementById('c-trend'); if (!host) return;
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-own';
+  card.innerHTML = '<div class="label"><span>🎧 Eigenes Lied bearbeiten</span></div><div style="font-size:.88rem;opacity:.85;margin-bottom:8px">Lade dein Lied (MP3, WAV, M4A). Musify erkennt das Tempo, legt einen Beat darüber, und du kannst alles zusammen speichern.</div>'
+    + '<input id="own-file" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg" style="width:100%;margin-bottom:6px">'
+    + '<div id="own-msg" style="font-size:.9rem;min-height:1.2em"></div>'
+    + '<div id="own-ctl" style="display:none">'
+    + '<div style="display:flex;gap:6px;margin:6px 0"><button id="own-early" class="oct-btn" style="flex:1">◀ Beat früher</button><button id="own-late" class="oct-btn" style="flex:1">Beat später ▶</button></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:.85rem;margin-top:4px"><span>🎵 Lautstärke deines Lieds</span><span id="own-vv">100 %</span></div><input id="own-vol" type="range" min="0" max="150" value="100" style="width:100%">'
+    + '<button id="own-detect" class="oct-btn" style="width:100%;margin-top:6px">🔍 Tempo und Takt neu erkennen</button>'
+    + '<button id="own-four" class="oct-btn" style="width:100%;margin-top:6px">🥁 Four-on-the-Floor-Beat einsetzen</button>'
+    + '<button id="own-only" class="oct-btn" style="width:100%;margin-top:6px">🎛 Nur Musify-Drums (Bass, Flächen, Melodie aus)</button>'
+    + '<button id="own-play" class="play-btn" style="width:100%;margin-top:6px">▶ Lied + Beat abspielen</button>'
+    + '<button id="own-save" class="oct-btn" style="width:100%;margin-top:6px">💾 Lied + Beat speichern (WAV/MP3)</button>'
+    + '<button id="own-clear" class="oct-btn" style="width:100%;margin-top:6px">✖ Eigenes Lied wieder entfernen</button></div>';
+  host.after(card);
+  const $o = id => document.getElementById(id), msg = t => { $o('own-msg').textContent = t; };
+  let U = null, usrc = null, ug = null, only = null;
+  async function detect() {
+    msg('Erkenne Tempo und Takt …'); await new Promise(r => setTimeout(r, 30));
+    const b = U.buf, sr = b.sampleRate, ch0 = b.getChannelData(0), ch1 = b.numberOfChannels > 1 ? b.getChannelData(1) : ch0, N = 1024, H = 256, win = new Float32Array(N); for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+    const nf = Math.floor((b.length - N) / H), re = new Float32Array(N), im = new Float32Array(N); let prev = null; const fl = new Float32Array(nf);
+    for (let f = 0; f < nf; f++) { const o = f * H; for (let i = 0; i < N; i++) { re[i] = (ch0[o + i] + ch1[o + i]) * 0.5 * win[i]; im[i] = 0; } window.__fft(re, im); const cur = new Float32Array(195); let sum = 0; for (let k = 5; k < 200; k++) { cur[k - 5] = Math.log1p(300 * Math.hypot(re[k], im[k])); if (prev) sum += Math.max(0, cur[k - 5] - prev[k - 5]); } fl[f] = sum; prev = cur; if (f % 4000 === 3999) await new Promise(r => setTimeout(r, 0)); }
+    const sorted = Array.from(fl).sort((a, c) => a - c), med = sorted[Math.floor(sorted.length / 2)]; for (let i = 0; i < nf; i++) fl[i] = Math.max(0, fl[i] - med);
+    const fps = sr / H, dur = b.duration;
+    const score = (bpm, off) => { const per = 60 / bpm; let s = 0, n = 0; for (let t = off; t < dur - 1; t += per) { s += fl[Math.min(nf - 1, Math.floor(t * fps))]; n++; } return s / Math.max(1, n); };
+    let best = [-1, 120, 0];
+    for (let bpm = 90; bpm <= 160; bpm += 0.25) { const per = 60 / bpm; for (let off = 0; off < per; off += 0.02) { const v = score(bpm, off); if (v > best[0]) best = [v, bpm, off]; } }
+    const b0 = best[1]; best = [-1, b0, 0];
+    for (let bpm = b0 - 0.5; bpm <= b0 + 0.5; bpm += 0.02) { const per = 60 / bpm; for (let off = 0; off < per; off += 0.005) { const v = score(bpm, off); if (v > best[0]) best = [v, bpm, off]; } }
+    U.bpm = Math.round(best[1] * 100) / 100; U.off = best[2]; apply();
+  }
+  function apply() { st.bpm = U.bpm; try { $('#bpm-slider').value = Math.round(U.bpm); $('#bpm-val').textContent = U.bpm; } catch (e) {} window.__userSong = { buf: U.buf, off: U.off, vol: +$o('own-vol').value / 100 }; msg('✔ ' + U.name + ': ' + Math.round(U.buf.duration) + ' s, Tempo ' + U.bpm + ' BPM, Beat startet bei ' + Math.round(U.off * 1000) + ' ms.'); }
+  $o('own-file').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return; msg('Lade ' + f.name + ' …');
+    try { initAudio(); const ab = await f.arrayBuffer(); const buf = await ctx.decodeAudioData(ab); U = { buf, name: f.name.replace(/\.[^.]+$/, ''), bpm: 120, off: 0 }; $o('own-ctl').style.display = 'block'; await detect(); }
+    catch (err) { msg('Die Datei konnte nicht geöffnet werden: ' + err.message); }
+  });
+  $o('own-detect').addEventListener('click', () => { if (U) detect(); });
+  const shift = d => { if (!U) return; U.off = Math.max(0, U.off + d); if (st.playing) { stop(); } apply(); };
+  $o('own-early').addEventListener('click', () => shift(-0.01)); $o('own-late').addEventListener('click', () => shift(0.01));
+  $o('own-vol').addEventListener('input', () => { $o('own-vv').textContent = $o('own-vol').value + ' %'; if (window.__userSong) window.__userSong.vol = +$o('own-vol').value / 100; if (ug) ug.gain.value = +$o('own-vol').value / 100; });
+  $o('own-four').addEventListener('click', () => { const b = { ...curBeat() }; b.kick = 'x...x...x...x...'; b.cl = '....x.......x...'; b.snare = EMPTY16; b.hat = '..x...x...x...x.'; b.open = '..x...x...x...x.'; b.tom = EMPTY16; st.beat = b; try { renderBeat(); } catch (e) {} msg('Four-on-the-Floor-Beat ist eingesetzt.'); });
+  $o('own-only').addEventListener('click', () => {
+    if (!only) { only = { bass: st.mix.bass, lead: st.mix.lead, pad: st.mix.pad, vox: st.mix.vox, gtr: st.mix.gtr, horn: st.mix.horn, tuba: st.mix.tuba, bone: st.mix.bone }; Object.keys(only).forEach(k => setMix(k, 0)); $o('own-only').textContent = '🎛 Musify-Bass/Melodie wieder einschalten'; }
+    else { Object.keys(only).forEach(k => setMix(k, only[k])); only = null; $o('own-only').textContent = '🎛 Nur Musify-Drums (Bass, Flächen, Melodie aus)'; }
+  });
+  $o('own-play').addEventListener('click', () => { if (st.playing) { stop(); return; } if (!U) return; play(false); });
+  $o('own-save').addEventListener('click', () => { if (U) exportWav(false); });
+  $o('own-clear').addEventListener('click', () => { if (st.playing) stop(); U = null; window.__userSong = null; $o('own-ctl').style.display = 'none'; $o('own-file').value = ''; msg('Eigenes Lied entfernt. Musify spielt wieder nur seine eigenen Songs.'); });
+  const _play = play; play = function (song) {
+    const r = _play.apply(this, arguments);
+    try { if (window.__userSong && U && ctx) { try { usrc && usrc.stop(); } catch (e) {} usrc = ctx.createBufferSource(); usrc.buffer = U.buf; ug = ctx.createGain(); ug.gain.value = +$o('own-vol').value / 100; usrc.connect(ug); ug.connect(chain.master); const wh = songT0 - U.off; if (wh >= ctx.currentTime) usrc.start(wh); else usrc.start(ctx.currentTime, ctx.currentTime - wh); $o('own-play').textContent = '■ Stopp'; } } catch (e) { console.warn(e); }
+    return r;
+  };
+  const _stop = stop; stop = function () { try { usrc && usrc.stop(); } catch (e) {} usrc = null; try { $o('own-play').textContent = '▶ Lied + Beat abspielen'; } catch (e) {} return _stop.apply(this, arguments); };
+})();
