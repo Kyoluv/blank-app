@@ -400,7 +400,7 @@ const mixTab = () => TABS.indexOf('Mixer');
 function selInst() { if (typeof S.inst === 'string' && IM[S.inst]) return S.inst; if (IM[S.tool]) MIX.last = S.tool; return MIX.last; }
 const mixVal = k => k === 'iv' ? (MIX.iv[selInst()] != null ? MIX.iv[selInst()] : 0.5) : MIX[k];
 function mixSet(k, v) { v = Math.max(0, Math.min(1, v)); if (k === 'iv') MIX.iv[selInst()] = v; else MIX[k] = v; applyMix(); }
-const ivGain = id => (MIX.iv[id] != null ? MIX.iv[id] : 0.5) * 2;
+const ivGain = id => (S.solo && S.solo !== id) ? 0 : (MIX.iv[id] != null ? MIX.iv[id] : 0.5) * 2;
 function ig(inst) {
   const k = inst.k === 'drum' ? 'd' : inst.k === 'bass' ? 'b' : 'l'; S.ign = S.ign || {};
   if (!S.ign[inst.id]) { const n = ctx.createGain(); n.gain.value = ivGain(inst.id); n.connect(k === 'l' ? bus.T.l : k === 'd' ? bus.T.d : bus.T.b); S.ign[inst.id] = n; }
@@ -408,7 +408,7 @@ function ig(inst) {
 }
 function applyMix() {
   S.trans = Math.round((MIX.t - 0.5) * 12); if (!bus) return; const t = ctx.currentTime, f = v => v / 0.75;
-  bus.master.gain.setTargetAtTime(0.9 * f(MIX.m), t, 0.02); bus.T.d.gain.setTargetAtTime(f(MIX.g), t, 0.02); bus.T.b.gain.setTargetAtTime(f(MIX.g), t, 0.02); bus.T.l.gain.setTargetAtTime(f(MIX.l), t, 0.02);
+  bus.master.gain.setTargetAtTime(0.9 * f(MIX.m), t, 0.02); bus.T.d.gain.setTargetAtTime(S.solo ? 0 : f(MIX.g), t, 0.02); bus.T.b.gain.setTargetAtTime(S.solo ? 0 : f(MIX.g), t, 0.02); bus.T.l.gain.setTargetAtTime(f(MIX.l), t, 0.02);
   bus.rvg.gain.setTargetAtTime(0.32 * MIX.r / 0.5, t, 0.02); if (S.ign) for (const id in S.ign) S.ign[id].gain.setTargetAtTime(ivGain(id), t, 0.02);
 }
 function mixOut() { const iv = {}; for (const k in MIX.iv) if (Math.abs(MIX.iv[k] - 0.5) > 0.01) iv[k] = Math.round(MIX.iv[k] * 100) / 100; return { m: MIX.m, g: MIX.g, l: MIX.l, r: MIX.r, t: MIX.t, iv }; }
@@ -444,10 +444,11 @@ async function hardReload() { toast('Lädt neu …'); try { if (navigator.servic
 /* ===== MUSIFY SUITE – gemeinsames Grundgerüst (Audio, Takt, Dock, Sichern) ===== */
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
-const TABS = ['Klänge', 'Werkzeuge', 'Raum', 'Mixer', 'Sichern'];
+const TABS = ['Klänge', 'Werkzeuge', 'Raum', 'Szenen', 'Mixer', 'Sichern'];
 const MORPH_N = ['aus', 'leicht', 'stark'];
 const S = {
   world: 0, bpm: 130, inst: 'oud', tool: '', pulse: true, playing: true, tab: 0, morph: 0, shift: 0, mc: 0, toasts: [], voice: null, started: false, hint: 0,
+  scOv: null, solo: null, scenes: [null, null, null, null], sover: false, sauto: false, sceneI: -1, q: [],
   step: 0, stepF: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null, patOv: null, patEnd: 0
 };
 let ctx = null, bus = null, W = 0, H = 0, DPR = 1, cv, g, APP = null, ITEMS = [];
@@ -474,7 +475,7 @@ function initAudio() {
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
-const sc = () => SCALES[WORLDS[S.world].sc];
+const sc = () => SCALES[S.scOv != null ? S.scOv : WORLDS[S.world].sc];
 function noteF(deg, oct) { const s = sc(), semi = s.notes[((deg % 7) + 7) % 7] + 12 * Math.floor(deg / 7); return s.root * Math.pow(2, (semi + 12 * oct + (S.trans || 0)) / 12); }
 const stepDur = () => 60 / S.bpm / 4;
 function duck(t) {
@@ -524,8 +525,10 @@ function runStep(s, t, abs) {
     else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, S.bassOv || w.bass, 0.24, 0.4);
   }
   if (s % 4 === 0) S.beatFlash = 1;
+  if (s === 0 && bar % 8 === 0 && S.sauto) nextScene();
   if (s === 0 && S.morph && mDue(bar)) morphStep();
   if (APP.step) APP.step(abs, s, t, bar);
+  { let n = 0; const q = S.q; S.q = []; q.forEach(e => { if (n++ < 6) note(e.i, e.d, e.v, t + (n > 1 ? 0.004 * n : 0)); }); }
 }
 function tick() {
   if (!ctx || !S.playing) return;
@@ -574,14 +577,19 @@ function swapInst(id) {
 }
 /* ---------- Zustand ---------- */
 function playH() { return H - dockH(); }
-function getState() { return { v: 1, mx: mixOut(), w: S.world, bpm: Math.round(S.bpm), p: S.pulse, i: S.inst, ap: APP.getState() }; }
+function qnote(i, d, v) { if (S.q.length < 8) S.q.push({ i, d, v }); }
+function saveScenes() { try { localStorage.setItem(APP.id + 's', JSON.stringify(S.scenes)); } catch (e) {} }
+function loadScene(i, quiet) { const d = S.scenes[i]; if (!d) return; setState(d); S.sceneI = i; if (!quiet) toast('Szene ' + 'ABCD'[i] + ' geladen'); }
+function nextScene() { const f = S.scenes.map((x, i) => x ? i : -1).filter(i => i >= 0); if (!f.length) return; S.sceneI = f[(f.indexOf(S.sceneI) + 1) % f.length]; loadScene(S.sceneI, true); }
+function getState() { return { v: 1, sc: S.scOv, mx: mixOut(), w: S.world, bpm: Math.round(S.bpm), p: S.pulse, i: S.inst, ap: APP.getState() }; }
 function setState(d) {
-  if (!d) return; mixIn(d.mx); S.world = clamp(d.w | 0, 0, WORLDS.length - 1); S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; if (d.i && IM[d.i]) S.inst = d.i;
+  if (!d) return; mixIn(d.mx); S.scOv = typeof d.sc === 'number' ? d.sc : null; S.world = clamp(d.w | 0, 0, WORLDS.length - 1); S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; if (d.i && IM[d.i]) S.inst = d.i;
   APP.setState(d.ap || {});
 }
 function save() { try { localStorage.setItem(APP.id, JSON.stringify(getState())); } catch (e) {} }
 function load() {
   try { const d = JSON.parse(localStorage.getItem(APP.id) || 'null'); if (d && d.v === 1) { setState(d); S.loaded = true; } } catch (e) {}
+  try { S.scenes = JSON.parse(localStorage.getItem(APP.id + 's') || 'null') || S.scenes; } catch (e) {}
   try { const m = /#k=([A-Za-z0-9_-]+)/.exec(location.hash); if (m) { setState(JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')))))); S.shared = true; } } catch (e) {}
   if (window.__SONG) { setState(window.__SONG); S.shared = true; }
 }
@@ -613,8 +621,9 @@ function buildItems() {
     ...APP.tools.map(t => ({ tab: 1, kind: 'tool', id: t.id, e: t.e, n: t.n, h: t.h })),
     ...(APP.acts || []).map(a => ({ tab: 1, kind: 'act', id: a.id, e: a.e, n: a.n })),
     { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
-    { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
+    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'scale', e: '🎼', n: 'Skala' }, { tab: 2, kind: 'act', id: 'solo', e: '🎧', n: 'Solo' }, { tab: 2, kind: 'act', id: 'rand', e: '🎰', n: 'Zufall' }, { tab: 2, kind: 'act', id: 'fill', e: '💥', n: 'Fill' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+    { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' }, { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
+    { tab: 5, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 5, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 5, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 5, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 5, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
   ];
 }
 function layoutDock() {
@@ -629,6 +638,8 @@ function toast(t) { S.toasts.push({ t, a: 0 }); if (S.toasts.length > 2) S.toast
 function toolActive(d) {
   if (d.kind === 'inst') return S.inst === d.id;
   if (d.kind === 'tool') return S.tool === d.id;
+  if (d.kind === 'scene') return S.sceneI === +d.id && !!S.scenes[+d.id];
+  if (d.id === 'sauto') return S.sauto; if (d.id === 'sover') return S.sover; if (d.id === 'solo') return !!S.solo; if (d.id === 'scale') return S.scOv != null;
   if (APP.actOn && d.id in APP.actOn) return !!APP.actOn[d.id]();
   return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'gm' ? !!S.gm : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
 }
@@ -636,6 +647,12 @@ function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
   else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
   else if (a === 'undo') undo();
+  else if (a === 'scale') { S.scOv = S.scOv == null ? 0 : (S.scOv + 1 >= SCALES.length ? null : S.scOv + 1); toast(S.scOv == null ? 'Tonleiter: vom Stil' : 'Tonleiter: ' + SCALES[S.scOv].name); }
+  else if (a === 'solo') { S.solo = S.solo ? null : selInst(); applyMix(); toast(S.solo ? 'Solo: nur ' + IM[S.solo].n + ' (Groove aus)' : 'Solo aus'); }
+  else if (a === 'rand') { pushHist(); S.world = Math.floor(Math.random() * WORLDS.length); S.bpm = WORLDS[S.world].bpm; S.scOv = null; S.gp = null; S.bassOv = null; APP.dice(); toast('Zufall: ' + WORLDS[S.world].n); }
+  else if (a === 'fill') { S.fill = true; toast('Fill!'); }
+  else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
+  else if (a === 'sauto') { S.sauto = !S.sauto; toast(S.sauto ? 'Szenen-Auto: wechselt alle 8 Takte' : 'Szenen-Auto aus'); return; }
   else if (a === 'reload') { hardReload(); return; }
   else if (a === 'clear') { pushHist(); APP.clear(); toast('Leer'); }
   else if (a === 'dice') { pushHist(); APP.dice(); toast('Neu gewürfelt in „' + WORLDS[S.world].n + '“'); }
@@ -659,12 +676,13 @@ function onDown(ev) {
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const top = H - dockH();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
-  if (sp) { S.world = sp.i; S.gp = null; S.bassOv = null; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n); save(); return; }
+  if (sp) { S.world = sp.i; S.scOv = null; S.gp = null; S.bassOv = null; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n); save(); return; }
   const tp = tabPills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
   if (tp) { S.tab = tp.i; layoutDock(); return; }
   const d = hitRect(dock.map(i => ({ ...i, y: i.y + top })), x, y);
   if (d) {
     if (d.kind === 'inst') { if (d.id === 'voice' && !S.voice) { toast('Noch keine Stimme – wird aufgenommen …'); recordMic(); return; } S.inst = d.id; toast(d.n + ' gewählt'); }
+    else if (d.kind === 'scene') { const i = +d.id; if (S.scenes[i] && !S.sover) loadScene(i); else { S.scenes[i] = getState(); S.sceneI = i; S.sover = false; saveScenes(); toast('Szene ' + 'ABCD'[i] + ' gespeichert'); } }
     else if (d.kind === 'tool') { S.tool = d.id; const t = APP.tools.find(q => q.id === d.id); toast(t.hint || t.n); }
     else act(d.id);
     save(); return;
@@ -696,7 +714,7 @@ function draw(dt) {
   dock.forEach(d => {
     const on = toolActive(d), hue = d.h != null ? d.h : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
-    const lab = d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
+    const lab = d.id === 'scale' ? (S.scOv == null ? 'Skala: Stil' : SCALES[S.scOv].name) : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(lab, d.x + d.w / 2, y0 + d.h - 7, d.w - 4);
   });
@@ -793,7 +811,7 @@ function pAdd(f, inst) {
 }
 function pNear(x, y, ph, d) { let b = null, bd = d; PEN.pl.forEach(p => { const q = pXY(p, ph), dd = Math.hypot(q.x - x, q.y - y); if (dd < bd) { bd = dd; b = p; } }); return b; }
 const PENDEL = {
-  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 2.2', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
+  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 3.0', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
   claim: 'Pendel in verschiedenen Längen – sie laufen auseinander und finden wieder zusammen.',
   tip: 'Tippen = Pendel (links langsam, rechts schnell) · Pendel nach oben/unten ziehen = Länge',
   tools: [

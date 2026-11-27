@@ -23,7 +23,11 @@ const APPS=[
 {id:'universe',n:'Universe',e:'☀️',c:'#5aa9ff',u:'../universe/',d:'Planeten auf Umlaufbahnen. Abstand = Tempo und Ton.',t:'Umlaufbahnen'},
 {id:'mandala',n:'Mandala',e:'🔯',c:'#ff6bd6',u:'../mandala/',d:'Radar mit Spiegelung: Punkte setzen, alles wird symmetrisch.',t:'Radar'},
 {id:'zellen',n:'Zellen',e:'🧫',c:'#4be08a',u:'../zellen/',d:'Game of Life als Sequencer – das Muster entwickelt sich selbst.',t:'Lebendig'},
-{id:'pendel',n:'Pendel',e:'🔔',c:'#ffa04d',u:'../pendel/',d:'Pendelwelle: verschieden lange Pendel laufen auseinander und wieder zusammen.',t:'Rhythmus-Wellen'}];
+{id:'pendel',n:'Pendel',e:'🔔',c:'#ffa04d',u:'../pendel/',d:'Pendelwelle: verschieden lange Pendel laufen auseinander und wieder zusammen.',t:'Rhythmus-Wellen'},
+{id:'regen',n:'Regen',e:'🌧',c:'#6ec6ff',u:'../regen/',d:'Tropfen fallen auf Linien – jede Linie ist ein Instrument.',t:'Wetter'},
+{id:'faden',n:'Faden',e:'✍️',c:'#ff7ab8',u:'../faden/',d:'Zeichne einen Faden, ein Punkt läuft ihn ab und spielt die Ecken.',t:'Zeichnen'},
+{id:'schwarm',n:'Schwarm',e:'🐦',c:'#5ef0b8',u:'../schwarm/',d:'Ein Schwarm folgt deinem Finger und spielt die Steine, die er berührt.',t:'Dirigieren'},
+{id:'labyrinth',n:'Labyrinth',e:'🧱',c:'#ffcf55',u:'../labyrinth/',d:'Baue ein Labyrinth, Kugeln rollen und klingen an jeder Wand.',t:'Bauen'}];
 const bar=document.getElementById('bar'),fr=document.getElementById('fr'),tiles=document.getElementById('tiles');
 function open(id){const a=APPS.find(x=>x.id===id);if(!a){home();return}
  try{localStorage.setItem('hubLast',id)}catch(e){}

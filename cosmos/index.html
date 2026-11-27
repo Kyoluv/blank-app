@@ -358,7 +358,7 @@ const mixTab = () => TABS.indexOf('Mixer');
 function selInst() { if (typeof S.inst === 'string' && IM[S.inst]) return S.inst; if (IM[S.tool]) MIX.last = S.tool; return MIX.last; }
 const mixVal = k => k === 'iv' ? (MIX.iv[selInst()] != null ? MIX.iv[selInst()] : 0.5) : MIX[k];
 function mixSet(k, v) { v = Math.max(0, Math.min(1, v)); if (k === 'iv') MIX.iv[selInst()] = v; else MIX[k] = v; applyMix(); }
-const ivGain = id => (MIX.iv[id] != null ? MIX.iv[id] : 0.5) * 2;
+const ivGain = id => (S.solo && S.solo !== id) ? 0 : (MIX.iv[id] != null ? MIX.iv[id] : 0.5) * 2;
 function ig(inst) {
   const k = inst.k === 'drum' ? 'd' : inst.k === 'bass' ? 'b' : 'l'; S.ign = S.ign || {};
   if (!S.ign[inst.id]) { const n = ctx.createGain(); n.gain.value = ivGain(inst.id); n.connect(k === 'l' ? bus.T.l : k === 'd' ? bus.T.d : bus.T.b); S.ign[inst.id] = n; }
@@ -366,7 +366,7 @@ function ig(inst) {
 }
 function applyMix() {
   S.trans = Math.round((MIX.t - 0.5) * 12); if (!bus) return; const t = ctx.currentTime, f = v => v / 0.75;
-  bus.master.gain.setTargetAtTime(0.9 * f(MIX.m), t, 0.02); bus.T.d.gain.setTargetAtTime(f(MIX.g), t, 0.02); bus.T.b.gain.setTargetAtTime(f(MIX.g), t, 0.02); bus.T.l.gain.setTargetAtTime(f(MIX.l), t, 0.02);
+  bus.master.gain.setTargetAtTime(0.9 * f(MIX.m), t, 0.02); bus.T.d.gain.setTargetAtTime(S.solo ? 0 : f(MIX.g), t, 0.02); bus.T.b.gain.setTargetAtTime(S.solo ? 0 : f(MIX.g), t, 0.02); bus.T.l.gain.setTargetAtTime(f(MIX.l), t, 0.02);
   bus.rvg.gain.setTargetAtTime(0.32 * MIX.r / 0.5, t, 0.02); if (S.ign) for (const id in S.ign) S.ign[id].gain.setTargetAtTime(ivGain(id), t, 0.02);
 }
 function mixOut() { const iv = {}; for (const k in MIX.iv) if (Math.abs(MIX.iv[k] - 0.5) > 0.01) iv[k] = Math.round(MIX.iv[k] * 100) / 100; return { m: MIX.m, g: MIX.g, l: MIX.l, r: MIX.r, t: MIX.t, iv }; }
@@ -400,7 +400,7 @@ function undo() {
 async function hardReload() { toast('Lädt neu …'); try { if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.unregister(); } if (window.caches) { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } } catch (e) {} location.reload(); }
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 8.2';
+const VERSION = 'Cosmos 9.0';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -450,14 +450,14 @@ const ITEMS = [
   ...INST.map(i => ({ tab: 0, kind: 'inst', id: i.id, e: i.e, n: i.n })),
   ...Object.keys(TOOLS).map(k => ({ tab: 1, kind: 'tool', id: k, e: TOOLS[k].e, n: TOOLS[k].n })),
   { tab: 1, kind: 'act', id: 'spin', e: '🪐', n: 'Dreher' }, { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'scale', e: '🎼', n: 'Skala' }, { tab: 2, kind: 'act', id: 'solo', e: '🎧', n: 'Solo' }, { tab: 2, kind: 'act', id: 'rand', e: '🎰', n: 'Zufall' }, { tab: 2, kind: 'act', id: 'fill', e: '💥', n: 'Fill' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
   { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' },
   { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
   { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
 ];
 const S = {
   world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, spin: false, tab: 0, strings: [], portals: [], fields: [], mags: [], balls: [], ripples: [], toasts: [], scenes: [null, null, null, null],
-  sover: false, sauto: false, morph: 0, shift: 0, mc: 0, sceneI: -1, voice: null, started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
+  scOv: null, solo: null, sover: false, sauto: false, morph: 0, shift: 0, mc: 0, sceneI: -1, voice: null, started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
 };
 let ctx = null, bus = null, W = 0, H = 0, DPR = 1, cv, g;
 
@@ -477,7 +477,7 @@ function initAudio() {
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
-const sc = () => SCALES[WORLDS[S.world].sc];
+const sc = () => SCALES[S.scOv != null ? S.scOv : WORLDS[S.world].sc];
 function noteF(deg, oct) { const s = sc(), semi = s.notes[((deg % 7) + 7) % 7] + 12 * Math.floor(deg / 7); return s.root * Math.pow(2, (semi + 12 * oct + (S.trans || 0)) / 12); }
 const stepDur = () => 60 / S.bpm / 4;
 function duck(t) {
@@ -560,14 +560,14 @@ const r3 = v => Math.round(v * 1000) / 1000;
 function playH() { return H - dockH(); }
 function getState() {
   const m = Math.min(W, H);
-  return { v: 6, mx: mixOut(), w: S.world, bpm: Math.round(S.bpm), p: S.pulse,
+  return { v: 6, sc: S.scOv, mx: mixOut(), w: S.world, bpm: Math.round(S.bpm), p: S.pulse,
     s: S.strings.map(s => [r3(s.x1 / W), r3(s.y1 / H), r3(s.x2 / W), r3(s.y2 / H), s.inst, r3(s.rot || 0)]),
     po: S.portals.map(p => [r3(p.x / W), r3(p.y / H), r3(p.r / m)]),
     fi: S.fields.map(f => [r3(f.x / W), r3(f.y / H), r3(f.r / m), f.type]),
     mg: S.mags.map(q => [r3(q.x / W), r3(q.y / H), q.sign]) };
 }
 function setState(d) {
-  if (!d) return; mixIn(d.mx); const m = Math.min(W, H), ph = playH(), cy = y => Math.min(ph - 8, Math.max(8, y));
+  if (!d) return; mixIn(d.mx); S.scOv = typeof d.sc === 'number' ? d.sc : null; const m = Math.min(W, H), ph = playH(), cy = y => Math.min(ph - 8, Math.max(8, y));
   S.world = Math.max(0, Math.min(WORLDS.length - 1, d.w | 0)); S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false;
   S.strings = (d.s || []).filter(a => IM[a[4]]).map(a => { const s = { x1: a[0] * W, y1: cy(a[1] * H), x2: a[2] * W, y2: cy(a[3] * H), inst: a[4], rot: a[5] || 0, wob: 0, last: 0, name: '' }; s.len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1); return s; });
   S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: cy(a[1] * H), r: a[2] * m, h: (i * 70 + 190) % 360 }));
@@ -771,6 +771,7 @@ function toast(t) { S.toasts.push({ t, a: 0 }); if (S.toasts.length > 2) S.toast
 function toolActive(d) {
   if (d.kind === 'inst' || d.kind === 'tool') return S.tool === d.id;
   if (d.kind === 'scene') return S.sceneI === +d.id && !!S.scenes[+d.id];
+  if (d.id === 'solo') return !!S.solo; if (d.id === 'scale') return S.scOv != null;
   return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'spin' ? S.spin : d.id === 'sauto' ? S.sauto : d.id === 'sover' ? S.sover : d.id === 'gm' ? !!S.gm : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
 }
 function act(a) {
@@ -783,6 +784,11 @@ function act(a) {
   else if (a === 'spin') { S.spin = !S.spin; toast(S.spin ? 'Dreher an – neue Saiten kreisen von selbst' : 'Dreher aus'); }
   else if (a === 'gm') gmCycle();
   else if (a === 'undo') undo();
+  else if (a === 'scale') { S.scOv = S.scOv == null ? 0 : (S.scOv + 1 >= SCALES.length ? null : S.scOv + 1); toast(S.scOv == null ? 'Tonleiter: vom Stil' : 'Tonleiter: ' + SCALES[S.scOv].name); }
+  else if (a === 'solo') { S.solo = S.solo ? null : selInst(); applyMix(); toast(S.solo ? 'Solo: nur ' + IM[S.solo].n + ' (Groove aus)' : 'Solo aus'); }
+  else if (a === 'rand') { pushHist(); S.world = Math.floor(Math.random() * WORLDS.length); S.bpm = WORLDS[S.world].bpm; S.scOv = null; S.gp = null; S.bassOv = null; dice(); toast('Zufall: ' + WORLDS[S.world].n); }
+  else if (a === 'fill') { S.fill = true; toast('Fill!'); }
+
   else if (a === 'reload') { hardReload(); return; }
   else if (a === 'mic') recordMic();
   else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
@@ -827,7 +833,7 @@ function onDown(ev) {
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const top = H - dockH();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
-  if (sp) { S.world = sp.i; S.gp = null; S.bassOv = null; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
+  if (sp) { S.world = sp.i; S.scOv = null; S.gp = null; S.bassOv = null; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
   const tp = tabPills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
   if (tp) { S.tab = tp.i; layoutDock(); return; }
   const d = hitRect(dock.map(i => ({ ...i, y: i.y + top })), x, y);
@@ -925,7 +931,7 @@ function draw(dt) {
     const on = toolActive(d), full = d.kind === 'scene' ? !!S.scenes[+d.id] : false, hue = d.kind === 'inst' ? IM[d.id].h : d.kind === 'tool' ? TOOLS[d.id].h : d.kind === 'scene' ? 150 : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : full ? 'rgba(30,90,70,0.65)' : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
-    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.n, d.x + d.w / 2, y0 + d.h - 7);
+    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'scale' ? (S.scOv == null ? 'Skala: Stil' : SCALES[S.scOv].name) : d.id === 'morph' ? (S.morph ? 'Morph ' + S.morph + '/8' : 'Morph aus') : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund fest') : d.n, d.x + d.w / 2, y0 + d.h - 7);
   });
   mixDraw(top);
   S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
