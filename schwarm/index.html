@@ -862,12 +862,12 @@ function exportJson() { saveFile(APP.id + '.json', new Blob([JSON.stringify({ ap
 /* ===== SCHWARM – Ein Schwarm spielt die Steine ===== */
 const SW = { n: 24, b: [], stones: [], tx: 0.5, ty: 0.4, hold: false };
 const swDeg = y => clamp(Math.round(13 * (1 - y / playH())), 0, 13);
-function swAdd(x, y, inst) { if (SW.stones.length >= 12) SW.stones.shift(); SW.stones.push({ x, y, r: 26, inst, deg: swDeg(y), fl: 0, cd: 0 }); }
+function swAdd(x, y, inst) { if (SW.stones.length >= 40) SW.stones.shift(); SW.stones.push({ x, y, r: 26, inst, deg: swDeg(y), fl: 0, cd: 0 }); }
 function swNear(x, y) { return SW.stones.find(s => Math.hypot(s.x - x, s.y - y) < s.r + 10); }
 const SCHWARM = {
-  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.2', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
+  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.3', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
   claim: 'Ein Schwarm folgt dir. Wo er Steine berührt, klingt es.',
-  tip: 'Ziehen = Schwarm führen · Stein-Werkzeug: Tippen setzt Steine (hoch = hoch)',
+  tip: 'Kurz tippen = Stein setzen (Klang unten wählen) · Ziehen = Schwarm führen',
   tools: [
     { id: 'leader', e: '🐦', n: 'Führen', h: 160, hint: 'Führen – zieh den Finger, der Schwarm folgt' },
     { id: 'stone', e: '🪨', n: 'Stein', h: 40, hint: 'Stein – tippe, er spielt den gewählten Klang' },
@@ -876,9 +876,9 @@ const SCHWARM = {
   acts: [{ id: 'count', e: '🐝', n: 'Anzahl' }, { id: 'scatter', e: '💫', n: 'Streuen' }],
   label(id) { return id === 'count' ? SW.n + ' Vögel' : null; },
   act(a) { if (a === 'count') { SW.n = SW.n === 12 ? 24 : SW.n === 24 ? 48 : 12; toast(SW.n + ' Vögel'); } else if (a === 'scatter') { SW.b.forEach(b => { b.vx = rnd(-250, 250); b.vy = rnd(-250, 250); }); } },
-  down(x, y) { if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); SW.hold = true; } else if (S.tool === 'stone') { const s = swNear(x, y); if (!s) swAdd(x, y, S.inst); else SW.stones.splice(SW.stones.indexOf(s), 1); } else { const s = swNear(x, y); if (s) SW.stones.splice(SW.stones.indexOf(s), 1); } },
-  move(x, y) { if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); } },
-  up() { SW.hold = false; },
+  down(x, y) { if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); SW.hold = true; SW.d0 = [x, y, performance.now()]; SW.mv = 0; } else if (S.tool === 'stone') { const s = swNear(x, y); if (!s) swAdd(x, y, S.inst); else SW.stones.splice(SW.stones.indexOf(s), 1); } else { const s = swNear(x, y); if (s) SW.stones.splice(SW.stones.indexOf(s), 1); } },
+  move(x, y) { if (SW.d0) SW.mv = Math.max(SW.mv, Math.hypot(x - SW.d0[0], y - SW.d0[1])); if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); } },
+  up(x, y) { SW.hold = false; const d = SW.d0; SW.d0 = null; if (d && S.tool === 'leader' && SW.mv < 14 && performance.now() - d[2] < 350 && !swNear(d[0], d[1])) { swAdd(d[0], d[1], S.inst); toast('Stein gesetzt – Klang: ' + (IM[S.inst] ? IM[S.inst].n : '')); } },
   update(dt) {
     const ph = playH(), tx = SW.tx * W, ty = SW.ty * ph, B = SW.b;
     while (B.length < SW.n) B.push({ x: tx + rnd(-40, 40), y: ty + rnd(-40, 40), vx: rnd(-60, 60), vy: rnd(-60, 60) }); B.length = SW.n;
