@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 3';
+const VERSION = 'Cosmos 4';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
   { n: 'Schlager-Techno', sc: 1, bpm: 130, pad: 'akkordeon', bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'] },
@@ -399,7 +399,7 @@ const INST = [
 const IM = {}; INST.forEach(i => IM[i.id] = i);
 const ACTIONS = [
   { a: 'erase', e: '🧽', n: 'Radierer' }, { a: 'pulse', e: '💗', n: 'Puls' }, { a: 'play', e: '⏯', n: 'Pause' },
-  { a: 'dice', e: '🎲', n: 'Kosmos' }, { a: 'grav', e: '🌐', n: 'Schwere' }, { a: 'rec', e: '🔴', n: 'Rec' }, { a: 'clear', e: '🗑', n: 'Leeren' }
+  { a: 'dice', e: '🎲', n: 'Kosmos' }, { a: 'grav', e: '🌐', n: 'Schwere' }, { a: 'rec', e: '🔴', n: 'Audio' }, { a: 'json', e: '📄', n: 'Datei' }, { a: 'clear', e: '🗑', n: 'Leeren' }
 ];
 const S = {
   world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, strings: [], balls: [], ripples: [], toasts: [],
@@ -419,7 +419,7 @@ function initAudio() {
   rv.buffer = ib; const rvg = mk(0.32); rv.connect(rvg); rvg.connect(master);
   const B = { d: mk(0.95), b: mk(0.85), l: mk(0.8), p: mk(0.5) };
   Object.values(B).forEach(n => n.connect(master)); const ls = mk(0.35), ps = mk(0.45); B.l.connect(ls); ls.connect(rv); B.p.connect(ps); ps.connect(rv);
-  bus = { ...B, master, an, comp, dest: null, base: { b: 0.85, p: 0.5 } };
+  bus = { ...B, master, an, comp, clip, dest: null, base: { b: 0.85, p: 0.5 } };
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
@@ -537,6 +537,7 @@ function act(a) {
   else if (a === 'clear') { S.strings = []; S.balls = []; toast('Leer'); }
   else if (a === 'dice') dice();
   else if (a === 'rec') record();
+  else if (a === 'json') exportJson();
   else if (a === 'erase') { S.tool = 'erase'; return; }
   save();
 }
@@ -546,15 +547,36 @@ function dice() {
   w.leads.forEach(l => mk(l, 1, 0.18, 0.5)); mk(w.bass === 'tuba' ? 'tuba' : 'bass', 1, 0.4, 0.7); mk(['tabla', 'dhol', 'hat'][Math.floor(Math.random() * 3)], 2, 0.2, 0.4); mk('snare', 1, 0.25, 0.4);
   for (let i = 0; i < 4; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
 }
+async function saveFile(name, blob) {
+  try { if (window.claude && claude.use) { const d = await claude.use('downloads'); if (d) { await d.save({ filename: name, data: blob }); toast('Gespeichert: ' + name); return; } toast('Speichern geht hier nicht – öffne die App-Adresse'); return; } } catch (e) { toast(e && e.code === 'declined' ? 'Abgebrochen' : 'Speichern nicht möglich'); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Gespeichert: ' + name + ' (Downloads)');
+}
+function wavBlob(chunks, sr) {
+  let n = 0; chunks.forEach(c => n += c[0].length); const buf = new ArrayBuffer(44 + n * 4), v = new DataView(buf), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 4, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 4, true);
+  let o = 44; chunks.forEach(c => { for (let i = 0; i < c[0].length; i++) for (let k = 0; k < 2; k++) { const x = Math.max(-1, Math.min(1, c[k][i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); o += 2; } });
+  return new Blob([buf], { type: 'audio/wav' });
+}
 function record() {
   if (!ctx) return;
   try {
     if (S.rec) { S.rec.stop(); return; }
-    if (!bus.dest) { bus.dest = ctx.createMediaStreamDestination(); bus.master.connect(bus.dest); }
-    const ch = []; const r = new MediaRecorder(bus.dest.stream); r.ondataavailable = e => ch.push(e.data);
-    r.onstop = () => { S.rec = null; const b = new Blob(ch, { type: r.mimeType || 'audio/webm' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'musify-cosmos.' + (/ogg/.test(b.type) ? 'ogg' : 'webm'); document.body.appendChild(a); a.click(); a.remove(); toast('Aufnahme gespeichert (Downloads)'); };
-    r.start(); S.rec = r; toast('Aufnahme läuft – nochmal 🔴 tippen zum Speichern');
+    if (window.claude) { // Artefakt-Ansicht: webm ist dort als Download erlaubt
+      if (!bus.dest) { bus.dest = ctx.createMediaStreamDestination(); bus.clip.connect(bus.dest); }
+      const ch = [], r = new MediaRecorder(bus.dest.stream); r.ondataavailable = e => ch.push(e.data);
+      r.onstop = () => { S.rec = null; saveFile('musify-cosmos.webm', new Blob(ch, { type: 'audio/webm' })); };
+      r.start(); S.rec = r;
+    } else { // eigene App: WAV (läuft überall)
+      const sp = ctx.createScriptProcessor(4096, 2, 2), ch = []; sp.onaudioprocess = e => ch.push([new Float32Array(e.inputBuffer.getChannelData(0)), new Float32Array(e.inputBuffer.getChannelData(1))]);
+      bus.clip.connect(sp); sp.connect(ctx.destination);
+      S.rec = { stop() { try { bus.clip.disconnect(sp); sp.disconnect(); } catch (e) {} sp.onaudioprocess = null; S.rec = null; if (ch.length) saveFile('musify-cosmos.wav', wavBlob(ch, ctx.sampleRate)); else toast('Nichts aufgenommen'); } };
+    }
+    toast('Aufnahme läuft – nochmal 🔴 tippen zum Speichern');
   } catch (e) { S.rec = null; toast('Aufnahme geht hier nicht'); }
+}
+function exportJson() {
+  const d = { app: 'Musify Cosmos', world: WORLDS[S.world].n, bpm: Math.round(S.bpm), pulse: S.pulse, strings: S.strings.map(s => ({ instrument: s.inst, x1: +(s.x1 / W).toFixed(3), y1: +(s.y1 / H).toFixed(3), x2: +(s.x2 / W).toFixed(3), y2: +(s.y2 / H).toFixed(3) })) };
+  saveFile('kosmos.json', new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' }));
 }
 
 /* ---------- Eingabe ---------- */
