@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 100</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 101</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3766,6 +3766,9 @@ function setWorld(id, quiet, off) {
   body.tl #pagehead > #topbar { grid-column: 2; grid-row: 2; } body.tl #cbar { grid-template-columns: .6fr .6fr 1fr 1fr 1.6fr !important; }
   body.tl .card { scroll-margin-top: 130px; }
   @media (min-width: 1500px) { body.tl .sg { column-count: 3; } }
+  body.tl #c-sliders .mixgrid { grid-template-columns: repeat(4, 118px minmax(0,1fr)); gap: 8px 22px; }
+  body.tl #c-sliders .mixgrid > label { line-height: 1.15; }
+  #regtop { display: block; }
   #t-lay { grid-column: 1 / -1; white-space: normal !important; } body.tl #t-lay { grid-column: auto; }
   `;
   document.head.appendChild(tcss);
@@ -3775,6 +3778,9 @@ function setWorld(id, quiet, off) {
   let lay = lsGet('musify-layout') || 'auto', tabletSeen = lsGet('musify-tabset') === '1';
   const isTab = () => lay === 'tablet' || (lay === 'auto' && Math.min(screen.width, screen.height) >= 600 && window.innerWidth >= 900);
   const paintLay = () => { const t = isTab(); const was = document.body.classList.contains('tl'); document.body.classList.toggle('tl', t);
+    { const cs = document.getElementById('c-sliders'), song = document.getElementById('c-song'), first = document.querySelector('.sec'); if (cs && first) { let rt = document.getElementById('regtop'); if (!rt) { rt = document.createElement('div'); rt.id = 'regtop'; first.before(rt); }
+      if (t && cs.parentNode !== rt) { rt.appendChild(cs); cs.dataset.tab = 'regler'; if (lsGet('musify-regtop') !== '1') { lsSet('musify-regtop', '1'); cs.classList.remove('shut'); saveOpen(); } }
+      else if (!t && cs.parentNode === rt && song) { song.after(cs); cs.dataset.tab = 'song'; } } }
     lb.textContent = (lay === 'auto' ? '🔁 Auto: ' : 'Fest: ') + (t ? '📟 Tablet' : '📱 Handy') + ' (tippen = wechseln)';
     if (t && !was && !tabletSeen && lsGet('musify-acc') === null) { acc = false; tabletSeen = true; lsSet('musify-tabset', '1'); paint(); } };
   lb.addEventListener('click', () => { lay = lay === 'auto' ? 'tablet' : lay === 'tablet' ? 'phone' : 'auto'; lsSet('musify-layout', lay); paintLay(); });
