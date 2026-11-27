@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Musify Cosmos</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#080a12"><link rel="apple-touch-icon" href="icon-192.png"><style>html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}</style></head><body><canvas id="c"></canvas><script>
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Musify Cosmos</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#080a12"><link rel="apple-touch-icon" href="icon-192.png"><style>html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}</style></head><body><canvas id="c"></canvas><script id="app">
 const SCALES = [
   { name: 'A-Moll', root: 220.00, rs: 9, notes: [0,2,3,5,7,8,10,12] },
   { name: 'C-Dur', root: 261.63, rs: 0, notes: [0,2,4,5,7,9,11,12] },
@@ -352,26 +352,23 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
   });
 };
 
-/* ===== MUSIFY COSMOS – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 5';
+/* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
+const VERSION = 'Cosmos 6';
+const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
-  { n: 'Schlager-Techno', sc: 1, bpm: 130, pad: 'akkordeon', bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'] },
-  { n: 'Bollywood', sc: 15, bpm: 118, pad: 'tanpura', bass: 'tuba', prog: [0, 0, 3, 0], hue: 320, leads: ['shehnai', 'santoor', 'bansuri'] },
-  { n: 'Raga-Nacht', sc: 18, bpm: 112, pad: 'tanpura', bass: 'saw', prog: [0, 0, 1, 0], hue: 265, leads: ['sitar', 'bansuri', 'santoor'] },
-  { n: 'Orient-Club', sc: 16, bpm: 122, pad: 'tanpura', bass: '808', prog: [0, 3, 0, 4], hue: 170, leads: ['oud', 'shehnai', 'bell'] },
-  { n: 'Balkan-Party', sc: 14, bpm: 128, pad: 'akkordeon', bass: 'tuba', prog: [0, 3, 4, 0], hue: 8, leads: ['brass', 'oud', 'bell'] },
-  { n: 'Techno-Kern', sc: 0, bpm: 134, pad: 'supersaw', bass: 'saw', prog: [0, 5, 3, 4], hue: 195, leads: ['supersaw', 'bell', 'oud'] }
-];
-// Instrumente: type = lead (Melodie), bass, drum
-WORLDS.forEach(w => { w.pat = w.pat || 'four'; });
-WORLDS.push(
+  { n: 'Schlager-Techno', sc: 1, bpm: 130, bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'], pat: 'four' },
+  { n: 'Bollywood', sc: 15, bpm: 118, bass: 'tuba', prog: [0, 0, 3, 0], hue: 320, leads: ['shehnai', 'santoor', 'bansuri'], pat: 'four' },
+  { n: 'Raga-Nacht', sc: 18, bpm: 112, bass: 'saw', prog: [0, 0, 1, 0], hue: 265, leads: ['sitar', 'bansuri', 'santoor'], pat: 'four' },
+  { n: 'Orient-Club', sc: 16, bpm: 122, bass: '808', prog: [0, 3, 0, 4], hue: 170, leads: ['oud', 'shehnai', 'bell'], pat: 'four' },
+  { n: 'Balkan-Party', sc: 14, bpm: 128, bass: 'tuba', prog: [0, 3, 4, 0], hue: 8, leads: ['brass', 'oud', 'bell'], pat: 'four' },
+  { n: 'Techno-Kern', sc: 0, bpm: 134, bass: 'saw', prog: [0, 5, 3, 4], hue: 195, leads: ['supersaw', 'bell', 'oud'], pat: 'four' },
   { n: 'Disco', sc: 0, bpm: 118, bass: 'walk', prog: [0, 5, 3, 4], hue: 300, leads: ['brass', 'bell', 'oud'], pat: 'disco' },
   { n: 'House', sc: 11, bpm: 124, bass: 'saw', prog: [0, 3, 0, 4], hue: 215, leads: ['bell', 'supersaw', 'brass'], pat: 'four' },
   { n: 'Trap', sc: 4, bpm: 140, bass: '808', prog: [0, 5, 3, 4], hue: 275, leads: ['bell', 'supersaw', 'oud'], pat: 'trap' },
   { n: 'Reggaeton', sc: 0, bpm: 96, bass: '808', prog: [0, 5, 3, 4], hue: 25, leads: ['brass', 'bell', 'oud'], pat: 'dembow' },
   { n: 'Lo-Fi', sc: 1, bpm: 84, bass: 'walk', prog: [0, 5, 3, 4], hue: 160, leads: ['bell', 'santoor', 'oud'], pat: 'lofi' }
-);
+];
 const PATS = {
   four: { k: [0, 4, 8, 12], c: [4, 12], b: [2, 6, 10, 14], oh: [2, 6, 10, 14], h: 'odd' },
   disco: { k: [0, 4, 8, 12], c: [4, 12], b: [2, 3, 6, 7, 10, 11, 14, 15], oh: [2, 6, 10, 14], h: 'odd' },
@@ -394,16 +391,24 @@ const INST = [
   { id: 'snare', e: '👏', n: 'Clap', k: 'drum', t: 'clap', h: 330 },
   { id: 'hat', e: '🔹', n: 'Hi-Hat', k: 'drum', t: 'hat', h: 180 },
   { id: 'tabla', e: '🪘', n: 'Tabla', k: 'drum', t: 'tabla', h: 35 },
-  { id: 'dhol', e: '🛢', n: 'Dhol', k: 'drum', t: 'dhol', h: 15 }
+  { id: 'dhol', e: '🛢', n: 'Dhol', k: 'drum', t: 'dhol', h: 15 },
+  { id: 'voice', e: '🎙', n: 'Stimme', k: 'voice', t: 'voice', h: 60 }
 ];
 const IM = {}; INST.forEach(i => IM[i.id] = i);
-const ACTIONS = [
-  { a: 'erase', e: '🧽', n: 'Radierer' }, { a: 'pulse', e: '💗', n: 'Puls' }, { a: 'play', e: '⏯', n: 'Pause' },
-  { a: 'dice', e: '🎲', n: 'Kosmos' }, { a: 'grav', e: '🌐', n: 'Schwere' }, { a: 'rec', e: '🔴', n: 'Audio' }, { a: 'json', e: '📄', n: 'Datei' }, { a: 'clear', e: '🗑', n: 'Leeren' }
+const TABS = ['Klänge', 'Werkzeuge', 'Raum', 'Szenen', 'Sichern'];
+const TOOLS = { erase: { e: '🧽', n: 'Radierer', h: 200 }, mag: { e: '🧲', n: 'Magnet', h: 0 }, rep: { e: '💥', n: 'Abstoß', h: 40 }, fast: { e: '⚡', n: 'Tempo-Feld', h: 55 }, echo: { e: '🌊', n: 'Echo-Feld', h: 200 }, up: { e: '⬆️', n: 'Höhen-Feld', h: 290 } };
+const ITEMS = [
+  ...INST.map(i => ({ tab: 0, kind: 'inst', id: i.id, e: i.e, n: i.n })),
+  ...Object.keys(TOOLS).map(k => ({ tab: 1, kind: 'tool', id: k, e: TOOLS[k].e, n: TOOLS[k].n })),
+  { tab: 1, kind: 'act', id: 'spin', e: '🪐', n: 'Dreher' }, { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
+  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+  { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' },
+  { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
+  { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
 ];
 const S = {
-  world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, strings: [], portals: [], balls: [], ripples: [], toasts: [],
-  started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
+  world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, spin: false, tab: 0, strings: [], portals: [], fields: [], mags: [], balls: [], ripples: [], toasts: [], scenes: [null, null, null, null],
+  sover: false, sauto: false, morph: false, shift: 0, mc: 0, sceneI: -1, voice: null, started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
 };
 let ctx = null, bus = null, W = 0, H = 0, DPR = 1, cv, g;
 
@@ -419,7 +424,7 @@ function initAudio() {
   rv.buffer = ib; const rvg = mk(0.32); rv.connect(rvg); rvg.connect(master);
   const B = { d: mk(0.95), b: mk(0.85), l: mk(0.8), p: mk(0.5) };
   Object.values(B).forEach(n => n.connect(master)); const ls = mk(0.35), ps = mk(0.45); B.l.connect(ls); ls.connect(rv); B.p.connect(ps); ps.connect(rv);
-  bus = { ...B, master, an, comp, clip, dest: null, base: { b: 0.85, p: 0.5 } };
+  bus = { ...B, master, an, comp, clip, dest: null };
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
@@ -429,9 +434,9 @@ const stepDur = () => 60 / S.bpm / 4;
 function duck(t) {
   [['b', 0.85], ['p', 0.5]].forEach(([k, b]) => { const p = bus[k].gain; p.cancelScheduledValues(t); p.setValueAtTime(b * 0.3, t); p.linearRampToValueAtTime(b, t + 0.2); });
 }
-function chordRoot(bar) { const w = WORLDS[S.world]; return w.prog[Math.floor(bar / 2) % w.prog.length]; }
-function playInst(inst, deg, vel, t, root) {
-  const dur = stepDur();
+function chordRoot(bar) { const w = WORLDS[S.world]; return w.prog[(Math.floor(bar / 2) + S.shift) % w.prog.length]; }
+function playInst(inst, deg, vel, t, root, oct) {
+  const dur = stepDur(); oct = oct || 0;
   if (inst.k === 'drum') {
     const v = 0.5 + 0.5 * vel;
     if (inst.t === 'kick') { V.kick(ctx, bus.d, t, v); duck(t); }
@@ -440,11 +445,14 @@ function playInst(inst, deg, vel, t, root) {
     else V.tom(ctx, bus.d, t, v, inst.t);
     return;
   }
-  const A = [0, 2, 4, 7]; // Akkordtöne relativ zum Grundton des Akkords
-  let d = deg;
+  const A = [0, 2, 4, 7]; let d = deg;
   if (Math.random() < 0.6) { let best = d, bd = 99; for (let o = -7; o <= 14; o += 7) A.forEach(a => { const c = root + a + o; if (Math.abs(c - d) < bd) { bd = Math.abs(c - d); best = c; } }); d = best; }
-  if (inst.k === 'bass') { V.bass(ctx, bus.b, t, noteF(((d % 7) + 7) % 7 === d ? d : d % 7, inst.o), dur * 2.2, inst.t, 0.5 * (0.6 + 0.4 * vel), 0.6); return; }
-  V.lead(ctx, bus.l, t, noteF(d, inst.o), dur * 2.5, inst.t, 5500, (inst.t === 'supersaw' ? 0.12 : 0.2) * (0.55 + 0.45 * vel));
+  if (inst.k === 'voice') {
+    if (!S.voice) return; const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = S.voice; src.playbackRate.value = Math.max(0.4, Math.min(3.2, noteF(d, oct) / sc().root));
+    gn.gain.value = 0.9 * (0.5 + 0.5 * vel); src.connect(gn); gn.connect(bus.l); src.start(t); return;
+  }
+  if (inst.k === 'bass') { V.bass(ctx, bus.b, t, noteF(((d % 7) + 7) % 7, inst.o + oct), dur * 2.2, inst.t, 0.5 * (0.6 + 0.4 * vel), 0.6); return; }
+  V.lead(ctx, bus.l, t, noteF(d, inst.o + oct), dur * 2.5, inst.t, 5500, (inst.t === 'supersaw' ? 0.12 : 0.2) * (0.55 + 0.45 * vel));
 }
 function runStep(s, t) {
   const w = WORLDS[S.world], dur = stepDur(), bar = S.bar, root = chordRoot(bar);
@@ -457,25 +465,56 @@ function runStep(s, t) {
     if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), w.bass, 0.5, 0.6);
   }
   if (s % 4 === 0) S.beatFlash = 1;
+  if (s === 0 && bar % 8 === 0 && S.sauto) nextScene();
+  if (s === 0 && bar % 2 === 1 && S.morph) morphStep();
   let n = 0; const q = S.pending; S.pending = [];
-  q.forEach(e => { if (n++ < 7) playInst(e.inst, e.deg, e.vel, t + (n > 1 ? 0.004 * n : 0), root); });
+  q.forEach(e => {
+    if (n++ >= 7) return; const tt = t + (n > 1 ? 0.004 * n : 0);
+    playInst(e.inst, e.deg, e.vel, tt, root, e.oct);
+    if (e.echo) { playInst(e.inst, e.deg, e.vel * 0.55, tt + dur * 3, root, e.oct); playInst(e.inst, e.deg, e.vel * 0.3, tt + dur * 6, root, e.oct); }
+  });
 }
 function tick() {
   if (!ctx || !S.playing) return;
-  while (S.nextT < ctx.currentTime + 0.14) {
-    runStep(S.step % 16, S.nextT); S.nextT += stepDur(); S.step++; if (S.step % 16 === 0) S.bar++;
-  }
+  while (S.nextT < ctx.currentTime + 0.14) { runStep(S.step % 16, S.nextT); S.nextT += stepDur(); S.step++; if (S.step % 16 === 0) S.bar++; }
 }
 
-/* ---------- Welt, Saiten, Kugeln ---------- */
+/* ---------- Kosmos: Zustand ---------- */
+const r3 = v => Math.round(v * 1000) / 1000;
 function playH() { return H - dockH(); }
+function getState() {
+  const m = Math.min(W, H);
+  return { v: 6, w: S.world, bpm: Math.round(S.bpm), p: S.pulse,
+    s: S.strings.map(s => [r3(s.x1 / W), r3(s.y1 / H), r3(s.x2 / W), r3(s.y2 / H), s.inst, r3(s.rot || 0)]),
+    po: S.portals.map(p => [r3(p.x / W), r3(p.y / H), r3(p.r / m)]),
+    fi: S.fields.map(f => [r3(f.x / W), r3(f.y / H), r3(f.r / m), f.type]),
+    mg: S.mags.map(q => [r3(q.x / W), r3(q.y / H), q.sign]) };
+}
+function setState(d) {
+  if (!d) return; const m = Math.min(W, H), ph = playH(), cy = y => Math.min(ph - 8, Math.max(8, y));
+  S.world = Math.max(0, Math.min(WORLDS.length - 1, d.w | 0)); S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false;
+  S.strings = (d.s || []).filter(a => IM[a[4]]).map(a => { const s = { x1: a[0] * W, y1: cy(a[1] * H), x2: a[2] * W, y2: cy(a[3] * H), inst: a[4], rot: a[5] || 0, wob: 0, last: 0, name: '' }; s.len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1); return s; });
+  S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: cy(a[1] * H), r: a[2] * m, h: (i * 70 + 190) % 360 }));
+  S.fields = (d.fi || []).map(a => ({ x: a[0] * W, y: cy(a[1] * H), r: a[2] * m, type: a[3] }));
+  S.mags = (d.mg || []).map(a => ({ x: a[0] * W, y: cy(a[1] * H), sign: a[2] }));
+}
+function save() { try { localStorage.setItem('cosmos6', JSON.stringify(getState())); } catch (e) {} }
+function load() { try { const d = JSON.parse(localStorage.getItem('cosmos6') || localStorage.getItem('cosmos') || 'null'); if (d && d.v === 6) setState(d); else if (d && d.s) setState({ w: d.w, bpm: d.bpm, p: d.p, s: (d.s || []).map(a => [a[0], a[1], a[2], a[3], a[4], 0]), po: d.po }); } catch (e) {}
+  try { S.scenes = JSON.parse(localStorage.getItem('cosmos6s') || 'null') || S.scenes; } catch (e) {}
+  try { const m = /#k=([A-Za-z0-9_-]+)/.exec(location.hash); if (m) { setState(JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')))))); S.shared = true; } } catch (e) {}
+  if (window.__SONG) { setState(window.__SONG); S.shared = true; } }
+function saveScenes() { try { localStorage.setItem('cosmos6s', JSON.stringify(S.scenes)); } catch (e) {} }
+
+/* ---------- Saiten, Kugeln, Welt ---------- */
 function degOf(len) { const L = Math.min(W, playH()) * 0.9; return Math.round(13 - 13 * Math.min(1, len / L)); }
 function addString(x1, y1, x2, y2, inst) {
   const len = Math.hypot(x2 - x1, y2 - y1); if (len < 40) return null;
   if (S.strings.length >= 28) S.strings.shift();
-  const s = { x1, y1, x2, y2, inst, len, wob: 0, last: 0, name: '' }; S.strings.push(s); save(); return s;
+  const s = { x1, y1, x2, y2, inst, len, rot: S.spin ? (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * 0.35) : 0, wob: 0, last: 0, name: '' }; S.strings.push(s); save(); return s;
 }
 function addPortal(x, y, r) { if (S.portals.length >= 6) S.portals.shift(); S.portals.push({ x, y, r, h: 0 }); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360); save(); }
+function addField(x, y, r, type) { if (S.fields.length >= 6) S.fields.shift(); S.fields.push({ x, y, r, type }); save(); }
+function addMag(x, y, sign) { if (S.mags.length >= 6) S.mags.shift(); S.mags.push({ x, y, sign }); save(); }
 function circleOf(pts) {
   if (pts.length < 8) return null; let L = 0, x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   for (let i = 0; i < pts.length; i++) { const p = pts[i]; if (i) L += Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
@@ -487,22 +526,46 @@ function circleOf(pts) {
 function spawnBall(x, y, ang, sp) {
   const a = ang == null ? Math.random() * 6.283 : ang, v = (sp || 300) * Math.min(1.3, Math.min(W, H) / 650 + 0.3);
   if (S.balls.length >= 12) S.balls.shift();
-  S.balls.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 9, hue: Math.random() * 360, tr: [] });
+  S.balls.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 9, hue: Math.random() * 360, tr: [], fx: {} });
 }
 function hitString(s, b, sp) {
   const now = performance.now(); if (now - s.last < 70) return; s.last = now; s.wob = 1;
   const inst = IM[s.inst], deg = degOf(s.len), vel = Math.min(1, 0.35 + sp / 800);
-  S.pending.push({ inst, deg, vel });
+  S.pending.push({ inst, deg, vel, oct: b.fx && b.fx.up ? 1 : 0, echo: !!(b.fx && b.fx.echo) });
   const sc0 = sc(); s.name = inst.k === 'drum' ? inst.n : NOTE_NAMES[(sc0.rs + sc0.notes[((deg % 7) + 7) % 7]) % 12];
   S.ripples.push({ x: b.x, y: b.y, a: 0, h: inst.h });
+}
+function morphStep() {
+  const r = (a, b) => a + Math.random() * (b - a), ph = playH(), m = Math.min(W, ph), pick = a => a[Math.floor(Math.random() * a.length)]; S.mc++;
+  const kinds = ['move', 'swap', 'swap', 'stretch', 'nudge', 'ball', 'chord'], k = S.mc % 6 === 0 ? 'chord' : pick(kinds);
+  const st = S.strings.length ? pick(S.strings) : null;
+  if (k === 'move' && st && !st.rot) { const dx = r(-0.07, 0.07) * W, dy = r(-0.07, 0.07) * ph; st.tgt = { x1: st.x1 + dx, y1: st.y1 + dy, x2: st.x2 + dx, y2: st.y2 + dy }; }
+  else if (k === 'stretch' && st && !st.rot) { const f = r(0.82, 1.2), mx = (st.x1 + st.x2) / 2, my = (st.y1 + st.y2) / 2; st.tgt = { x1: mx + (st.x1 - mx) * f, y1: my + (st.y1 - my) * f, x2: mx + (st.x2 - mx) * f, y2: my + (st.y2 - my) * f }; }
+  else if (k === 'swap' && st) { const kind = IM[st.inst].k, pool = INST.filter(i => i.k === kind && i.id !== st.inst && (i.k !== 'voice')); if (pool.length) st.inst = (kind === 'lead' && Math.random() < 0.6 ? WORLDS[S.world].leads.filter(l => l !== st.inst) : pool.map(i => i.id)).sort(() => Math.random() - 0.5)[0] || st.inst; }
+  else if (k === 'nudge') { const L = [...S.portals, ...S.fields, ...S.mags]; if (L.length) { const o = pick(L); o.x += r(-0.05, 0.05) * W; o.y += r(-0.05, 0.05) * ph; } }
+  else if (k === 'ball') { if (S.balls.length < 7) spawnBall(r(0.1, 0.9) * W, r(0.1, 0.8) * ph); else S.balls.shift(); }
+  else if (k === 'chord') { S.shift = (S.shift + 1) % 4; }
+  S.strings.forEach(x => { x.x1 = Math.max(6, Math.min(W - 6, x.x1)); x.x2 = Math.max(6, Math.min(W - 6, x.x2)); });
+  save();
+}
+function spinStrings(dt) {
+  S.strings.forEach(s => { if (s.tgt) { const k = Math.min(1, dt * 1.6); s.x1 += (s.tgt.x1 - s.x1) * k; s.y1 += (s.tgt.y1 - s.y1) * k; s.x2 += (s.tgt.x2 - s.x2) * k; s.y2 += (s.tgt.y2 - s.y2) * k;
+      s.x1 = Math.max(6, Math.min(W - 6, s.x1)); s.x2 = Math.max(6, Math.min(W - 6, s.x2)); s.y1 = Math.max(6, Math.min(playH() - 6, s.y1)); s.y2 = Math.max(6, Math.min(playH() - 6, s.y2));
+      s.len = Math.max(50, Math.hypot(s.x2 - s.x1, s.y2 - s.y1)); if (Math.abs(s.tgt.x1 - s.x1) + Math.abs(s.tgt.y1 - s.y1) < 1) s.tgt = null; }
+    if (!s.rot) return; const a = s.rot * dt, c = Math.cos(a), n = Math.sin(a), mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2, dx = s.x1 - mx, dy = s.y1 - my;
+    s.x1 = mx + dx * c - dy * n; s.y1 = my + dx * n + dy * c; s.x2 = 2 * mx - s.x1; s.y2 = 2 * my - s.y1; });
 }
 function physics(dt) {
   const gr = [0, 260, 0][S.grav], ph = playH();
   for (const b of S.balls) {
     if (S.well) { const dx = S.well.x - b.x, dy = S.well.y - b.y, d = Math.hypot(dx, dy) + 20; if (d < 320) { const f = 1400 / d; b.vx += dx / d * f * dt * 6; b.vy += dy / d * f * dt * 6; } }
     if (S.grav === 2) { const dx = W / 2 - b.x, dy = ph / 2 - b.y, d = Math.hypot(dx, dy) + 40; b.vx += dx / d * 220 * dt; b.vy += dy / d * 220 * dt; }
+    for (const q of S.mags) { const dx = q.x - b.x, dy = q.y - b.y, d = Math.hypot(dx, dy); if (d < 320 && d > 1) { const f = q.sign * 26000 / (d + 50); b.vx += dx / d * f * dt; b.vy += dy / d * f * dt; } }
+    b.fx = {}; for (const f of S.fields) if (Math.hypot(b.x - f.x, b.y - f.y) < f.r) b.fx[f.type] = true;
     b.vy += gr * dt;
     let sp = Math.hypot(b.vx, b.vy); const mn = 170, mx = 900;
+    if (b.fx.fast) { const k = 1 + 1.1 * dt; b.vx *= k; b.vy *= k; } else if (sp > 440) { const k = 1 - 0.7 * dt; b.vx *= k; b.vy *= k; }
+    sp = Math.hypot(b.vx, b.vy);
     if (sp < mn && !S.grav) { b.vx *= mn / (sp || 1); b.vy *= mn / (sp || 1); sp = mn; }
     if (sp > mx) { b.vx *= mx / sp; b.vy *= mx / sp; sp = mx; }
     b.x += b.vx * dt; b.y += b.vy * dt;
@@ -524,165 +587,237 @@ function physics(dt) {
         const n = S.portals.length, q = n > 1 ? S.portals[(i + 1) % n] : { x: b.r + Math.random() * (W - 2 * b.r), y: b.r + Math.random() * (ph - 2 * b.r), r: 20 }, sp0 = Math.hypot(b.vx, b.vy) || 1;
         S.ripples.push({ x: p.x, y: p.y, a: 0, h: p.h }); b.x = q.x + (b.vx / sp0) * (q.r + b.r + 6); b.y = q.y + (b.vy / sp0) * (q.r + b.r + 6); b.x = Math.max(b.r, Math.min(W - b.r, b.x)); b.y = Math.max(b.r, Math.min(ph - b.r, b.y)); b.cool = 0.45; b.tr.length = 0;
         S.ripples.push({ x: b.x, y: b.y, a: 0, h: p.h + 40 });
-        const dg = 7 + Math.floor(Math.random() * 6); S.pending.push({ inst: IM.bell, deg: dg, vel: 0.7 }); S.pending.push({ inst: IM.bell, deg: dg + 4, vel: 0.5 });
         break;
       } }
     b.tr.push(b.x, b.y); if (b.tr.length > 28) b.tr.splice(0, 2);
   }
 }
 
-/* ---------- Dock (auch alles auf der Fläche gezeichnet) ---------- */
-let dock = [];
-function dockCols() { return W < 640 ? 8 : 12; }
-function iconsH() { const items = INST.length + ACTIONS.length, c = dockCols(), rows = Math.ceil(items / c); return rows * Math.min(56, W / c) + 14; }
-let stylePills = [], styH = 0;
-function layoutStyles() {
-  g.font = '700 12px system-ui'; let x = 8, y = 6; stylePills = [];
-  WORLDS.forEach((w, i) => { const pw = g.measureText(w.n).width + 22; if (x + pw > W - 6) { x = 8; y += 32; } stylePills.push({ i, x, y, w: pw, h: 26 }); x += pw + 6; });
-  styH = y + 32;
+/* ---------- Szenen ---------- */
+function nextScene() { const filled = S.scenes.map((x, i) => x ? i : -1).filter(i => i >= 0); if (!filled.length) return; S.sceneI = filled[(filled.indexOf(S.sceneI) + 1) % filled.length]; loadScene(S.sceneI, true); }
+function loadScene(i, quiet) { const d = S.scenes[i]; if (!d) return; setState(d); S.sceneI = i; if (!quiet) toast('Szene ' + 'ABCD'[i] + ' geladen'); S.ripples.push({ x: W / 2, y: playH() / 2, a: 0, h: WORLDS[S.world].hue }); save(); }
+
+/* ---------- Mikrofon: eigene Stimme als Instrument ---------- */
+async function recordMic() {
+  if (!ctx) return;
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
+    const src = ctx.createMediaStreamSource(st), sp = ctx.createScriptProcessor(4096, 1, 1), ch = []; toast('🎙 Sprich oder sing jetzt – 2 Sekunden'); S.micOn = performance.now();
+    sp.onaudioprocess = e => ch.push(new Float32Array(e.inputBuffer.getChannelData(0))); src.connect(sp); sp.connect(ctx.destination);
+    setTimeout(() => {
+      try { src.disconnect(); sp.disconnect(); st.getTracks().forEach(t => t.stop()); } catch (e) {} S.micOn = 0;
+      let n = 0; ch.forEach(c => n += c.length); const all = new Float32Array(n); let o = 0; ch.forEach(c => { all.set(c, o); o += c.length; });
+      let a = 0, b = n - 1, th = 0.03; while (a < n && Math.abs(all[a]) < th) a++; while (b > a && Math.abs(all[b]) < th) b--; if (b - a < ctx.sampleRate * 0.08) { toast('Zu leise – nochmal versuchen'); return; }
+      const seg = all.slice(a, Math.min(b + 1, a + ctx.sampleRate * 2.4)); let pk = 0; for (let i = 0; i < seg.length; i++) pk = Math.max(pk, Math.abs(seg[i])); const gain = 0.9 / (pk || 1);
+      for (let i = 0; i < seg.length; i++) { const f = Math.min(1, i / 200, (seg.length - i) / 800); seg[i] *= gain * f; }
+      const buf = ctx.createBuffer(1, seg.length, ctx.sampleRate); buf.copyToChannel(seg, 0); S.voice = buf; S.tool = 'voice'; toast('Stimme gespeichert – ziehe eine Saite damit');
+    }, 2200);
+  } catch (e) { toast(window.claude ? 'Mikrofon geht nur in der App-Adresse, nicht in der Artefakt-Ansicht' : 'Mikrofon nicht erlaubt'); }
 }
-function dockH() { return iconsH() + styH; }
-function layoutDock() {
-  layoutStyles();
-  const items = [...INST.map(i => ({ type: 'inst', id: i.id, e: i.e, n: i.n })), ...ACTIONS.map(a => ({ type: 'act', id: a.a, e: a.e, n: a.n }))], c = dockCols(), sz = Math.min(56, W / c), top = H - iconsH() + 10;
-  dock = items.map((it, i) => ({ ...it, x: (i % c) * sz + (W - c * sz) / 2, y: top + Math.floor(i / c) * sz, w: sz, h: sz }));
-}
-function toast(t) { S.toasts.push({ t, a: 0 }); if (S.toasts.length > 2) S.toasts.shift(); }
-function act(a) {
-  if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
-  else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
-  else if (a === 'grav') { S.grav = (S.grav + 1) % 3; toast(['Schwerkraft aus', 'Schwerkraft: nach unten', 'Schwerkraft: zur Mitte'][S.grav]); }
-  else if (a === 'clear') { S.strings = []; S.portals = []; S.balls = []; toast('Leer'); }
-  else if (a === 'dice') dice();
-  else if (a === 'rec') record();
-  else if (a === 'json') exportJson();
-  else if (a === 'erase') { S.tool = 'erase'; return; }
-  save();
-}
-function dice() {
-  S.strings = []; S.portals = []; S.balls = []; const w = WORLDS[S.world], ph = playH(), r = (a, b) => a + Math.random() * (b - a);
-  const mk = (inst, n, lmin, lmax) => { for (let i = 0; i < n; i++) { const L = r(lmin, lmax) * Math.min(W, ph), a = r(0, 3.14), cx = r(0.15 * W, 0.85 * W), cy = r(0.15 * ph, 0.85 * ph); addString(cx - Math.cos(a) * L / 2, cy - Math.sin(a) * L / 2, cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2, inst); } };
-  w.leads.forEach(l => mk(l, 1, 0.18, 0.5)); mk(w.bass === 'tuba' ? 'tuba' : 'bass', 1, 0.4, 0.7); mk(['tabla', 'dhol', 'hat'][Math.floor(Math.random() * 3)], 2, 0.2, 0.4); mk('snare', 1, 0.25, 0.4);
-  for (let i = 0; i < 2; i++) addPortal(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(30, 50));
-  for (let i = 0; i < 4; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
-}
+
+/* ---------- Sichern: WAV, ZIP, Song-Seite, Link ---------- */
 async function saveFile(name, blob) {
   try { if (window.claude && claude.use) { const d = await claude.use('downloads'); if (d) { await d.save({ filename: name, data: blob }); toast('Gespeichert: ' + name); return; } toast('Speichern geht hier nicht – öffne die App-Adresse'); return; } } catch (e) { toast(e && e.code === 'declined' ? 'Abgebrochen' : 'Speichern nicht möglich'); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Gespeichert: ' + name + ' (Downloads)');
 }
-function wavBlob(chunks, sr) {
+function wavBytes(chunks, sr) {
   let n = 0; chunks.forEach(c => n += c[0].length); const buf = new ArrayBuffer(44 + n * 4), v = new DataView(buf), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
   w(0, 'RIFF'); v.setUint32(4, 36 + n * 4, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 4, true);
   let o = 44; chunks.forEach(c => { for (let i = 0; i < c[0].length; i++) for (let k = 0; k < 2; k++) { const x = Math.max(-1, Math.min(1, c[k][i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); o += 2; } });
-  return new Blob([buf], { type: 'audio/wav' });
+  return new Uint8Array(buf);
 }
-function record() {
+function zipStore(name, u8) {
+  const T = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[i] = c >>> 0; }
+  let crc = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) crc = T[(crc ^ u8[i]) & 255] ^ (crc >>> 8); crc = (crc ^ 0xFFFFFFFF) >>> 0;
+  const nb = new TextEncoder().encode(name), lh = new DataView(new ArrayBuffer(30)), cd = new DataView(new ArrayBuffer(46)), ec = new DataView(new ArrayBuffer(22));
+  lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint32(14, crc, true); lh.setUint32(18, u8.length, true); lh.setUint32(22, u8.length, true); lh.setUint16(26, nb.length, true);
+  cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint32(16, crc, true); cd.setUint32(20, u8.length, true); cd.setUint32(24, u8.length, true); cd.setUint16(28, nb.length, true); cd.setUint32(42, 0, true);
+  const cdOff = 30 + nb.length + u8.length; ec.setUint32(0, 0x06054b50, true); ec.setUint16(8, 1, true); ec.setUint16(10, 1, true); ec.setUint32(12, 46 + nb.length, true); ec.setUint32(16, cdOff, true);
+  return new Blob([lh, nb, u8, cd, nb, ec], { type: 'application/zip' });
+}
+function stopAndSave(ch) {
+  if (!ch.length) { toast('Nichts aufgenommen'); return; }
+  const wav = wavBytes(ch, ctx.sampleRate); const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  if (window.claude) saveFile('cosmos-song-' + stamp + '.zip', zipStore('cosmos-song-' + stamp + '.wav', wav)); else saveFile('cosmos-song-' + stamp + '.wav', new Blob([wav], { type: 'audio/wav' }));
+}
+function record(maxSec) {
   if (!ctx) return;
   try {
     if (S.rec) { S.rec.stop(); return; }
-    if (window.claude) { // Artefakt-Ansicht: webm ist dort als Download erlaubt
-      if (!bus.dest) { bus.dest = ctx.createMediaStreamDestination(); bus.clip.connect(bus.dest); }
-      const ch = [], r = new MediaRecorder(bus.dest.stream); r.ondataavailable = e => ch.push(e.data);
-      r.onstop = () => { S.rec = null; saveFile('musify-cosmos.webm', new Blob(ch, { type: 'audio/webm' })); };
-      r.start(); S.rec = r;
-    } else { // eigene App: WAV (läuft überall)
-      const sp = ctx.createScriptProcessor(4096, 2, 2), ch = []; sp.onaudioprocess = e => ch.push([new Float32Array(e.inputBuffer.getChannelData(0)), new Float32Array(e.inputBuffer.getChannelData(1))]);
-      bus.clip.connect(sp); sp.connect(ctx.destination);
-      S.rec = { stop() { try { bus.clip.disconnect(sp); sp.disconnect(); } catch (e) {} sp.onaudioprocess = null; S.rec = null; if (ch.length) saveFile('musify-cosmos.wav', wavBlob(ch, ctx.sampleRate)); else toast('Nichts aufgenommen'); } };
-    }
-    toast('Aufnahme läuft – nochmal 🔴 tippen zum Speichern');
+    const sp = ctx.createScriptProcessor(4096, 2, 2), ch = []; sp.onaudioprocess = e => ch.push([new Float32Array(e.inputBuffer.getChannelData(0)), new Float32Array(e.inputBuffer.getChannelData(1))]);
+    bus.clip.connect(sp); sp.connect(ctx.destination); let tm = 0;
+    S.rec = { t0: performance.now(), max: maxSec || 0, stop() { clearTimeout(tm); try { bus.clip.disconnect(sp); sp.disconnect(); } catch (e) {} sp.onaudioprocess = null; S.rec = null; stopAndSave(ch); } };
+    if (maxSec) tm = setTimeout(() => { if (S.rec) S.rec.stop(); }, maxSec * 1000);
+    toast(maxSec ? 'Song wird aufgenommen (' + maxSec + ' s) – spiel und forme ihn!' : 'Aufnahme läuft – nochmal tippen zum Speichern');
   } catch (e) { S.rec = null; toast('Aufnahme geht hier nicht'); }
 }
-function exportJson() {
-  const d = { app: 'Musify Cosmos', world: WORLDS[S.world].n, bpm: Math.round(S.bpm), pulse: S.pulse, portals: S.portals.map(p => ({ x: +(p.x / W).toFixed(3), y: +(p.y / H).toFixed(3), r: Math.round(p.r) })), strings: S.strings.map(s => ({ instrument: s.inst, x1: +(s.x1 / W).toFixed(3), y1: +(s.y1 / H).toFixed(3), x2: +(s.x2 / W).toFixed(3), y2: +(s.y2 / H).toFixed(3) })) };
-  saveFile('kosmos.json', new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' }));
+function songPage() {
+  const el = document.getElementById('app'), src = el ? el.textContent : ''; if (!src || src.length < 5000) { toast('Song-Seite geht hier nicht – öffne die App-Adresse'); return; }
+  const st = JSON.stringify(getState()).replace(/</g, '\\u003c'), name = 'Cosmos-Song';
+  const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>' + name + '</title><style>' + APP_CSS + '</style></head><body><canvas id="c"></canvas><script>window.__SONG=' + st + ';<\/script><script id="app">' + src + '<\/script></body></html>';
+  saveFile('cosmos-song.html', new Blob([html], { type: 'text/html' }));
+}
+function shareLink() {
+  if (window.claude) { toast('Link geht nur in der App-Adresse – hier: „Song-Seite“ oder „Datei“'); return; }
+  const b = btoa(unescape(encodeURIComponent(JSON.stringify(getState())))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), url = location.href.split('#')[0] + '#k=' + b;
+  try { navigator.clipboard.writeText(url).then(() => toast('Link kopiert – einfach verschicken'), () => toast('Kopieren nicht erlaubt')); } catch (e) { toast('Kopieren nicht erlaubt'); } history.replaceState(null, '', '#k=' + b);
+}
+function exportJson() { saveFile('kosmos.json', new Blob([JSON.stringify({ app: 'Musify Cosmos', welt: WORLDS[S.world].n, ...getState() }, null, 1)], { type: 'application/json' })); }
+
+/* ---------- Dock ---------- */
+let dock = [], tabPills = [], stylePills = [], styH = 0;
+const TABH = 34;
+function dockCols() { return W < 640 ? 8 : 12; }
+function iconsH() { const c = dockCols(); return Math.ceil(16 / c) * Math.min(56, W / c) + 8; }
+function layoutDock() {
+  g.font = '700 12px system-ui'; let x = 8, y = 6; stylePills = [];
+  WORLDS.forEach((w, i) => { const pw = g.measureText(w.n).width + 22; if (x + pw > W - 6) { x = 8; y += 32; } stylePills.push({ i, x, y, w: pw, h: 26 }); x += pw + 6; }); styH = y + 32;
+  const tw = (W - 16) / TABS.length; tabPills = TABS.map((n, i) => ({ i, n, x: 8 + i * tw, y: styH + 2, w: tw - 4, h: TABH - 6 }));
+  const c = dockCols(), sz = Math.min(56, W / c), top = styH + TABH + 2, its = ITEMS.filter(it => it.tab === S.tab);
+  dock = its.map((it, i) => ({ ...it, x: (i % c) * sz + (W - c * sz) / 2, y: top + Math.floor(i / c) * sz, w: sz, h: sz }));
+}
+function dockH() { return styH + TABH + iconsH(); }
+function toast(t) { S.toasts.push({ t, a: 0 }); if (S.toasts.length > 2) S.toasts.shift(); }
+function toolActive(d) {
+  if (d.kind === 'inst' || d.kind === 'tool') return S.tool === d.id;
+  if (d.kind === 'scene') return S.sceneI === +d.id && !!S.scenes[+d.id];
+  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'spin' ? S.spin : d.id === 'sauto' ? S.sauto : d.id === 'sover' ? S.sover : d.id === 'morph' ? S.morph : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
+}
+function act(a) {
+  if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
+  else if (a === 'play') { S.playing = !S.playing; if (ctx) { if (S.playing) { ctx.resume(); S.nextT = ctx.currentTime + 0.1; } else ctx.suspend(); } toast(S.playing ? 'Weiter' : 'Pause'); }
+  else if (a === 'grav') { S.grav = (S.grav + 1) % 3; toast(['Schwerkraft aus', 'Schwerkraft: nach unten', 'Schwerkraft: zur Mitte'][S.grav]); }
+  else if (a === 'clear') { S.strings = []; S.portals = []; S.fields = []; S.mags = []; S.balls = []; toast('Leer'); }
+  else if (a === 'dice') dice();
+  else if (a === 'morph') { S.morph = !S.morph; toast(S.morph ? 'Morph an – der Song verändert sich alle 2 Takte leicht' : 'Morph aus'); }
+  else if (a === 'spin') { S.spin = !S.spin; toast(S.spin ? 'Dreher an – neue Saiten kreisen von selbst' : 'Dreher aus'); }
+  else if (a === 'mic') recordMic();
+  else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
+  else if (a === 'sauto') { S.sauto = !S.sauto; toast(S.sauto ? 'Szenen-Auto: wechselt alle 8 Takte' : 'Szenen-Auto aus'); return; }
+  else if (a === 'rec') record(0);
+  else if (a === 'song') record(60);
+  else if (a === 'page') songPage();
+  else if (a === 'json') exportJson();
+  else if (a === 'link') shareLink();
+  save();
+}
+function dice() {
+  S.strings = []; S.portals = []; S.fields = []; S.mags = []; S.balls = []; const w = WORLDS[S.world], ph = playH(), r = (a, b) => a + Math.random() * (b - a);
+  const mk = (inst, n, lmin, lmax) => { for (let i = 0; i < n; i++) { const L = r(lmin, lmax) * Math.min(W, ph), a = r(0, 3.14), cx = r(0.15 * W, 0.85 * W), cy = r(0.15 * ph, 0.85 * ph); addString(cx - Math.cos(a) * L / 2, cy - Math.sin(a) * L / 2, cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2, inst); } };
+  w.leads.forEach(l => mk(l, 1, 0.18, 0.5)); mk(w.bass === 'tuba' ? 'tuba' : 'bass', 1, 0.4, 0.7); mk(['tabla', 'dhol', 'hat'][Math.floor(Math.random() * 3)], 2, 0.2, 0.4); mk('snare', 1, 0.25, 0.4);
+  for (let i = 0; i < 2; i++) addPortal(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(30, 50));
+  addField(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(60, 90), ['fast', 'echo', 'up'][Math.floor(Math.random() * 3)]); addMag(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), Math.random() < 0.6 ? 1 : -1);
+  for (let i = 0; i < 4; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
 }
 
 /* ---------- Eingabe ---------- */
 let gest = null;
-function dockHit(x, y) { return dock.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h); }
+const isField = t => t === 'fast' || t === 'echo' || t === 'up';
+function eraseAt(x, y) {
+  const n = S.strings.length + S.portals.length + S.fields.length + S.mags.length;
+  S.strings = S.strings.filter(s => distSeg(x, y, s) > 26); S.portals = S.portals.filter(p => Math.hypot(x - p.x, y - p.y) > p.r + 10); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360);
+  S.fields = S.fields.filter(f => Math.hypot(x - f.x, y - f.y) > f.r * 0.6 + 10); S.mags = S.mags.filter(q => Math.hypot(x - q.x, y - q.y) > 34);
+  if (n !== S.strings.length + S.portals.length + S.fields.length + S.mags.length) save();
+}
+function distSeg(px, py, s) { const ex = s.x2 - s.x1, ey = s.y2 - s.y1, u = Math.max(0, Math.min(1, ((px - s.x1) * ex + (py - s.y1) * ey) / (ex * ex + ey * ey))); return Math.hypot(px - (s.x1 + ex * u), py - (s.y1 + ey * u)); }
+function hitRect(list, x, y) { return list.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h); }
 function onDown(ev) {
   ev.preventDefault(); const x = ev.clientX, y = ev.clientY;
-  if (!S.started) { S.started = true; initAudio(); ctx.resume(); dice(); return; }
+  if (!S.started) { S.started = true; initAudio(); ctx.resume(); if (!S.strings.length && !S.shared) dice(); else { for (let i = 0; i < 3; i++) spawnBall(Math.random() * W, Math.random() * playH() * 0.8 + 20); } return; }
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
-  const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= H - dockH() + p.y && y < H - dockH() + p.y + p.h);
+  const top = H - dockH();
+  const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
   if (sp) { S.world = sp.i; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
-  const d = dockHit(x, y);
-  if (d) { if (d.type === 'inst') { S.tool = d.id; toast(d.n + ' – ziehe eine Saite'); } else act(d.id); return; }
+  const tp = tabPills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
+  if (tp) { S.tab = tp.i; layoutDock(); return; }
+  const d = hitRect(dock.map(i => ({ ...i, y: i.y + top })), x, y);
+  if (d) {
+    if (d.kind === 'inst') { if (d.id === 'voice' && !S.voice) { toast('Noch keine Stimme – wird aufgenommen …'); recordMic(); return; } S.tool = d.id; toast(d.n + ' – ziehe eine Saite'); }
+    else if (d.kind === 'tool') { S.tool = d.id; toast({ erase: 'Radierer – wische über Dinge', mag: 'Magnet – tippe, um ihn zu setzen', rep: 'Abstoß – tippe, um ihn zu setzen', fast: 'Tempo-Feld – ziehe einen Kreis auf', echo: 'Echo-Feld – ziehe einen Kreis auf', up: 'Höhen-Feld – ziehe einen Kreis auf' }[d.id]); }
+    else if (d.kind === 'scene') { const i = +d.id; if (S.scenes[i] && !S.sover) loadScene(i); else { S.scenes[i] = getState(); S.sceneI = i; S.sover = false; saveScenes(); toast('Szene ' + 'ABCD'[i] + ' gespeichert'); } }
+    else act(d.id);
+    return;
+  }
   if (y > playH()) return;
   gest = { x0: x, y0: y, x, y, t0: performance.now(), mode: null, id: ev.pointerId, pts: [[x, y]] };
   gest.lp = setTimeout(() => { if (gest && !gest.mode) { gest.mode = 'well'; S.well = { x: gest.x, y: gest.y }; if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {} } }, 420);
 }
 function onMove(ev) {
   if (!gest || ev.pointerId !== gest.id) return; gest.x = ev.clientX; gest.y = Math.min(ev.clientY, playH() - 2); gest.pts.push([gest.x, gest.y]);
-  if (!gest.mode && Math.hypot(gest.x - gest.x0, gest.y - gest.y0) > 14) { clearTimeout(gest.lp); gest.mode = S.tool === 'erase' ? 'erase' : 'draw'; }
+  if (!gest.mode && Math.hypot(gest.x - gest.x0, gest.y - gest.y0) > 14) { clearTimeout(gest.lp); gest.mode = S.tool === 'erase' ? 'erase' : isField(S.tool) ? 'field' : (S.tool === 'mag' || S.tool === 'rep') ? 'none' : 'draw'; }
   if (gest.mode === 'well') S.well = { x: gest.x, y: gest.y };
-  if (gest.mode === 'erase') { const n = S.strings.length; S.strings = S.strings.filter(s => distSeg(gest.x, gest.y, s) > 26); S.portals = S.portals.filter(p => Math.hypot(gest.x - p.x, gest.y - p.y) > p.r + 10); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360); if (S.strings.length !== n) save(); }
+  if (gest.mode === 'erase') eraseAt(gest.x, gest.y);
 }
-function distSeg(px, py, s) { const ex = s.x2 - s.x1, ey = s.y2 - s.y1, u = Math.max(0, Math.min(1, ((px - s.x1) * ex + (py - s.y1) * ey) / (ex * ex + ey * ey))); return Math.hypot(px - (s.x1 + ex * u), py - (s.y1 + ey * u)); }
 function onUp(ev) {
   if (!gest || ev.pointerId !== gest.id) return; clearTimeout(gest.lp);
-  if (gest.mode === 'draw') { const ci = S.tool !== 'erase' ? circleOf(gest.pts) : null; if (ci) { addPortal(ci.x, ci.y, ci.r); toast(S.portals.length > 1 ? 'Portal ' + S.portals.length + ' – Kugeln springen zum nächsten Portal' : 'Loch – Kugeln tauchen irgendwo wieder auf'); } else if (S.tool !== 'erase') { const s = addString(gest.x0, gest.y0, gest.x, gest.y, S.tool); if (!s) toast('Zu kurz – zieh weiter'); } }
-  else if (!gest.mode) { if (S.tool === 'erase') { const n = S.strings.length; S.strings = S.strings.filter(s => distSeg(gest.x0, gest.y0, s) > 26); S.portals = S.portals.filter(p => Math.hypot(gest.x0 - p.x, gest.y0 - p.y) > p.r + 10); S.portals.forEach((p, i) => p.h = (i * 70 + 190) % 360); save(); } else spawnBall(gest.x0, gest.y0); }
+  if (gest.mode === 'draw') {
+    const ci = circleOf(gest.pts);
+    if (ci) { addPortal(ci.x, ci.y, ci.r); toast(S.portals.length > 1 ? 'Portal ' + S.portals.length + ' – Kugeln springen zum nächsten Portal' : 'Loch – Kugeln tauchen irgendwo wieder auf'); }
+    else if (!addString(gest.x0, gest.y0, gest.x, gest.y, S.tool)) toast('Zu kurz – zieh weiter');
+  } else if (gest.mode === 'field') { addField(gest.x0, gest.y0, Math.max(34, Math.min(200, Math.hypot(gest.x - gest.x0, gest.y - gest.y0))), S.tool); }
+  else if (!gest.mode) {
+    if (S.tool === 'erase') eraseAt(gest.x0, gest.y0);
+    else if (S.tool === 'mag') addMag(gest.x0, gest.y0, 1); else if (S.tool === 'rep') addMag(gest.x0, gest.y0, -1);
+    else if (isField(S.tool)) addField(gest.x0, gest.y0, 70, S.tool);
+    else spawnBall(gest.x0, gest.y0);
+  }
   S.well = null; gest = null; S.hint++;
 }
 
-/* ---------- Speichern ---------- */
-function save() { try { localStorage.setItem('cosmos', JSON.stringify({ w: S.world, bpm: S.bpm, p: S.pulse, s: S.strings.map(s => [s.x1 / W, s.y1 / H, s.x2 / W, s.y2 / H, s.inst]), po: S.portals.map(p => [p.x / W, p.y / H, p.r / Math.min(W, H)]) })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem('cosmos') || 'null'); if (!d) return; S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: a[1] * H, r: a[2] * Math.min(W, H), h: (i * 70 + 190) % 360 })); S.world = d.w || 0; S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; S.strings = d.s.map(a => ({ x1: a[0] * W, y1: a[1] * H, x2: a[2] * W, y2: a[3] * H, inst: IM[a[4]] ? a[4] : 'oud', len: Math.hypot((a[2] - a[0]) * W, (a[3] - a[1]) * H), wob: 0, last: 0, name: '' })); } catch (e) {} }
-
 /* ---------- Zeichnen ---------- */
 const hsl = (h, s, l, a = 1) => `hsla(${h},${s}%,${l}%,${a})`;
+const FC = { fast: 55, echo: 200, up: 290 }, FE = { fast: '⚡', echo: '🌊', up: '⬆' };
 function draw(dt) {
-  const w = WORLDS[S.world], ph = playH(), bf = S.beatFlash; S.beatFlash *= 0.9;
+  const w = WORLDS[S.world], ph = playH(), bf = S.beatFlash; S.beatFlash *= 0.9; const now = performance.now();
   g.fillStyle = 'rgba(7,9,16,0.30)'; g.fillRect(0, 0, W, H);
   const rg = g.createRadialGradient(W / 2, ph / 2, 0, W / 2, ph / 2, Math.max(W, ph) * 0.7); rg.addColorStop(0, hsl(w.hue, 70, 40, 0.07 + 0.1 * bf)); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, W, ph);
-  // Wände
   g.strokeStyle = hsl(w.hue, 60, 50, 0.35 + 0.3 * bf); g.lineWidth = 2; g.strokeRect(1, 1, W - 2, ph - 2);
-  // Ripples
-  S.ripples = S.ripples.filter(r => r.a < 1); S.ripples.forEach(r => { r.a += dt * 2.2; g.strokeStyle = hsl(r.h, 90, 65, 1 - r.a); g.lineWidth = 2; g.beginPath(); g.arc(r.x, r.y, 8 + r.a * 46, 0, 7); g.stroke(); });
+  // Klangfelder
+  S.fields.forEach(f => { const h0 = FC[f.type], gr = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r); gr.addColorStop(0, hsl(h0, 90, 55, 0.05)); gr.addColorStop(1, hsl(h0, 90, 55, 0.2)); g.fillStyle = gr; g.beginPath(); g.arc(f.x, f.y, f.r, 0, 7); g.fill();
+    g.strokeStyle = hsl(h0, 95, 65, 0.7); g.lineWidth = 2; g.setLineDash([4, 7]); g.lineDashOffset = -now / 60; g.beginPath(); g.arc(f.x, f.y, f.r, 0, 7); g.stroke(); g.setLineDash([]); g.font = Math.round(Math.min(34, f.r * 0.6)) + 'px system-ui'; g.textAlign = 'center'; g.fillStyle = hsl(h0, 100, 85, 0.9); g.fillText(FE[f.type], f.x, f.y + 10); });
+  // Magnete
+  S.mags.forEach(q => { const att = q.sign > 0, h0 = att ? 190 : 20; for (let k = 0; k < 3; k++) { const ph0 = ((now / 900 + k / 3) % 1), rr0 = att ? 46 * (1 - ph0) + 8 : 8 + 46 * ph0; g.strokeStyle = hsl(h0, 95, 65, (att ? ph0 : 1 - ph0) * 0.8); g.lineWidth = 2; g.beginPath(); g.arc(q.x, q.y, rr0, 0, 7); g.stroke(); }
+    g.fillStyle = att ? '#000' : hsl(20, 90, 55); g.beginPath(); g.arc(q.x, q.y, 9, 0, 7); g.fill(); g.strokeStyle = hsl(h0, 100, 70); g.lineWidth = 2; g.stroke(); });
   // Portale
-  S.portals.forEach((p, i) => { const t = performance.now() / 1000, n = S.portals.length;
+  S.portals.forEach((p, i) => { const t = now / 1000, n = S.portals.length;
     for (let k = 0; k < 3; k++) { g.strokeStyle = hsl(p.h, 95, 62, 0.75 - k * 0.2); g.lineWidth = 3 - k * 0.6; g.setLineDash([10 + k * 6, 8]); g.lineDashOffset = -t * (60 + k * 40) * (k % 2 ? -1 : 1); g.beginPath(); g.arc(p.x, p.y, p.r - k * 7, 0, 7); g.stroke(); }
     g.setLineDash([]); const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); gr.addColorStop(0, 'rgba(0,0,0,0.85)'); gr.addColorStop(1, hsl(p.h, 90, 40, 0.15)); g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, p.r - 2, 0, 7); g.fill();
     g.fillStyle = hsl(p.h, 100, 85); g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(n > 1 ? (i + 1) + ' → ' + ((i + 1) % n + 1) : 'Loch', p.x, p.y + 4); });
+  S.ripples = S.ripples.filter(r => r.a < 1); S.ripples.forEach(r => { r.a += dt * 2.2; g.strokeStyle = hsl(r.h, 90, 65, 1 - r.a); g.lineWidth = 2; g.beginPath(); g.arc(r.x, r.y, 8 + r.a * 46, 0, 7); g.stroke(); });
   // Saiten
   S.strings.forEach(s => {
-    const inst = IM[s.inst]; s.wob *= 0.93; const mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2, nx = -(s.y2 - s.y1) / s.len, ny = (s.x2 - s.x1) / s.len, amp = s.wob * 12 * Math.sin(performance.now() / 22);
+    const inst = IM[s.inst]; s.wob *= 0.93; const mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2, nx = -(s.y2 - s.y1) / s.len, ny = (s.x2 - s.x1) / s.len, amp = s.wob * 12 * Math.sin(now / 22);
     g.strokeStyle = hsl(inst.h, 90, 58 + 25 * s.wob, 0.9); g.lineWidth = 3 + 3 * s.wob; g.lineCap = 'round'; g.shadowColor = hsl(inst.h, 100, 60); g.shadowBlur = 6 + 18 * s.wob;
     g.beginPath(); g.moveTo(s.x1, s.y1); g.quadraticCurveTo(mx + nx * amp, my + ny * amp, s.x2, s.y2); g.stroke(); g.shadowBlur = 0;
+    if (s.rot) { g.fillStyle = hsl(inst.h, 90, 75, 0.8); g.beginPath(); g.arc(mx, my, 4, 0, 7); g.fill(); }
     if (s.wob > 0.08 && s.name) { g.fillStyle = hsl(inst.h, 100, 85, s.wob); g.font = '700 13px system-ui'; g.textAlign = 'center'; g.fillText(s.name, mx + nx * 18, my + ny * 18); }
     else { g.fillStyle = hsl(inst.h, 80, 70, 0.8); g.font = '14px system-ui'; g.textAlign = 'center'; g.fillText(inst.e, s.x1, s.y1 - 9); }
   });
-  // Vorschau
-  if (gest && gest.mode === 'draw' && S.tool !== 'erase') { const inst = IM[S.tool]; g.strokeStyle = hsl(inst.h, 90, 70, 0.7); g.setLineDash([6, 6]); g.lineWidth = 3; g.beginPath(); g.moveTo(gest.x0, gest.y0); g.lineTo(gest.x, gest.y); g.stroke(); g.setLineDash([]);
-    const L = Math.hypot(gest.x - gest.x0, gest.y - gest.y0), dg = degOf(L); g.fillStyle = '#fff'; g.font = '700 14px system-ui'; g.textAlign = 'center'; const s0 = sc(); g.fillText(inst.k === 'drum' ? inst.n : NOTE_NAMES[(s0.rs + s0.notes[((dg % 7) + 7) % 7]) % 12], (gest.x + gest.x0) / 2, (gest.y + gest.y0) / 2 - 12); }
-  // Dirigent-Brunnen
-  if (S.well) { const t = performance.now() / 300; for (let i = 0; i < 3; i++) { g.strokeStyle = hsl(w.hue, 90, 70, 0.5 - i * 0.14); g.lineWidth = 2; g.beginPath(); g.arc(S.well.x, S.well.y, 20 + ((t + i) % 3) * 40 * (1 - 0), 0, 7); g.stroke(); } g.fillStyle = '#fff'; g.beginPath(); g.arc(S.well.x, S.well.y, 6, 0, 7); g.fill(); }
-  // Kugeln
+  if (gest && gest.mode === 'draw') { const inst = IM[S.tool]; if (inst) { g.strokeStyle = hsl(inst.h, 90, 70, 0.7); g.setLineDash([6, 6]); g.lineWidth = 3; g.beginPath(); g.moveTo(gest.x0, gest.y0); g.lineTo(gest.x, gest.y); g.stroke(); g.setLineDash([]);
+    const L = Math.hypot(gest.x - gest.x0, gest.y - gest.y0), dg = degOf(L); g.fillStyle = '#fff'; g.font = '700 14px system-ui'; g.textAlign = 'center'; const s0 = sc(); g.fillText(inst.k === 'drum' ? inst.n : NOTE_NAMES[(s0.rs + s0.notes[((dg % 7) + 7) % 7]) % 12], (gest.x + gest.x0) / 2, (gest.y + gest.y0) / 2 - 12); } }
+  if (gest && gest.mode === 'field') { const r0 = Math.hypot(gest.x - gest.x0, gest.y - gest.y0); g.strokeStyle = hsl(FC[S.tool], 95, 70, 0.8); g.setLineDash([6, 6]); g.lineWidth = 2; g.beginPath(); g.arc(gest.x0, gest.y0, r0, 0, 7); g.stroke(); g.setLineDash([]); }
+  if (S.well) { const t = now / 300; for (let i = 0; i < 3; i++) { g.strokeStyle = hsl(w.hue, 90, 70, 0.5 - i * 0.14); g.lineWidth = 2; g.beginPath(); g.arc(S.well.x, S.well.y, 20 + ((t + i) % 3) * 40, 0, 7); g.stroke(); } g.fillStyle = '#fff'; g.beginPath(); g.arc(S.well.x, S.well.y, 6, 0, 7); g.fill(); }
   S.balls.forEach(b => { g.strokeStyle = hsl(b.hue, 90, 70, 0.5); g.lineWidth = 3; g.beginPath(); for (let i = 0; i < b.tr.length; i += 2) i ? g.lineTo(b.tr[i], b.tr[i + 1]) : g.moveTo(b.tr[i], b.tr[i + 1]); g.stroke(); const gg = g.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 2.2); gg.addColorStop(0, '#fff'); gg.addColorStop(0.4, hsl(b.hue, 95, 65)); gg.addColorStop(1, hsl(b.hue, 95, 55, 0)); g.fillStyle = gg; g.beginPath(); g.arc(b.x, b.y, b.r * 2.2, 0, 7); g.fill(); });
   // Kopfzeile
   g.textAlign = 'left'; g.fillStyle = hsl(w.hue, 90, 75); g.font = '800 15px system-ui'; g.fillText('MUSIFY COSMOS', 12, 22);
   g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM`, 12, 40);
-  g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(VERSION, W - 12, 20); drawBpm();
-  if (S.rec) { g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 20, 38, 6, 0, 7); g.fill(); }
+  g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(VERSION, W - 12, 20); g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', W - 12, 40); S.bpmBox = { x: W - 82, y: 26, w: 82, h: 20 };
+  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 16, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / 1:00' : ''), W - 98, 20); }
+  if (S.micOn) { g.fillStyle = '#ff2a55'; g.font = '800 18px system-ui'; g.textAlign = 'center'; g.fillText('🎙 JETZT SINGEN …', W / 2, ph / 2); }
   // Dock
-  const dh = dockH(); g.fillStyle = 'rgba(14,18,30,0.94)'; g.fillRect(0, H - dh, W, dh); g.strokeStyle = '#232a3d'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, H - dh); g.lineTo(W, H - dh); g.stroke();
-  stylePills.forEach(p => { const on = p.i === S.world, h0 = WORLDS[p.i].hue; g.fillStyle = on ? hsl(h0, 80, 42, 0.95) : 'rgba(40,48,72,0.7)'; rr(p.x, H - dh + p.y, p.w, p.h, 13); g.fill(); if (on) { g.strokeStyle = hsl(h0, 100, 72); g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#b6c0d6'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(WORLDS[p.i].n, p.x + p.w / 2, H - dh + p.y + 17); });
+  const dh = dockH(), top = H - dh; g.fillStyle = 'rgba(14,18,30,0.94)'; g.fillRect(0, top, W, dh); g.strokeStyle = '#232a3d'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, top); g.lineTo(W, top); g.stroke();
+  stylePills.forEach(p => { const on = p.i === S.world, h0 = WORLDS[p.i].hue; g.fillStyle = on ? hsl(h0, 80, 42, 0.95) : 'rgba(40,48,72,0.7)'; rr(p.x, top + p.y, p.w, p.h, 13); g.fill(); if (on) { g.strokeStyle = hsl(h0, 100, 72); g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#b6c0d6'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(WORLDS[p.i].n, p.x + p.w / 2, top + p.y + 17); });
+  tabPills.forEach(p => { const on = p.i === S.tab; g.fillStyle = on ? 'rgba(0,229,255,0.22)' : 'rgba(30,36,56,0.8)'; rr(p.x, top + p.y, p.w, p.h, 10); g.fill(); if (on) { g.strokeStyle = '#00e5ff'; g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#9aa5bb'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(p.n, p.x + p.w / 2, top + p.y + 18); });
   dock.forEach(d => {
-    const on = d.type === 'inst' ? S.tool === d.id : (d.id === 'erase' ? S.tool === 'erase' : d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'rec' ? !!S.rec : false);
-    const hue = d.type === 'inst' ? IM[d.id].h : 200; g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, d.y + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
-    g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.type === 'act' && d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, d.y + d.h * 0.58);
-    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.18)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.n, d.x + d.w / 2, d.y + d.h - 7);
+    const on = toolActive(d), full = d.kind === 'scene' ? !!S.scenes[+d.id] : false, hue = d.kind === 'inst' ? IM[d.id].h : d.kind === 'tool' ? TOOLS[d.id].h : d.kind === 'scene' ? 150 : 200, y0 = top + d.y;
+    g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : full ? 'rgba(30,90,70,0.65)' : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
+    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.n, d.x + d.w / 2, y0 + d.h - 7);
   });
-  // Hinweise
-  S.toasts.forEach((t, i) => { t.a += dt; });
-  S.toasts = S.toasts.filter(t => t.a < 3.2); S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = g.measureText(t.t).width + 28; g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 56 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 75 + i * 34); });
+  S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
+  S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 56 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 75 + i * 34, W - 30); });
   if (S.hint < 3 && S.started && !S.toasts.length) { g.fillStyle = 'rgba(255,255,255,0.55)'; g.textAlign = 'center'; g.font = '600 13px system-ui'; if (W < 640) { g.fillText('Ziehen = Saite · Kreis = Portal · Tippen = Kugel', W / 2, ph - 30); g.fillText('Halten = Dirigent (zieht Kugeln an)', W / 2, ph - 12); } else g.fillText('Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent (zieht die Kugeln an)', W / 2, ph - 14); }
-  if (!S.started) { g.fillStyle = 'rgba(5,7,14,0.88)'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.fillStyle = hsl(w.hue, 95, 70); g.font = '800 ' + Math.min(44, W / 9) + 'px system-ui'; g.fillText('MUSIFY COSMOS', W / 2, H / 2 - 50); g.fillStyle = '#e6ebf5'; g.font = '600 16px system-ui'; g.fillText('Zeichne Saiten. Kugeln spielen sie.', W / 2, H / 2 - 14); g.fillStyle = '#8b95a8'; g.font = '14px system-ui'; g.fillText('Weltklänge: Oud, Sitar, Shehnai, Tuba, Tabla …', W / 2, H / 2 + 12); const p = 0.6 + 0.4 * Math.sin(performance.now() / 300); g.fillStyle = `rgba(0,230,118,${p})`; g.font = '800 20px system-ui'; g.fillText('▶ Tippen zum Starten', W / 2, H / 2 + 60); }
-}
-function drawBpm() {
-  const x = W - 12; g.textAlign = 'right'; g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', x, 40); S.bpmBox = { x: x - 70, y: 26, w: 70, h: 20 };
+  if (!S.started) { g.fillStyle = 'rgba(5,7,14,0.88)'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.fillStyle = hsl(w.hue, 95, 70); g.font = '800 ' + Math.min(44, W / 9) + 'px system-ui'; g.fillText(window.__SONG ? 'COSMOS-SONG' : 'MUSIFY COSMOS', W / 2, H / 2 - 50); g.fillStyle = '#e6ebf5'; g.font = '600 16px system-ui'; g.fillText(window.__SONG || S.shared ? 'Ein geteilter Kosmos wartet auf dich.' : 'Zeichne Saiten. Kugeln spielen sie.', W / 2, H / 2 - 14); g.fillStyle = '#8b95a8'; g.font = '14px system-ui'; g.fillText('Weltklänge: Oud, Sitar, Shehnai, Tuba, Tabla …', W / 2, H / 2 + 12); const p = 0.6 + 0.4 * Math.sin(now / 300); g.fillStyle = `rgba(0,230,118,${p})`; g.font = '800 20px system-ui'; g.fillText('▶ Tippen zum Starten', W / 2, H / 2 + 60); }
 }
 function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 
@@ -691,16 +826,16 @@ function resize() { DPR = Math.min(2, window.devicePixelRatio || 1); W = window.
 let lastF = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - lastF) / 1000); lastF = now;
-  if (S.playing && S.started) { const n = Math.ceil(dt / 0.008); for (let i = 0; i < n; i++) physics(dt / n); }
+  if (S.playing && S.started) { spinStrings(dt); const n = Math.ceil(dt / 0.008); for (let i = 0; i < n; i++) physics(dt / n); }
   if (bus) { const a = new Uint8Array(bus.an.fftSize); bus.an.getByteTimeDomainData(a); let m = 0; for (let i = 0; i < a.length; i++) m = Math.max(m, Math.abs(a[i] - 128)); S.level = Math.max(S.level * 0.9, m / 128); }
   draw(dt); requestAnimationFrame(loop);
 }
 window.addEventListener('DOMContentLoaded', () => {
-  cv = document.getElementById('c'); g = cv.getContext('2d'); resize(); load(); window.addEventListener('resize', resize);
+  cv = document.getElementById('c'); g = cv.getContext('2d'); resize(); load(); window.addEventListener('resize', () => { resize(); });
   cv.addEventListener('pointerdown', ev => { const b = S.bpmBox; if (S.started && b && ev.clientX >= b.x && ev.clientX <= b.x + b.w && ev.clientY >= b.y && ev.clientY <= b.y + b.h) { S.bpm = Math.max(70, Math.min(175, S.bpm + (ev.clientX < b.x + b.w / 2 ? -4 : 4))); save(); return; } onDown(ev); });
   cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
   requestAnimationFrame(loop);
-  window.__cosmos = { S, get ctx() { return ctx; }, get bus() { return bus; } };
+  window.__cosmos = { S, getState, setState, get ctx() { return ctx; }, get bus() { return bus; } };
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && document.querySelector('link[rel=manifest]')) navigator.serviceWorker.register('sw.js').catch(() => {});
 });
 
