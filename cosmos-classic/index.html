@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos Classic 5.4';
+const VERSION = 'Cosmos Classic 5.5';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -575,7 +575,7 @@ function dice() {
   const mk = (inst, n, lmin, lmax) => { for (let i = 0; i < n; i++) { const L = r(lmin, lmax) * Math.min(W, ph), a = r(0, 3.14), cx = r(0.15 * W, 0.85 * W), cy = r(0.15 * ph, 0.85 * ph); addString(cx - Math.cos(a) * L / 2, cy - Math.sin(a) * L / 2, cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2, inst); } };
   w.leads.forEach(l => mk(l, 1, 0.18, 0.5)); mk(w.bass === 'tuba' ? 'tuba' : 'bass', 1, 0.4, 0.7); mk(['tabla', 'dhol', 'hat'][Math.floor(Math.random() * 3)], 2, 0.2, 0.4); mk('snare', 1, 0.25, 0.4);
   for (let i = 0; i < 2; i++) addPortal(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph), r(30, 50));
-  for (let i = 0; i < 4; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
+  for (let i = 0; i < 6; i++) spawnBall(r(0.2 * W, 0.8 * W), r(0.2 * ph, 0.8 * ph)); toast('Neuer Kosmos in „' + w.n + '“');
 }
 async function saveFile(name, blob) {
   try { if (window.claude && claude.use) { const d = await claude.use('downloads'); if (d) { await d.save({ filename: name, data: blob }); toast('Gespeichert: ' + name); return; } toast('Speichern geht hier nicht – öffne die App-Adresse'); return; } } catch (e) { toast(e && e.code === 'declined' ? 'Abgebrochen' : 'Speichern nicht möglich'); return; }
@@ -629,7 +629,7 @@ let gest = null;
 function dockHit(x, y) { return dock.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h); }
 function onDown(ev) {
   ev.preventDefault(); const x = ev.clientX, y = ev.clientY;
-  if (!S.started) { S.started = true; initAudio(); ctx.resume(); if (S.shared) { for (let i = 0; i < 4; i++) spawnBall(Math.random() * W, Math.random() * playH() * 0.8 + 20); } else dice(); return; }
+  if (!S.started) { S.started = true; initAudio(); ctx.resume(); if (S.shared) { for (let i = 0; i < 6; i++) spawnBall(Math.random() * W, Math.random() * playH() * 0.8 + 20); } else dice(); return; }
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= H - dockH() + p.y && y < H - dockH() + p.y + p.h);
   if (sp) { S.world = sp.i; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
