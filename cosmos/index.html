@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 7.3';
+const VERSION = 'Cosmos 7.4';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -403,7 +403,7 @@ const ITEMS = [
   ...INST.map(i => ({ tab: 0, kind: 'inst', id: i.id, e: i.e, n: i.n })),
   ...Object.keys(TOOLS).map(k => ({ tab: 1, kind: 'tool', id: k, e: TOOLS[k].e, n: TOOLS[k].n })),
   { tab: 1, kind: 'act', id: 'spin', e: '🪐', n: 'Dreher' }, { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+  { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
   { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' },
   { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
   { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
@@ -436,6 +436,26 @@ const stepDur = () => 60 / S.bpm / 4;
 function duck(t) {
   [['b', 0.85], ['p', 0.5]].forEach(([k, b]) => { const p = bus[k].gain; p.cancelScheduledValues(t); p.setValueAtTime(b * 0.3, t); p.linearRampToValueAtTime(b, t + 0.2); });
 }
+function clonePat() { const w = WORLDS[S.world], P = PATS[w.pat] || PATS.four; return { k: P.k.slice(), c: P.c.slice(), b: P.b.slice(), oh: P.oh.slice(), g: (P.g || [15]).slice(), gs: (P.gs || [7, 15]).slice(), h: P.h, sw: w.sw != null ? w.sw : (P.sw || 0) }; }
+function gmStep(lv) {
+  if (!S.gp) S.gp = clonePat(); const P = S.gp, pk = a => a[Math.floor(Math.random() * a.length)];
+  const tog = (a, v) => { const i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); };
+  if (lv === 8 && Math.random() < 0.25) { const k = pk(Object.keys(PATS)), Q = PATS[k]; P.k = Q.k.slice(); P.c = Q.c.slice(); P.b = Q.b.slice(); P.oh = Q.oh.slice(); P.g = (Q.g || [15]).slice(); P.gs = (Q.gs || [7, 15]).slice(); P.h = Q.h; }
+  for (let i = 0; i < [0, 1, 1, 1, 2, 2, 3, 4, 5][lv]; i++) {
+    const r = Math.random();
+    if (r < 0.22) tog(P.k, pk([2, 3, 6, 7, 10, 11, 14, 15]));
+    else if (r < 0.38) tog(P.oh, pk([2, 6, 10, 14]));
+    else if (r < 0.58) tog(P.b, pk([2, 3, 6, 7, 10, 11, 14]));
+    else if (r < 0.7) tog(P.g, pk([3, 5, 7, 11, 13, 15]));
+    else if (r < 0.82) tog(P.gs, pk([3, 5, 7, 9, 11, 13, 15]));
+    else if (r < 0.9) P.h = pk(['odd', 'even', 'all']);
+    else P.sw = Math.max(0, Math.min(0.3, P.sw + pk([-0.05, 0.05])));
+  }
+  if (lv >= 5) { if (Math.random() < 0.08 * (lv - 4)) S.bassOv = pk(['saw', '808', 'walk', 'tuba', 'fing']); if (lv >= 6 && Math.random() < 0.05 * (lv - 4)) P.c = pk([[4, 12], [4, 12, 14], [6, 14], [4, 10, 12]]); }
+  if (!P.k.includes(0)) P.k.push(0); if (!P.b.includes(0)) P.b.push(0); if (P.k.length > 9) P.k.length = 9; if (P.b.length > 8) P.b.length = 8;
+}
+function gmDue(bar) { const L = S.gm || 0; return L >= 3 || (L === 2 && bar % 2 === 1) || (L === 1 && bar % 4 === 3); }
+function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – Original-Groove'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
 function chordRoot(bar) { const w = WORLDS[S.world]; return w.prog[(Math.floor(bar / 2) + S.shift) % w.prog.length]; }
 function playInst(inst, deg, vel, t, root, oct) {
   const dur = stepDur(); oct = oct || 0;
@@ -457,8 +477,9 @@ function playInst(inst, deg, vel, t, root, oct) {
   V.lead(ctx, bus.l, t, noteF(d, inst.o + oct), dur * 2.5, inst.t, 5500, (inst.t === 'supersaw' ? 0.12 : 0.2) * (0.55 + 0.45 * vel));
 }
 function runStep(s, t) {
+  if (s === 0 && S.gm && gmDue(S.bar)) gmStep(S.gm);
   const w = WORLDS[S.world], dur = stepDur(), bar = S.bar, root = chordRoot(bar);
-  const P = PATS[w.pat] || PATS.four, swg = w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
+  const P = (S.gp || PATS[w.pat]) || PATS.four, swg = S.gp ? S.gp.sw : w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
   t += (s % 2 === 1 ? swg * dur : 0);
   if (s === 0) S.fill = bar % 4 === 3 && Math.random() < 0.6;
   if (S.pulse) {
@@ -469,8 +490,8 @@ function runStep(s, t) {
     if (P.c.includes(s)) V.snare(ctx, bus.d, t, 0.45, true);
     else if ((P.gs || [7, 15]).includes(s) && !(S.fill && s > 11) && Math.random() < 0.4) V.snare(ctx, bus.d, t + hz(), 0.14, false);
     if (S.fill && s >= 12 && s !== 15 && P.c.indexOf(s) < 0) V.snare(ctx, bus.d, t, 0.18 + (s - 12) * 0.07, false);
-    if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), w.bass, s % 4 === 0 ? 0.55 : 0.46 + 0.06 * Math.random(), 0.6);
-    else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, w.bass, 0.24, 0.4);
+    if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), S.bassOv || w.bass, s % 4 === 0 ? 0.55 : 0.46 + 0.06 * Math.random(), 0.6);
+    else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, S.bassOv || w.bass, 0.24, 0.4);
   }
   if (s % 4 === 0) S.beatFlash = 1;
   if (s === 0 && bar % 8 === 0 && S.sauto) nextScene();
@@ -700,7 +721,7 @@ function toast(t) { S.toasts.push({ t, a: 0 }); if (S.toasts.length > 2) S.toast
 function toolActive(d) {
   if (d.kind === 'inst' || d.kind === 'tool') return S.tool === d.id;
   if (d.kind === 'scene') return S.sceneI === +d.id && !!S.scenes[+d.id];
-  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'spin' ? S.spin : d.id === 'sauto' ? S.sauto : d.id === 'sover' ? S.sover : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
+  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'spin' ? S.spin : d.id === 'sauto' ? S.sauto : d.id === 'sover' ? S.sover : d.id === 'gm' ? !!S.gm : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
 }
 function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
@@ -710,6 +731,7 @@ function act(a) {
   else if (a === 'dice') dice();
   else if (a === 'morph') { S.morph = (S.morph + 1) % 3; toast(['Morph aus', 'Morph leicht – kleine Änderungen alle 2 Takte', 'Morph stark – jeden Takt deutliche Sprünge'][S.morph]); }
   else if (a === 'spin') { S.spin = !S.spin; toast(S.spin ? 'Dreher an – neue Saiten kreisen von selbst' : 'Dreher aus'); }
+  else if (a === 'gm') gmCycle();
   else if (a === 'mic') recordMic();
   else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
   else if (a === 'sauto') { S.sauto = !S.sauto; toast(S.sauto ? 'Szenen-Auto: wechselt alle 8 Takte' : 'Szenen-Auto aus'); return; }
@@ -753,7 +775,7 @@ function onDown(ev) {
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const top = H - dockH();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
-  if (sp) { S.world = sp.i; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
+  if (sp) { S.world = sp.i; S.gp = null; S.bassOv = null; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
   const tp = tabPills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
   if (tp) { S.tab = tp.i; layoutDock(); return; }
   const d = hitRect(dock.map(i => ({ ...i, y: i.y + top })), x, y);
@@ -847,7 +869,7 @@ function draw(dt) {
     const on = toolActive(d), full = d.kind === 'scene' ? !!S.scenes[+d.id] : false, hue = d.kind === 'inst' ? IM[d.id].h : d.kind === 'tool' ? TOOLS[d.id].h : d.kind === 'scene' ? 150 : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : full ? 'rgba(30,90,70,0.65)' : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
-    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? 'Morph ' + ['aus', 'leicht', 'stark'][S.morph] : d.n, d.x + d.w / 2, y0 + d.h - 7);
+    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? 'Morph ' + ['aus', 'leicht', 'stark'][S.morph] : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund aus') : d.n, d.x + d.w / 2, y0 + d.h - 7);
   });
   S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
   S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 84 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 103 + i * 34, W - 30); });

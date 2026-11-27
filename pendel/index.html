@@ -460,8 +460,9 @@ function note(instId, deg, vel, t, opt) {
   if (opt.echo) { playInst(inst, deg, vel * 0.5, t + dur * 3, root, opt.oct || 0); playInst(inst, deg, vel * 0.28, t + dur * 6, root, opt.oct || 0); }
 }
 function runStep(s, t, abs) {
+  if (s === 0 && S.gm && gmDue(S.bar)) gmStep(S.gm);
   const w = WORLDS[S.world], dur = stepDur(), bar = S.bar;
-  const P = (S.patOv && bar < S.patEnd ? PATS[S.patOv] : PATS[w.pat]) || PATS.four, swg = w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
+  const P = (S.patOv && bar < S.patEnd ? PATS[S.patOv] : S.gp ? S.gp : PATS[w.pat]) || PATS.four, swg = S.gp && !(S.patOv && bar < S.patEnd) ? S.gp.sw : w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
   const root = chordRoot(bar); t += (s % 2 === 1 ? swg * dur : 0);
   if (s === 0) S.fill = bar % 4 === 3 && Math.random() < 0.6;
   if (S.pulse) {
@@ -472,8 +473,8 @@ function runStep(s, t, abs) {
     if (P.c.includes(s)) V.snare(ctx, bus.d, t, 0.45, true);
     else if ((P.gs || [7, 15]).includes(s) && !(S.fill && s > 11) && Math.random() < 0.4) V.snare(ctx, bus.d, t + hz(), 0.14, false);
     if (S.fill && s >= 12 && s !== 15 && P.c.indexOf(s) < 0) V.snare(ctx, bus.d, t, 0.18 + (s - 12) * 0.07, false);
-    if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), w.bass, s % 4 === 0 ? 0.55 : 0.46 + 0.06 * Math.random(), 0.6);
-    else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, w.bass, 0.24, 0.4);
+    if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), S.bassOv || w.bass, s % 4 === 0 ? 0.55 : 0.46 + 0.06 * Math.random(), 0.6);
+    else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, S.bassOv || w.bass, 0.24, 0.4);
   }
   if (s % 4 === 0) S.beatFlash = 1;
   if (s === 0 && S.morph && (S.morph === 2 || bar % 2 === 1)) morphStep();
@@ -496,6 +497,26 @@ function morphStep() {
   }
   save();
 }
+function clonePat() { const w = WORLDS[S.world], P = PATS[w.pat] || PATS.four; return { k: P.k.slice(), c: P.c.slice(), b: P.b.slice(), oh: P.oh.slice(), g: (P.g || [15]).slice(), gs: (P.gs || [7, 15]).slice(), h: P.h, sw: w.sw != null ? w.sw : (P.sw || 0) }; }
+function gmStep(lv) {
+  if (!S.gp) S.gp = clonePat(); const P = S.gp, pk = a => a[Math.floor(Math.random() * a.length)];
+  const tog = (a, v) => { const i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); };
+  if (lv === 8 && Math.random() < 0.25) { const k = pk(Object.keys(PATS)), Q = PATS[k]; P.k = Q.k.slice(); P.c = Q.c.slice(); P.b = Q.b.slice(); P.oh = Q.oh.slice(); P.g = (Q.g || [15]).slice(); P.gs = (Q.gs || [7, 15]).slice(); P.h = Q.h; }
+  for (let i = 0; i < [0, 1, 1, 1, 2, 2, 3, 4, 5][lv]; i++) {
+    const r = Math.random();
+    if (r < 0.22) tog(P.k, pk([2, 3, 6, 7, 10, 11, 14, 15]));
+    else if (r < 0.38) tog(P.oh, pk([2, 6, 10, 14]));
+    else if (r < 0.58) tog(P.b, pk([2, 3, 6, 7, 10, 11, 14]));
+    else if (r < 0.7) tog(P.g, pk([3, 5, 7, 11, 13, 15]));
+    else if (r < 0.82) tog(P.gs, pk([3, 5, 7, 9, 11, 13, 15]));
+    else if (r < 0.9) P.h = pk(['odd', 'even', 'all']);
+    else P.sw = Math.max(0, Math.min(0.3, P.sw + pk([-0.05, 0.05])));
+  }
+  if (lv >= 5) { if (Math.random() < 0.08 * (lv - 4)) S.bassOv = pk(['saw', '808', 'walk', 'tuba', 'fing']); if (lv >= 6 && Math.random() < 0.05 * (lv - 4)) P.c = pk([[4, 12], [4, 12, 14], [6, 14], [4, 10, 12]]); }
+  if (!P.k.includes(0)) P.k.push(0); if (!P.b.includes(0)) P.b.push(0); if (P.k.length > 9) P.k.length = 9; if (P.b.length > 8) P.b.length = 8;
+}
+function gmDue(bar) { const L = S.gm || 0; return L >= 3 || (L === 2 && bar % 2 === 1) || (L === 1 && bar % 4 === 3); }
+function gmCycle() { S.gm = ((S.gm || 0) + 1) % 9; if (!S.gm) { S.gp = null; S.bassOv = null; toast('Grund-Morph aus – Original-Groove'); } else toast('Grund-Morph Stufe ' + S.gm + ' von 8' + (S.gm <= 2 ? ' – ganz sanft' : S.gm <= 5 ? ' – deutlich' : ' – wild')); }
 function swapInst(id) {
   const cur = IM[id]; if (!cur || cur.k === 'voice') return id; const pool = INST.filter(i => i.k === cur.k && i.id !== id && i.k !== 'voice');
   if (cur.k === 'lead' && Math.random() < 0.6) { const L = WORLDS[S.world].leads.filter(l => l !== id); if (L.length) return pick(L); }
@@ -542,7 +563,7 @@ function buildItems() {
     ...APP.tools.map(t => ({ tab: 1, kind: 'tool', id: t.id, e: t.e, n: t.n, h: t.h })),
     ...(APP.acts || []).map(a => ({ tab: 1, kind: 'act', id: a.id, e: a.e, n: a.n })),
     { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
-    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
+    { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
     { tab: 3, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 3, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 3, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 3, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 3, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
   ];
 }
@@ -559,7 +580,7 @@ function toolActive(d) {
   if (d.kind === 'inst') return S.inst === d.id;
   if (d.kind === 'tool') return S.tool === d.id;
   if (APP.actOn && d.id in APP.actOn) return !!APP.actOn[d.id]();
-  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
+  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'gm' ? !!S.gm : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
 }
 function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
@@ -567,6 +588,7 @@ function act(a) {
   else if (a === 'clear') { APP.clear(); toast('Leer'); }
   else if (a === 'dice') { APP.dice(); toast('Neu gewürfelt in „' + WORLDS[S.world].n + '“'); }
   else if (a === 'morph') { S.morph = (S.morph + 1) % 3; toast(['Morph aus', 'Morph leicht – kleine Änderungen alle 2 Takte', 'Morph stark – jeden Takt deutliche Sprünge'][S.morph]); }
+  else if (a === 'gm') gmCycle();
   else if (a === 'mic') recordMic();
   else if (a === 'rec') record(0);
   else if (a === 'song') record(60);
@@ -585,7 +607,7 @@ function onDown(ev) {
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const top = H - dockH();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
-  if (sp) { S.world = sp.i; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n); save(); return; }
+  if (sp) { S.world = sp.i; S.gp = null; S.bassOv = null; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n); save(); return; }
   const tp = tabPills.find(p => x >= p.x && x < p.x + p.w && y >= top + p.y && y < top + p.y + p.h);
   if (tp) { S.tab = tp.i; layoutDock(); return; }
   const d = hitRect(dock.map(i => ({ ...i, y: i.y + top })), x, y);
@@ -621,7 +643,7 @@ function draw(dt) {
   dock.forEach(d => {
     const on = toolActive(d), hue = d.h != null ? d.h : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
-    const lab = d.id === 'morph' ? 'Morph ' + MORPH_N[S.morph] : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
+    const lab = d.id === 'morph' ? 'Morph ' + MORPH_N[S.morph] : d.id === 'gm' ? (S.gm ? 'Grund ' + S.gm + '/8' : 'Grund aus') : d.id === 'voice' && !S.voice ? 'Stimme+' : (APP.label && APP.label(d.id)) || d.n;
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(lab, d.x + d.w / 2, y0 + d.h - 7, d.w - 4);
   });
@@ -717,7 +739,7 @@ function pAdd(f, inst) {
 }
 function pNear(x, y, ph, d) { let b = null, bd = d; PEN.pl.forEach(p => { const q = pXY(p, ph), dd = Math.hypot(q.x - x, q.y - y); if (dd < bd) { bd = dd; b = p; } }); return b; }
 const PENDEL = {
-  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 1.1', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
+  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 1.2', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
   claim: 'Pendel in verschiedenen Längen – sie laufen auseinander und finden wieder zusammen.',
   tip: 'Tippen = Pendel (links langsam, rechts schnell) · Pendel nach oben/unten ziehen = Länge',
   tools: [
