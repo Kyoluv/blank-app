@@ -3045,6 +3045,9 @@ function setWorld(id, quiet, off) {
     + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button id="jam-bg" class="oct-btn" style="flex:1;min-width:120px;">▶ Begleitung</button><button id="jam-new" class="oct-btn" style="flex:1;min-width:120px;">🎲 Neuer Song</button></div>'
     + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-help" checked> 🎯 Hilfe: nur passende Töne (springt zum nächsten Akkordton)</label>'
     + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:8px;"><input type="checkbox" id="jam-q" checked> Im Takt einrasten (wenn der Song läuft)</label>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center;"><label style="font-size:.78rem;">🎛 Spielart:</label><select id="jam-mode" style="flex:1;min-width:150px;padding:9px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="n">Normal (Ton halten)</option><option value="arp">🌀 Arpeggio (Taste halten = Tonlauf)</option><option value="arp2">🌀 Arpeggio hoch &amp; runter</option><option value="strum">🎸 Akkord-Anschlag</option><option value="echo">🔊 Echo (Töne hallen nach)</option><option value="oct">🎺 Oktav-Doppel (dick)</option></select><select id="jam-rate" style="padding:9px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="1">1/16 schnell</option><option value="2" selected>1/8</option><option value="4">1/4 ruhig</option></select></div>'
+    + '<label style="display:flex;gap:8px;align-items:center;font-size:.78rem;margin-bottom:4px;"><input type="checkbox" id="jam-latch"> 🔒 Töne bleiben, bis du die Taste nochmal tippst (zum Mixen mit beiden Händen)</label>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><button id="jam-hook" class="oct-btn" style="flex:1;min-width:150px;">🎲 Ohrwurm-Hook als Loop</button><button id="jam-hook2" class="oct-btn" style="flex:1;min-width:150px;">🎲 Zufalls-Melodie als Loop</button><button id="jam-reset" class="oct-btn" style="flex:1;min-width:150px;">↺ Jam-Pad zurücksetzen</button></div>'
     + '<div id="jam-grid"></div>'
     + '<div style="margin-top:10px;border-top:1px solid #2a3046;padding-top:8px;"><div style="font-size:.74rem;color:var(--muted);margin-bottom:6px;">🔁 Loop-Aufnahme: spiele eine Melodie, sie läuft dann im Kreis weiter und du spielst darüber.</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><select id="jam-len" style="padding:10px;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid #333a50;"><option value="1">1 Takt</option><option value="2" selected>2 Takte</option><option value="4">4 Takte</option></select><button id="jam-rec" class="oct-btn" style="flex:1;min-width:130px;">⏺ Aufnehmen</button><button id="jam-clr" class="oct-btn" style="flex:1;min-width:110px;">🗑 Loop löschen</button></div><div id="jam-msg" style="font-size:.74rem;margin-top:6px;color:var(--muted);min-height:1em;"></div></div>';
   anchor.parentNode.insertBefore(jc, anchor);
@@ -3054,6 +3057,10 @@ function setWorld(id, quiet, off) {
     'Streicher': { o: [['sawtooth', 1, -9, .4], ['sawtooth', 1, 0, .4], ['sawtooth', 1, 9, .4]], cut: 2200, a: .35, r: .7, v: .11, vr: 5, vd: 10 },
     'Flöte': { o: [['sine', 1, 0, .7], ['triangle', 2, 0, .12]], cut: 5000, a: .08, r: .25, v: .2, vr: 5.2, vd: 14 },
     'Chor': { o: [['triangle', 1, -6, .5], ['triangle', 1, 6, .5], ['sine', 0.5, 0, .35]], cut: 1800, a: .5, r: 1.0, v: .16, vr: 4.5, vd: 6 },
+    'Pluck': { o: [['sawtooth', 1, -6, .5], ['square', 1, 6, .3]], cut: 3600, a: .003, r: .18, v: .14, vr: 0, vd: 0, decay: .3 },
+    'E-Piano': { o: [['sine', 1, 0, .6], ['sine', 2, 0, .22], ['triangle', 4, 0, .08]], cut: 5000, a: .004, r: .5, v: .17, vr: 0, vd: 0, decay: .9 },
+    'Pfeife': { o: [['sine', 1, 0, .8]], cut: 6000, a: .06, r: .2, v: .2, vr: 5.8, vd: 18 },
+    'Kratzig': { o: [['square', 1, -12, .35], ['sawtooth', 1, 12, .35]], cut: 2600, a: .01, r: .15, v: .1, vr: 0, vd: 0 },
     'Glocke': { o: [['sine', 1, 0, .5], ['sine', 2.76, 0, .25], ['sine', 5.4, 0, .1]], cut: 7000, a: .005, r: 1.6, v: .16, vr: 0, vd: 0, decay: 1.2 }
   };
   const PBASS = { o: [['sawtooth', 1, 0, .5], ['sine', 1, 0, .6]], cut: 700, a: .02, r: .25, v: .2, vr: 0, vd: 0 };
@@ -3081,7 +3088,7 @@ function setWorld(id, quiet, off) {
   const pre = document.getElementById('jam-pre');
   Object.keys(PRE).forEach(n => { const b = document.createElement('button'); b.className = 'oct-btn' + (n === curPre ? ' active' : ''); b.textContent = n; b.style.cssText = 'padding:8px 12px;'; b.dataset.pre = n; b.addEventListener('click', () => { curPre = n; pre.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.pre === n)); }); pre.appendChild(b); });
   // Tasten
-  const ROWS = [['🎵 Melodie hoch', 'lead', [7, 8, 9, 10, 11, 12, 13], 2], ['🎵 Melodie tief', 'lead', [0, 1, 2, 3, 4, 5, 6], 1], ['🎼 Akkorde (halten)', 'chord', [0, 1, 2, 3, 4, 5, 6], 0], ['🔊 Bass (halten)', 'bass', [0, 1, 2, 3, 4, 5, 6], -1]];
+  const ROWS = [['🎵 Melodie mittel', 'lead', [7, 8, 9, 10, 11, 12, 13], 1], ['🎵 Melodie tief', 'lead', [0, 1, 2, 3, 4, 5, 6], 1], ['🎼 Akkorde (halten)', 'chord', [0, 1, 2, 3, 4, 5, 6], 0], ['🔊 Bass (halten)', 'bass', [0, 1, 2, 3, 4, 5, 6], -1]];
   const jg = document.getElementById('jam-grid'); jg.style.cssText = 'display:grid;gap:5px;touch-action:none;user-select:none;-webkit-user-select:none;';
   ROWS.forEach(([lbl, kind, degs]) => { const lab = document.createElement('div'); lab.style.cssText = 'font-size:.7rem;color:var(--muted);margin-top:2px;'; lab.textContent = lbl; jg.appendChild(lab); const row = document.createElement('div'); row.style.cssText = 'display:grid;gap:5px;grid-template-columns:repeat(7,1fr);';
     degs.forEach(d => { const b = document.createElement('button'); b.className = 'oct-btn jam'; b.dataset.k = kind; b.dataset.d = d; b.style.cssText = 'padding:15px 0;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;border-width:2px;' + (kind === 'chord' ? 'border-color:#7c5cff;' : kind === 'bass' ? 'border-color:#ff7a45;' : 'border-color:#18d4ff;'); row.appendChild(b); }); jg.appendChild(row); });
@@ -3091,12 +3098,16 @@ function setWorld(id, quiet, off) {
   // Ton starten / spielen
   function startNote(kind, d, oct, t, P) {
     const sc = sc0();
-    if (kind === 'lead') return { vs: [jv(noteFreq(sc, d, oct), t, P || PRE[curPre], chain.lead)] };
+    if (kind === 'lead') { const PP = P || PRE[curPre], mode = (document.getElementById('jam-mode') || {}).value || 'n';
+      if (mode === 'strum') return { vs: [0, 2, 4].map((k, i) => jv(noteFreq(sc, d + k, oct), t + i * 0.035, PP, chain.lead)), offs: [0, 2, 4] };
+      if (mode === 'oct') return { vs: [jv(noteFreq(sc, d, oct), t, PP, chain.lead), jv(noteFreq(sc, d, oct - 1), t, { ...PP, v: PP.v * 0.7 }, chain.lead)], offs: [0, 0], oc: [0, -1] };
+      if (mode === 'echo') { const bt = 60 / st.bpm * 0.75, vs = [jv(noteFreq(sc, d, oct), t, PP, chain.lead)]; [1, 2, 3].forEach(i => { const v = jv(noteFreq(sc, d, oct), t + bt * i, { ...PP, v: PP.v * Math.pow(0.5, i), a: Math.min(PP.a, 0.02) }, chain.lead); v.rel(t + bt * i + 0.22); }); return { vs }; }
+      return { vs: [jv(noteFreq(sc, d, oct), t, PP, chain.lead)] }; }
     if (kind === 'bass') return { vs: [jv(noteFreq(sc, d, oct), t, PBASS, chain.bass)] };
     return { vs: [0, 2, 4].map(k => jv(noteFreq(sc, d + k, 0), t, PCHORD, chain.pad)) };
   }
   const relNote = (n, t) => n.vs.forEach(v => v.rel(t));
-  const glideNote = (n, kind, d, oct) => { const sc = sc0(); if (kind === 'chord') n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + [0, 2, 4][i], 0))); else n.vs[0].glide(noteFreq(sc, d, oct)); };
+  const glideNote = (n, kind, d, oct) => { const sc = sc0(); if (kind === 'chord') n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + [0, 2, 4][i], 0))); else if (n.offs) n.vs.forEach((v, i) => v.glide(noteFreq(sc, d + n.offs[i], oct + (n.oc ? n.oc[i] : 0)))); else if (n.arp) { n.arp.d = d; } else n.vs[0].glide(noteFreq(sc, d, oct)); };
   // Loop-Recorder
   const L = { rec: false, ev: [], len: 0, t0: 0, play: false, it: 0, timer: null, open: {} };
   const msg = t => { document.getElementById('jam-msg').textContent = t; };
@@ -3127,12 +3138,42 @@ function setWorld(id, quiet, off) {
   // Finger: halten, gleiten
   const held = new Map(); let pend = null; window.__jam = { held, L, jv, PRE };
   const keyOf = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('.jam') : null; };
-  const eff = b => { const k = b.dataset.k; let d = +b.dataset.d; const oct = k === 'lead' ? (d >= 7 ? 2 : 1) : k === 'bass' ? -1 : 0; if (k === 'lead') d = snap(d); else if (k === 'chord') d = d; return [k, d, oct]; };
+  const eff = b => { const k = b.dataset.k; let d = +b.dataset.d; const oct = k === 'lead' ? 1 : k === 'bass' ? -1 : 0; if (k === 'lead') d = snap(d); else if (k === 'chord') d = d; return [k, d, oct]; };
+  const latched = new Map();
+  function arpStart(k, d, oct, t) {
+    const sc = sc0(), A = { d, oct, step: 0, vs: [], timer: null, up: ((document.getElementById('jam-mode') || {}).value) === 'arp2' }, rate = +(document.getElementById('jam-rate') || { value: 2 }).value, sd = 60 / st.bpm / 4 * rate;
+    const seq = A.up ? [0, 2, 4, 7, 4, 2] : [0, 2, 4, 7], PP = { ...PRE[curPre], a: .004, r: .08, decay: .18, vr: 0 };
+    let nt = t;
+    const run = () => { if (!ctx) return; const now = ctx.currentTime; if (nt < now) nt = grid(now + 0.01); while (nt < now + 0.15) { const f = noteFreq(sc, A.d + seq[A.step % seq.length], A.oct); const v = jv(f, nt, PP, chain.lead); v.rel(nt + sd * 0.75); A.step++; nt += sd; } };
+    A.timer = setInterval(run, 40); run(); return { vs: [], arp: A };
+  }
   function press(id, b) {
-    const [k, d, oct] = eff(b); const t = grid(ctx.currentTime + 0.01), n = startNote(k, d, oct, t);
+    if (latched.has(b)) { const h0 = latched.get(b); latched.delete(b); relNote(h0.n, ctx.currentTime); if (h0.n.arp) clearInterval(h0.n.arp.timer); b.classList.remove('active-pink'); return; }
+    const [k, d, oct] = eff(b), mode = (document.getElementById('jam-mode') || {}).value || 'n'; const t = grid(ctx.currentTime + 0.01), n = (k === 'lead' && (mode === 'arp' || mode === 'arp2')) ? arpStart(k, d, oct, t) : startNote(k, d, oct, t);
     held.set(id, { n, b, k, d, oct }); logOn(id, k, d, oct, t); b.classList.add('active-pink'); if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
   }
-  function lift(id) { const h = held.get(id); if (!h) return; held.delete(id); relNote(h.n, ctx.currentTime); logOff(id, ctx.currentTime); h.b.classList.remove('active-pink'); }
+  function lift(id) { const h = held.get(id); if (!h) return; held.delete(id); logOff(id, ctx.currentTime);
+    if (document.getElementById('jam-latch') && document.getElementById('jam-latch').checked) { latched.set(h.b, h); return; }
+    relNote(h.n, ctx.currentTime); if (h.n.arp) clearInterval(h.n.arp.timer); h.b.classList.remove('active-pink'); }
+  document.getElementById('jam-latch').addEventListener('change', e => { if (!e.target.checked) { latched.forEach((h, b) => { relNote(h.n, ctx.currentTime); if (h.n.arp) clearInterval(h.n.arp.timer); b.classList.remove('active-pink'); }); latched.clear(); } });
+  document.getElementById('jam-reset').addEventListener('click', () => {
+    [...held.keys()].forEach(lift); latched.forEach((h, b) => { relNote(h.n, ctx ? ctx.currentTime : 0); if (h.n.arp) clearInterval(h.n.arp.timer); b.classList.remove('active-pink'); }); latched.clear();
+    L.play = false; L.rec = false; L.ev = []; clearInterval(L.timer); clearInterval(L.rt); document.getElementById('jam-rec').textContent = '⏺ Aufnehmen';
+    curPre = 'Synth'; pre.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.pre === 'Synth'));
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e[typeof v === 'boolean' ? 'checked' : 'value'] = v; };
+    set('jam-mode', 'n'); set('jam-rate', '2'); set('jam-latch', false); set('jam-help', true); set('jam-q', true); set('jam-len', '2');
+    msg('↺ Jam-Pad ist zurückgesetzt: Klangfarbe Synth, Spielart Normal, Loop gelöscht. Dein Song und alle anderen Regler bleiben unverändert.');
+  });
+  // Hook / Zufalls-Melodie als Loop
+  function loopFrom(fn, label) {
+    initAudio(); try { ctx.resume(); } catch (e) {}
+    const bars = +document.getElementById('jam-len').value, bl = barLen(), now = ctx.currentTime + 0.1; let start = st.playing ? songT0 + Math.ceil((now - songT0) / bl) * bl : now + 0.3;
+    const bar0 = st.playing ? Math.round((start - songT0) / bl) : 0; L.len = bars * bl; L.ev = []; L.rec = false; clearInterval(L.rt); clearInterval(L.timer); const e8 = bl / 8;
+    for (let b = 0; b < bars; b++) for (let sl = 0; sl < 8; sl++) { const r = fn(bar0 + b, sl); if (r == null) continue; L.ev.push({ kind: 'lead', d: r, oct: 1, off: b * bl + sl * e8, dur: e8 * 0.85, pre: curPre }); }
+    L.t0 = start; L.it = 0; startLoopPlay(); msg(label);
+  }
+  document.getElementById('jam-hook').addEventListener('click', () => loopFrom((bar, sl) => chordAt(bar) + hookOff(st.seed || 1, bar, sl, false), '🎲 Dein Ohrwurm-Hook läuft im Kreis. Spiele darüber oder wähle oben eine andere Klangfarbe. Tippe nochmal für einen neuen Song-Hook.'));
+  document.getElementById('jam-hook2').addEventListener('click', () => { const sd = (Math.random() * 1e9) | 0; loopFrom((bar, sl) => { if (H(sd, bar, sl) < 0.28) return null; const ct = [0, 2, 4, 7]; return chordAt(bar) + (H(sd, bar * 9 + 1, sl) < 0.6 ? ct[Math.floor(H(sd, bar * 9 + 2, sl) * 4)] : Math.floor(H(sd, bar * 9 + 3, sl) * 8) - 1); }, '🎲 Neue Zufalls-Melodie läuft im Kreis. Gefällt sie dir nicht, tippe nochmal.'); });
   jg.addEventListener('pointerdown', ev => { const b = ev.target.closest('.jam'); if (!b) return; ev.preventDefault(); try { initAudio(); } catch (e) {} try { jg.setPointerCapture(ev.pointerId); } catch (e) {}
     if (ctx.state === 'running') press(ev.pointerId, b); else pend = { id: ev.pointerId, b }; });
   jg.addEventListener('pointermove', ev => { const h = held.get(ev.pointerId); if (!h) return; const b = keyOf(ev.clientX, ev.clientY); if (!b || b === h.b || b.dataset.k !== h.k) return; const [k, d, oct] = eff(b); h.b.classList.remove('active-pink'); b.classList.add('active-pink'); glideNote(h.n, k, d, oct); h.b = b; h.d = d; });
@@ -3425,14 +3466,14 @@ function setWorld(id, quiet, off) {
   body.tl { max-width: none !important; padding-left: 18px !important; padding-right: 58px !important; }
   body.tl input[type=range]::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--accent) var(--p, 50%), rgba(128,128,150,.38) var(--p, 50%)); }
   body.tl #tabs { max-width: 900px !important; }
-  body.tl .sg { column-count: 2; column-gap: 12px; }
-  body.tl .sg > .card { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 8px; }
+  body.tl .sg { display: flex; gap: 12px; align-items: flex-start; }
+  body.tl .sgc { flex: 1 1 0; min-width: 0; }
+  body.tl .sg .card { margin-bottom: 8px; }
   body.tl .sec { margin-top: 14px; }
   body.tl #pagehead { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 0 12px; align-items: start; }
   body.tl #pagehead > header { grid-column: 1; grid-row: 1 / span 2; margin-bottom: 4px; } body.tl #pagehead > #stage { grid-column: 2; grid-row: 1; align-self: center; margin: 0 !important; }
   body.tl #pagehead > #topbar { grid-column: 2; grid-row: 2; } body.tl #cbar { grid-template-columns: .6fr .6fr 1fr 1fr 1.6fr !important; }
   body.tl .card { scroll-margin-top: 130px; }
-  @media (min-width: 1500px) { body.tl .sg { column-count: 3; } }
   body.tl #c-sliders .mixgrid { grid-template-columns: repeat(2, 130px minmax(0,1fr)); gap: 6px 40px; }
   body.tl #c-sliders .mixgrid > label { line-height: 1.15; }
   #regtop { display: block; }
@@ -3452,7 +3493,32 @@ function setWorld(id, quiet, off) {
     lb.textContent = (lay === 'auto' ? '🔁 Auto: ' : 'Fest: ') + (t ? '📟 Tablet' : '📱 Handy') + ' (tippen = wechseln)';
     if (t && !was && !tabletSeen && lsGet('musify-acc') === null) { acc = false; tabletSeen = true; lsSet('musify-tabset', '1'); paint(); } };
   lb.addEventListener('click', () => { lay = lay === 'auto' ? 'tablet' : lay === 'tablet' ? 'phone' : 'auto'; lsSet('musify-layout', lay); paintLay(); });
-  window.addEventListener('resize', paintLay); paintLay();
+  // ===== v114: Karten lückenlos auf Spalten verteilen (immer in die kürzeste Spalte) =====
+  function balance(anchor) {
+    const tl = document.body.classList.contains('tl'), n = window.innerWidth >= 1500 ? 3 : 2, top0 = anchor ? anchor.getBoundingClientRect().top : 0;
+    document.querySelectorAll('.sg').forEach(sg => {
+      if (!sg._cards) sg._cards = [...sg.querySelectorAll('.card')];
+      const cards = sg._cards.filter(c => sg.contains(c));
+      if (!tl) { if (sg.querySelector('.sgc')) { cards.forEach(c => sg.appendChild(c)); sg.querySelectorAll('.sgc').forEach(x => x.remove()); sg._n = 0; } return; }
+      const k = Math.max(1, Math.min(n, cards.length));
+      sg.querySelectorAll('.sgc').forEach(x => { if (!x.children.length) x.remove(); });
+      let cols = [...sg.querySelectorAll(':scope > .sgc')];
+      if (cols.length !== k) { cols.forEach(x => x.remove()); cols = []; for (let i = 0; i < k; i++) { const d = document.createElement('div'); d.className = 'sgc'; sg.appendChild(d); cols.push(d); } cards.forEach(c => cols[0].appendChild(c)); }
+      const hs = cards.map(c => c.offsetHeight + 8); let tot = Array(k).fill(0), pick = [];
+      if (k === 2 && cards.length <= 16) { let bestM = 0, bestV = 1e9; const all = hs.reduce((a, b) => a + b, 0); for (let m = 0; m < (1 << cards.length); m++) { let a = 0; for (let i = 0; i < cards.length; i++) if (m >> i & 1) a += hs[i]; const v = Math.max(a, all - a) + (m & 1 ? 1 : 0); if (v < bestV) { bestV = v; bestM = m; } } pick = cards.map((c, i) => bestM >> i & 1); cards.forEach((c, i) => { tot[pick[i]] += hs[i]; }); }
+      else { const ord = cards.map((c, i) => i).sort((a, b) => hs[b] - hs[a]); pick = Array(cards.length); ord.forEach(i => { let m = 0; for (let j = 1; j < k; j++) if (tot[j] < tot[m]) m = j; tot[m] += hs[i]; pick[i] = m; }); }
+      const same = cards.every((c, i) => c.parentNode === cols[pick[i]]);
+      if (!same) cards.forEach((c, i) => cols[pick[i]].appendChild(c));
+      sg._tot = tot;
+    });
+    if (anchor) { const d = anchor.getBoundingClientRect().top - top0; if (Math.abs(d) > 2) window.scrollBy(0, d); }
+  }
+  window.__balance = balance;
+  let balT = 0; const later = (a, ms) => { clearTimeout(balT); balT = setTimeout(() => balance(a), ms || 120); };
+  const _so2 = setOpen; setOpen = function (c, open) { _so2(c, open); if (document.body.classList.contains('tl')) { clearTimeout(balT); balT = setTimeout(() => { const big = [...document.querySelectorAll('.sg')].some(sg => sg._tot && Math.max(...sg._tot) - Math.min(...sg._tot) > 260); if (big) balance(c); }, 450); } };
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#fold-all,#fold-none,#t-lay,#t-acc')) later(null, 500); }, true);
+  window.addEventListener('resize', () => { paintLay(); later(null, 200); }); paintLay(); [150, 700, 2000].forEach(ms => setTimeout(() => balance(null), ms));
+  const _pl = paintLay; lb.addEventListener('click', () => later(null, 60));
   const fillR = r => { const mn = +r.min || 0, mx = +r.max || 100; r.style.setProperty('--p', Math.max(0, Math.min(100, (+r.value - mn) / (mx - mn || 1) * 100)) + '%'); };
   document.addEventListener('input', e => { if (e.target && e.target.type === 'range') fillR(e.target); }, true);
   setInterval(() => { if (document.body.classList.contains('tl')) document.querySelectorAll('input[type=range]').forEach(fillR); }, 500);
