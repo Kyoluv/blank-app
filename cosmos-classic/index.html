@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Musify Cosmos Classic</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#080a12"><link rel="apple-touch-icon" href="icon-192.png"><style>html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}</style></head><body><canvas id="c"></canvas><script>
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Musify Cosmos Classic</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#080a12"><link rel="apple-touch-icon" href="icon-192.png"><style>html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}</style></head><body><canvas id="c"></canvas><script id="app">
 const SCALES = [
   { name: 'A-Moll', root: 220.00, rs: 9, notes: [0,2,3,5,7,8,10,12] },
   { name: 'C-Dur', root: 261.63, rs: 0, notes: [0,2,4,5,7,9,11,12] },
@@ -353,7 +353,8 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos Classic 5';
+const VERSION = 'Cosmos Classic 5.1';
+const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
   { n: 'Schlager-Techno', sc: 1, bpm: 130, pad: 'akkordeon', bass: 'tuba', prog: [0, 5, 3, 4], hue: 38, leads: ['brass', 'bell', 'santoor'] },
@@ -399,7 +400,7 @@ const INST = [
 const IM = {}; INST.forEach(i => IM[i.id] = i);
 const ACTIONS = [
   { a: 'erase', e: '🧽', n: 'Radierer' }, { a: 'pulse', e: '💗', n: 'Puls' }, { a: 'play', e: '⏯', n: 'Pause' },
-  { a: 'dice', e: '🎲', n: 'Kosmos' }, { a: 'grav', e: '🌐', n: 'Schwere' }, { a: 'rec', e: '🔴', n: 'Audio' }, { a: 'json', e: '📄', n: 'Datei' }, { a: 'clear', e: '🗑', n: 'Leeren' }
+  { a: 'dice', e: '🎲', n: 'Kosmos' }, { a: 'grav', e: '🌐', n: 'Schwere' }, { a: 'rec', e: '🔴', n: 'Aufnahme' }, { a: 'song', e: '💾', n: 'Song 60s' }, { a: 'page', e: '🌐', n: 'Song-Seite' }, { a: 'json', e: '📄', n: 'Datei' }, { a: 'clear', e: '🗑', n: 'Leeren' }
 ];
 const S = {
   world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, strings: [], portals: [], balls: [], ripples: [], toasts: [],
@@ -554,7 +555,9 @@ function act(a) {
   else if (a === 'grav') { S.grav = (S.grav + 1) % 3; toast(['Schwerkraft aus', 'Schwerkraft: nach unten', 'Schwerkraft: zur Mitte'][S.grav]); }
   else if (a === 'clear') { S.strings = []; S.portals = []; S.balls = []; toast('Leer'); }
   else if (a === 'dice') dice();
-  else if (a === 'rec') record();
+  else if (a === 'rec') record(0);
+  else if (a === 'song') record(60);
+  else if (a === 'page') songPage();
   else if (a === 'json') exportJson();
   else if (a === 'erase') { S.tool = 'erase'; return; }
   save();
@@ -570,28 +573,43 @@ async function saveFile(name, blob) {
   try { if (window.claude && claude.use) { const d = await claude.use('downloads'); if (d) { await d.save({ filename: name, data: blob }); toast('Gespeichert: ' + name); return; } toast('Speichern geht hier nicht – öffne die App-Adresse'); return; } } catch (e) { toast(e && e.code === 'declined' ? 'Abgebrochen' : 'Speichern nicht möglich'); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Gespeichert: ' + name + ' (Downloads)');
 }
-function wavBlob(chunks, sr) {
+function wavBytes(chunks, sr) {
   let n = 0; chunks.forEach(c => n += c[0].length); const buf = new ArrayBuffer(44 + n * 4), v = new DataView(buf), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
   w(0, 'RIFF'); v.setUint32(4, 36 + n * 4, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 4, true);
   let o = 44; chunks.forEach(c => { for (let i = 0; i < c[0].length; i++) for (let k = 0; k < 2; k++) { const x = Math.max(-1, Math.min(1, c[k][i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); o += 2; } });
-  return new Blob([buf], { type: 'audio/wav' });
+  return new Uint8Array(buf);
 }
-function record() {
+function zipStore(name, u8) {
+  const T = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[i] = c >>> 0; }
+  let crc = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) crc = T[(crc ^ u8[i]) & 255] ^ (crc >>> 8); crc = (crc ^ 0xFFFFFFFF) >>> 0;
+  const nb = new TextEncoder().encode(name), lh = new DataView(new ArrayBuffer(30)), cd = new DataView(new ArrayBuffer(46)), ec = new DataView(new ArrayBuffer(22));
+  lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint32(14, crc, true); lh.setUint32(18, u8.length, true); lh.setUint32(22, u8.length, true); lh.setUint16(26, nb.length, true);
+  cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint32(16, crc, true); cd.setUint32(20, u8.length, true); cd.setUint32(24, u8.length, true); cd.setUint16(28, nb.length, true); cd.setUint32(42, 0, true);
+  const cdOff = 30 + nb.length + u8.length; ec.setUint32(0, 0x06054b50, true); ec.setUint16(8, 1, true); ec.setUint16(10, 1, true); ec.setUint32(12, 46 + nb.length, true); ec.setUint32(16, cdOff, true);
+  return new Blob([lh, nb, u8, cd, nb, ec], { type: 'application/zip' });
+}
+function stopAndSave(ch) {
+  if (!ch.length) { toast('Nichts aufgenommen'); return; }
+  const wav = wavBytes(ch, ctx.sampleRate); const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  if (window.claude) saveFile('cosmos-song-' + stamp + '.zip', zipStore('cosmos-song-' + stamp + '.wav', wav)); else saveFile('cosmos-song-' + stamp + '.wav', new Blob([wav], { type: 'audio/wav' }));
+}
+function record(maxSec) {
   if (!ctx) return;
   try {
     if (S.rec) { S.rec.stop(); return; }
-    if (window.claude) { // Artefakt-Ansicht: webm ist dort als Download erlaubt
-      if (!bus.dest) { bus.dest = ctx.createMediaStreamDestination(); bus.clip.connect(bus.dest); }
-      const ch = [], r = new MediaRecorder(bus.dest.stream); r.ondataavailable = e => ch.push(e.data);
-      r.onstop = () => { S.rec = null; saveFile('musify-cosmos.webm', new Blob(ch, { type: 'audio/webm' })); };
-      r.start(); S.rec = r;
-    } else { // eigene App: WAV (läuft überall)
-      const sp = ctx.createScriptProcessor(4096, 2, 2), ch = []; sp.onaudioprocess = e => ch.push([new Float32Array(e.inputBuffer.getChannelData(0)), new Float32Array(e.inputBuffer.getChannelData(1))]);
-      bus.clip.connect(sp); sp.connect(ctx.destination);
-      S.rec = { stop() { try { bus.clip.disconnect(sp); sp.disconnect(); } catch (e) {} sp.onaudioprocess = null; S.rec = null; if (ch.length) saveFile('musify-cosmos.wav', wavBlob(ch, ctx.sampleRate)); else toast('Nichts aufgenommen'); } };
-    }
-    toast('Aufnahme läuft – nochmal 🔴 tippen zum Speichern');
+    const sp = ctx.createScriptProcessor(4096, 2, 2), ch = []; sp.onaudioprocess = e => ch.push([new Float32Array(e.inputBuffer.getChannelData(0)), new Float32Array(e.inputBuffer.getChannelData(1))]);
+    bus.clip.connect(sp); sp.connect(ctx.destination); let tm = 0;
+    S.rec = { t0: performance.now(), max: maxSec || 0, stop() { clearTimeout(tm); try { bus.clip.disconnect(sp); sp.disconnect(); } catch (e) {} sp.onaudioprocess = null; S.rec = null; stopAndSave(ch); } };
+    if (maxSec) tm = setTimeout(() => { if (S.rec) S.rec.stop(); }, maxSec * 1000);
+    toast(maxSec ? 'Song wird aufgenommen (' + maxSec + ' s) – spiel und forme ihn!' : 'Aufnahme läuft – nochmal tippen zum Speichern');
   } catch (e) { S.rec = null; toast('Aufnahme geht hier nicht'); }
+}
+function getState() { return { w: S.world, bpm: S.bpm, p: S.pulse, s: S.strings.map(s => [s.x1 / W, s.y1 / H, s.x2 / W, s.y2 / H, s.inst]), po: S.portals.map(p => [p.x / W, p.y / H, p.r / Math.min(W, H)]) }; }
+function songPage() {
+  const el = document.getElementById('app'), src = el ? el.textContent : ''; if (!src || src.length < 5000) { toast('Song-Seite geht hier nicht – öffne die App-Adresse'); return; }
+  const st = JSON.stringify(getState()).replace(/</g, '\\u003c');
+  const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Cosmos-Song</title><style>' + APP_CSS + '</style></head><body><canvas id="c"></canvas><script>window.__SONG=' + st + ';<\/script><script id="app">' + src + '<\/script></body></html>';
+  saveFile('cosmos-song.html', new Blob([html], { type: 'text/html' }));
 }
 function exportJson() {
   const d = { app: 'Musify Cosmos', world: WORLDS[S.world].n, bpm: Math.round(S.bpm), pulse: S.pulse, portals: S.portals.map(p => ({ x: +(p.x / W).toFixed(3), y: +(p.y / H).toFixed(3), r: Math.round(p.r) })), strings: S.strings.map(s => ({ instrument: s.inst, x1: +(s.x1 / W).toFixed(3), y1: +(s.y1 / H).toFixed(3), x2: +(s.x2 / W).toFixed(3), y2: +(s.y2 / H).toFixed(3) })) };
@@ -603,7 +621,7 @@ let gest = null;
 function dockHit(x, y) { return dock.find(d => x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h); }
 function onDown(ev) {
   ev.preventDefault(); const x = ev.clientX, y = ev.clientY;
-  if (!S.started) { S.started = true; initAudio(); ctx.resume(); dice(); return; }
+  if (!S.started) { S.started = true; initAudio(); ctx.resume(); if (S.shared) { for (let i = 0; i < 3; i++) spawnBall(Math.random() * W, Math.random() * playH() * 0.8 + 20); } else dice(); return; }
   if (ctx && ctx.state === 'suspended' && S.playing) ctx.resume();
   const sp = stylePills.find(p => x >= p.x && x < p.x + p.w && y >= H - dockH() + p.y && y < H - dockH() + p.y + p.h);
   if (sp) { S.world = sp.i; S.bpm = WORLDS[sp.i].bpm; toast(WORLDS[sp.i].n + ' – alle Saiten stimmen sich um'); save(); return; }
@@ -629,7 +647,7 @@ function onUp(ev) {
 
 /* ---------- Speichern ---------- */
 function save() { try { localStorage.setItem('cosmos', JSON.stringify({ w: S.world, bpm: S.bpm, p: S.pulse, s: S.strings.map(s => [s.x1 / W, s.y1 / H, s.x2 / W, s.y2 / H, s.inst]), po: S.portals.map(p => [p.x / W, p.y / H, p.r / Math.min(W, H)]) })); } catch (e) {} }
-function load() { try { const d = JSON.parse(localStorage.getItem('cosmos') || 'null'); if (!d) return; S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: a[1] * H, r: a[2] * Math.min(W, H), h: (i * 70 + 190) % 360 })); S.world = d.w || 0; S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; S.strings = d.s.map(a => ({ x1: a[0] * W, y1: a[1] * H, x2: a[2] * W, y2: a[3] * H, inst: IM[a[4]] ? a[4] : 'oud', len: Math.hypot((a[2] - a[0]) * W, (a[3] - a[1]) * H), wob: 0, last: 0, name: '' })); } catch (e) {} }
+function load() { if (window.__SONG) { const d = window.__SONG; S.world = d.w || 0; S.bpm = d.bpm || 130; S.pulse = d.p !== false; S.strings = (d.s || []).map(a => ({ x1: a[0] * W, y1: a[1] * H, x2: a[2] * W, y2: a[3] * H, inst: IM[a[4]] ? a[4] : 'oud', len: Math.hypot((a[2] - a[0]) * W, (a[3] - a[1]) * H), wob: 0, last: 0, name: '' })); S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: a[1] * H, r: a[2] * Math.min(W, H), h: (i * 70 + 190) % 360 })); S.shared = true; return; } try { const d = JSON.parse(localStorage.getItem('cosmos') || 'null'); if (!d) return; S.portals = (d.po || []).map((a, i) => ({ x: a[0] * W, y: a[1] * H, r: a[2] * Math.min(W, H), h: (i * 70 + 190) % 360 })); S.world = d.w || 0; S.bpm = d.bpm || WORLDS[S.world].bpm; S.pulse = d.p !== false; S.strings = d.s.map(a => ({ x1: a[0] * W, y1: a[1] * H, x2: a[2] * W, y2: a[3] * H, inst: IM[a[4]] ? a[4] : 'oud', len: Math.hypot((a[2] - a[0]) * W, (a[3] - a[1]) * H), wob: 0, last: 0, name: '' })); } catch (e) {} }
 
 /* ---------- Zeichnen ---------- */
 const hsl = (h, s, l, a = 1) => `hsla(${h},${s}%,${l}%,${a})`;
@@ -670,7 +688,7 @@ function draw(dt) {
   const dh = dockH(); g.fillStyle = 'rgba(14,18,30,0.94)'; g.fillRect(0, H - dh, W, dh); g.strokeStyle = '#232a3d'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, H - dh); g.lineTo(W, H - dh); g.stroke();
   stylePills.forEach(p => { const on = p.i === S.world, h0 = WORLDS[p.i].hue; g.fillStyle = on ? hsl(h0, 80, 42, 0.95) : 'rgba(40,48,72,0.7)'; rr(p.x, H - dh + p.y, p.w, p.h, 13); g.fill(); if (on) { g.strokeStyle = hsl(h0, 100, 72); g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#b6c0d6'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(WORLDS[p.i].n, p.x + p.w / 2, H - dh + p.y + 17); });
   dock.forEach(d => {
-    const on = d.type === 'inst' ? S.tool === d.id : (d.id === 'erase' ? S.tool === 'erase' : d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'rec' ? !!S.rec : false);
+    const on = d.type === 'inst' ? S.tool === d.id : (d.id === 'erase' ? S.tool === 'erase' : d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false);
     const hue = d.type === 'inst' ? IM[d.id].h : 200; g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : 'rgba(40,48,72,0.7)'; rr(d.x + 3, d.y + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.type === 'act' && d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, d.y + d.h * 0.58);
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.18)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.n, d.x + d.w / 2, d.y + d.h - 7);
