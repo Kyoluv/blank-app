@@ -27,7 +27,8 @@ const APPS=[
 {id:'regen',n:'Regen',e:'🌧',c:'#6ec6ff',u:'../regen/',d:'Tropfen fallen auf Linien – jede Linie ist ein Instrument.',t:'Wetter'},
 {id:'faden',n:'Faden',e:'✍️',c:'#ff7ab8',u:'../faden/',d:'Zeichne einen Faden, ein Punkt läuft ihn ab und spielt die Ecken.',t:'Zeichnen'},
 {id:'schwarm',n:'Schwarm',e:'🐦',c:'#5ef0b8',u:'../schwarm/',d:'Ein Schwarm folgt deinem Finger und spielt die Steine, die er berührt.',t:'Dirigieren'},
-{id:'labyrinth',n:'Labyrinth',e:'🧱',c:'#ffcf55',u:'../labyrinth/',d:'Baue ein Labyrinth, Kugeln rollen und klingen an jeder Wand.',t:'Bauen'}];
+{id:'labyrinth',n:'Labyrinth',e:'🧱',c:'#ffcf55',u:'../labyrinth/',d:'Baue ein Labyrinth, Kugeln rollen und klingen an jeder Wand.',t:'Bauen'},
+{id:'staebe',n:'Stäbe',e:'🪃',c:'#b58cff',u:'../staebe/',d:'Drehende Stäbe streichen über Punkte – jede Berührung ein Ton.',t:'Drehen'}];
 const bar=document.getElementById('bar'),fr=document.getElementById('fr'),tiles=document.getElementById('tiles');
 function open(id){const a=APPS.find(x=>x.id===id);if(!a){home();return}
  try{localStorage.setItem('hubLast',id)}catch(e){}
