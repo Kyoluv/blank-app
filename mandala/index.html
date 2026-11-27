@@ -608,13 +608,13 @@ function draw(dt) {
   const rg = g.createRadialGradient(W / 2, ph / 2, 0, W / 2, ph / 2, Math.max(W, ph) * 0.7); rg.addColorStop(0, hsl(w.hue, 70, 40, 0.07 + 0.1 * bf)); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, W, ph);
   g.strokeStyle = hsl(w.hue, 60, 50, 0.35 + 0.3 * bf); g.lineWidth = 2; g.strokeRect(1, 1, W - 2, ph - 2);
   APP.draw(dt, ph, now);
-  g.textAlign = 'left'; g.fillStyle = hsl(APP.hue, 90, 75); g.font = '800 15px system-ui'; g.fillText(APP.name.toUpperCase(), 12, 22);
-  g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM` + (S.morph ? ' · 🧬 ' + MORPH_N[S.morph] : ''), 12, 40);
-  g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(APP.version, W - 12, 20); g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', W - 12, 40); S.bpmBox = { x: W - 82, y: 26, w: 82, h: 20 };
-  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 16, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / 1:00' : ''), W - 98, 20); }
+  g.textAlign = 'left'; g.fillStyle = hsl(APP.hue, 90, 75); g.font = '800 15px system-ui'; g.fillText(APP.name.toUpperCase(), 12, 46);
+  g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM` + (S.morph ? ' · 🧬 ' + MORPH_N[S.morph] : ''), 12, 64);
+  g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(APP.version, W - 12, 44); g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', W - 12, 64); S.bpmBox = { x: W - 82, y: 50, w: 82, h: 20 };
+  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / 1:00' : ''), W - 98, 44); }
   if (S.micOn) { g.fillStyle = '#ff2a55'; g.font = '800 18px system-ui'; g.textAlign = 'center'; g.fillText('🎙 JETZT SINGEN …', W / 2, ph / 2); }
   // Tipp oben im Musikfeld (immer sichtbar)
-  if (S.started && APP.tip) { g.textAlign = 'center'; g.font = '600 12px system-ui'; const tw = Math.min(W - 16, g.measureText(APP.tip).width + 22); g.fillStyle = 'rgba(0,0,0,0.35)'; rr(W / 2 - tw / 2, 46, tw, 22, 11); g.fill(); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText(APP.tip, W / 2, 61, W - 30); }
+  if (S.started && APP.tip) { g.textAlign = 'center'; g.font = '600 12px system-ui'; const tw = Math.min(W - 16, g.measureText(APP.tip).width + 22); g.fillStyle = 'rgba(0,0,0,0.35)'; rr(W / 2 - tw / 2, 4, tw, 22, 11); g.fill(); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText(APP.tip, W / 2, 19, W - 30); }
   const dh = dockH(), top = H - dh; g.fillStyle = 'rgba(14,18,30,0.94)'; g.fillRect(0, top, W, dh); g.strokeStyle = '#232a3d'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, top); g.lineTo(W, top); g.stroke();
   stylePills.forEach(p => { const on = p.i === S.world, h0 = WORLDS[p.i].hue; g.fillStyle = on ? hsl(h0, 80, 42, 0.95) : 'rgba(40,48,72,0.7)'; rr(p.x, top + p.y, p.w, p.h, 13); g.fill(); if (on) { g.strokeStyle = hsl(h0, 100, 72); g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#b6c0d6'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(WORLDS[p.i].n, p.x + p.w / 2, top + p.y + 17); });
   tabPills.forEach(p => { const on = p.i === S.tab; g.fillStyle = on ? 'rgba(0,229,255,0.22)' : 'rgba(30,36,56,0.8)'; rr(p.x, top + p.y, p.w, p.h, 10); g.fill(); if (on) { g.strokeStyle = '#00e5ff'; g.lineWidth = 2; g.stroke(); } g.fillStyle = on ? '#fff' : '#9aa5bb'; g.font = '700 12px system-ui'; g.textAlign = 'center'; g.fillText(p.n, p.x + p.w / 2, top + p.y + 18); });
@@ -626,7 +626,7 @@ function draw(dt) {
     g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(lab, d.x + d.w / 2, y0 + d.h - 7, d.w - 4);
   });
   S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
-  S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 78 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 97 + i * 34, W - 30); });
+  S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 84 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 103 + i * 34, W - 30); });
   if (!S.started) { g.fillStyle = 'rgba(5,7,14,0.88)'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.fillStyle = hsl(APP.hue, 95, 70); g.font = '800 ' + Math.min(44, W / 9) + 'px system-ui'; g.fillText(APP.name.toUpperCase(), W / 2, H / 2 - 50); g.fillStyle = '#e6ebf5'; g.font = '600 16px system-ui'; g.fillText(window.__SONG || S.shared ? 'Ein geteilter Song wartet auf dich.' : APP.claim, W / 2, H / 2 - 14); g.fillStyle = '#8b95a8'; g.font = '14px system-ui'; g.fillText(APP.tip, W / 2, H / 2 + 16, W - 20); g.fillStyle = '#fff'; g.font = '700 18px system-ui'; g.fillText('▶ Tippen zum Starten', W / 2, H / 2 + 60); }
 }
 /* ---------- Start ---------- */
@@ -720,7 +720,7 @@ function mDel(s, ring) {
   MAN.dots = MAN.dots.filter(d => !(d.ring === ring && keys.includes(d.s)));
 }
 const MANDALA = {
-  id: 'mandala', name: 'Musify Mandala', version: 'Mandala 1.0', hue: 300, world: 1, inst: 'shehnai', defaultTool: 'dot',
+  id: 'mandala', name: 'Musify Mandala', version: 'Mandala 1.1', hue: 300, world: 1, inst: 'shehnai', defaultTool: 'dot',
   claim: 'Ein Radar dreht sich. Jeder Punkt ist ein Ton – und alles spiegelt sich.',
   tip: 'Tippen/Ziehen = Punkte · außen hoch, innen tief · Spiegel (Werkzeuge) = 2–8 Kopien',
   tools: [
