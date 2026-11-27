@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Musify Hub</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#080a12"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#080a12;color:#e6ebf5;font-family:system-ui,sans-serif;overflow:hidden}
+#bar{height:44px;display:flex;align-items:center;gap:6px;padding:0 8px;background:#0e121e;border-bottom:1px solid #232a3d;overflow-x:auto;white-space:nowrap}
+#bar::-webkit-scrollbar{display:none}
+.pill{flex:none;border:0;border-radius:16px;padding:7px 13px;font:700 13px system-ui;color:#b6c0d6;background:#283048}
+.pill.on{color:#fff;box-shadow:0 0 0 2px var(--c) inset;background:#1c2438}
+#home{font-size:17px;padding:5px 11px}
+#fr{position:absolute;top:44px;left:0;right:0;bottom:0;width:100%;height:calc(100% - 44px);border:0;background:#080a12;display:none}
+#tiles{position:absolute;top:44px;left:0;right:0;bottom:0;overflow:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;align-content:start}
+.tile{border:0;text-align:left;color:#e6ebf5;background:#121828;border-radius:18px;padding:16px;border:2px solid transparent;cursor:pointer;font-family:inherit}
+.tile b{display:block;font-size:18px;margin:6px 0 4px;color:var(--c)}.tile span{font-size:13px;color:#9aa5bb;line-height:1.35}.tile i{font-size:30px;font-style:normal}
+.tile small{display:block;margin-top:8px;font-size:11px;color:#6f7a90}
+h1{grid-column:1/-1;margin:0;font-size:22px}p.s{grid-column:1/-1;margin:-6px 0 4px;color:#8b95a8;font-size:14px}
+</style></head><body>
+<div id="bar"></div><div id="tiles"></div><iframe id="fr" allow="autoplay; microphone; clipboard-write; fullscreen"></iframe>
+<script>
+const APPS=[
+{id:'musify',n:'Musify',e:'🎛',c:'#ffb347',u:'../',d:'Das Original: Beats, Stile, Songs bauen.',t:'Klassiker'},
+{id:'ultra',n:'Ultra',e:'🚀',c:'#7c9cff',u:'../ultra/',d:'Musify mit Dirigent, Szenen, Zonen und Genre-Morph.',t:'Mischpult'},
+{id:'cosmos',n:'Cosmos',e:'🌌',c:'#c77dff',u:'../cosmos/',d:'Saiten zeichnen, Kugeln spielen sie. Portale, Magnete, Felder.',t:'Zeichnen'},
+{id:'classic',n:'Cosmos Classic',e:'🪐',c:'#9bd1ff',u:'../cosmos-classic/',d:'Der frühe Cosmos ohne Tabs – schlicht und direkt.',t:'Zeichnen'},
+{id:'universe',n:'Universe',e:'☀️',c:'#5aa9ff',u:'../universe/',d:'Planeten auf Umlaufbahnen. Abstand = Tempo und Ton.',t:'Umlaufbahnen'},
+{id:'mandala',n:'Mandala',e:'🔯',c:'#ff6bd6',u:'../mandala/',d:'Radar mit Spiegelung: Punkte setzen, alles wird symmetrisch.',t:'Radar'},
+{id:'zellen',n:'Zellen',e:'🧫',c:'#4be08a',u:'../zellen/',d:'Game of Life als Sequencer – das Muster entwickelt sich selbst.',t:'Lebendig'},
+{id:'pendel',n:'Pendel',e:'🔔',c:'#ffa04d',u:'../pendel/',d:'Pendelwelle: verschieden lange Pendel laufen auseinander und wieder zusammen.',t:'Rhythmus-Wellen'}];
+const bar=document.getElementById('bar'),fr=document.getElementById('fr'),tiles=document.getElementById('tiles');
+function open(id){const a=APPS.find(x=>x.id===id);if(!a){home();return}
+ try{localStorage.setItem('hubLast',id)}catch(e){}
+ tiles.style.display='none';fr.style.display='block';if(fr.dataset.id!==id){fr.src=a.u;fr.dataset.id=id}
+ bar.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p.dataset.id===id));history.replaceState(null,'','#'+id)}
+function home(){fr.style.display='none';fr.src='about:blank';fr.dataset.id='';tiles.style.display='grid';bar.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p.dataset.id==='home'));history.replaceState(null,'','#')}
+const h=document.createElement('button');h.className='pill on';h.id='home';h.dataset.id='home';h.textContent='⌂';h.style.setProperty('--c','#00e5ff');h.onclick=home;bar.appendChild(h);
+tiles.innerHTML='<h1>Musify Hub</h1><p class="s">Tippe eine App an. Die Leiste oben bleibt, damit du jederzeit wechseln kannst.</p>';
+APPS.forEach(a=>{const b=document.createElement('button');b.className='pill';b.dataset.id=a.id;b.textContent=a.e+' '+a.n;b.style.setProperty('--c',a.c);b.onclick=()=>open(a.id);bar.appendChild(b);
+ const t=document.createElement('button');t.className='tile';t.style.setProperty('--c',a.c);t.innerHTML='<i>'+a.e+'</i><b>'+a.n+'</b><span>'+a.d+'</span><small>'+a.t+'</small>';t.onclick=()=>open(a.id);tiles.appendChild(t)});
+const hh=location.hash.slice(1);if(hh&&APPS.find(x=>x.id===hh))open(hh);
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>

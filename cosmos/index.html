@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 7.1';
+const VERSION = 'Cosmos 7.2';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -410,7 +410,7 @@ const ITEMS = [
 ];
 const S = {
   world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, spin: false, tab: 0, strings: [], portals: [], fields: [], mags: [], balls: [], ripples: [], toasts: [], scenes: [null, null, null, null],
-  sover: false, sauto: false, morph: false, shift: 0, mc: 0, sceneI: -1, voice: null, started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
+  sover: false, sauto: false, morph: 0, shift: 0, mc: 0, sceneI: -1, voice: null, started: false, hint: 0, step: 0, bar: 0, nextT: 0, pending: [], beatFlash: 0, level: 0, rec: null
 };
 let ctx = null, bus = null, W = 0, H = 0, DPR = 1, cv, g;
 
@@ -474,7 +474,7 @@ function runStep(s, t) {
   }
   if (s % 4 === 0) S.beatFlash = 1;
   if (s === 0 && bar % 8 === 0 && S.sauto) nextScene();
-  if (s === 0 && bar % 2 === 1 && S.morph) morphStep();
+  if (s === 0 && S.morph && (S.morph === 2 || bar % 2 === 1)) morphStep();
   let n = 0; const q = S.pending; S.pending = [];
   q.forEach(e => {
     if (n++ >= 7) return; const tt = t + (n > 1 ? 0.004 * n : 0);
@@ -544,17 +544,27 @@ function hitString(s, b, sp) {
   S.ripples.push({ x: b.x, y: b.y, a: 0, h: inst.h });
 }
 function morphStep() {
-  const r = (a, b) => a + Math.random() * (b - a), ph = playH(), m = Math.min(W, ph), pick = a => a[Math.floor(Math.random() * a.length)]; S.mc++;
-  const kinds = ['move', 'swap', 'swap', 'stretch', 'nudge', 'ball', 'chord'], k = S.mc % 6 === 0 ? 'chord' : pick(kinds);
+  const lv = S.morph, reps = lv === 2 ? 2 : 1; S.mc++;
+  for (let i = 0; i < reps; i++) morphOne(lv);
+  if (S.mc % (lv === 2 ? 3 : 6) === 0) S.shift = (S.shift + 1) % 4;
+  if (lv === 2 && S.mc % 4 === 0) { const k = (S.mc / 4) % 3;
+    if (k === 1) S.bpm = Math.max(90, Math.min(160, S.bpm + [-8, -5, 5, 8][Math.floor(Math.random() * 4)]));
+    else if (k === 2) { const L = [...S.fields]; if (L.length > 3) S.fields.shift(); else addField(Math.random() * W, Math.random() * playH(), 60 + Math.random() * 40, ['fast', 'echo', 'up'][Math.floor(Math.random() * 3)]); }
+    else S.shift = (S.shift + 2) % 4; }
+  save();
+}
+function morphOne(lv) {
+  const r = (a, b) => a + Math.random() * (b - a), ph = playH(), pick = a => a[Math.floor(Math.random() * a.length)], big = lv === 2, f = big ? 2 : 1;
+  const kinds = ['move', 'swap', 'swap', 'stretch', 'nudge', 'ball', 'chord'], k = pick(kinds);
   const st = S.strings.length ? pick(S.strings) : null;
-  if (k === 'move' && st && !st.rot) { const dx = r(-0.07, 0.07) * W, dy = r(-0.07, 0.07) * ph; st.tgt = { x1: st.x1 + dx, y1: st.y1 + dy, x2: st.x2 + dx, y2: st.y2 + dy }; }
-  else if (k === 'stretch' && st && !st.rot) { const f = r(0.82, 1.2), mx = (st.x1 + st.x2) / 2, my = (st.y1 + st.y2) / 2; st.tgt = { x1: mx + (st.x1 - mx) * f, y1: my + (st.y1 - my) * f, x2: mx + (st.x2 - mx) * f, y2: my + (st.y2 - my) * f }; }
+  if (k === 'move' && st && !st.rot) { const dx = r(-0.07, 0.07) * W * f, dy = r(-0.07, 0.07) * ph * f; st.tgt = { x1: st.x1 + dx, y1: st.y1 + dy, x2: st.x2 + dx, y2: st.y2 + dy }; }
+  else if (k === 'stretch' && st && !st.rot) { const fa = big ? r(0.65, 1.4) : r(0.82, 1.2), mx = (st.x1 + st.x2) / 2, my = (st.y1 + st.y2) / 2; st.tgt = { x1: mx + (st.x1 - mx) * fa, y1: my + (st.y1 - my) * fa, x2: mx + (st.x2 - mx) * fa, y2: my + (st.y2 - my) * fa }; }
   else if (k === 'swap' && st) { const kind = IM[st.inst].k, pool = INST.filter(i => i.k === kind && i.id !== st.inst && (i.k !== 'voice')); if (pool.length) st.inst = (kind === 'lead' && Math.random() < 0.6 ? WORLDS[S.world].leads.filter(l => l !== st.inst) : pool.map(i => i.id)).sort(() => Math.random() - 0.5)[0] || st.inst; }
-  else if (k === 'nudge') { const L = [...S.portals, ...S.fields, ...S.mags]; if (L.length) { const o = pick(L); o.x += r(-0.05, 0.05) * W; o.y += r(-0.05, 0.05) * ph; } }
+  else if (k === 'nudge') { const L = [...S.portals, ...S.fields, ...S.mags]; if (L.length) { const o = pick(L); o.x += r(-0.05, 0.05) * W * f; o.y += r(-0.05, 0.05) * ph * f; } }
   else if (k === 'ball') { if (S.balls.length < 8) spawnBall(r(0.1, 0.9) * W, r(0.1, 0.8) * ph); else S.balls.shift(); }
   else if (k === 'chord') { S.shift = (S.shift + 1) % 4; }
+  if (big && Math.random() < 0.2) { if (S.strings.length > 5 && Math.random() < 0.5) S.strings.splice(S.strings.indexOf(pick(S.strings)), 1); else { const w = WORLDS[S.world], I = pick(w.leads), L = r(0.15, 0.45) * Math.min(W, ph), a = r(0, 3.14), cx = r(0.15 * W, 0.85 * W), cy = r(0.15 * ph, 0.85 * ph); addString(cx - Math.cos(a) * L / 2, cy - Math.sin(a) * L / 2, cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2, I); } }
   S.strings.forEach(x => { x.x1 = Math.max(6, Math.min(W - 6, x.x1)); x.x2 = Math.max(6, Math.min(W - 6, x.x2)); });
-  save();
 }
 function spinStrings(dt) {
   S.strings.forEach(s => { if (s.tgt) { const k = Math.min(1, dt * 1.6); s.x1 += (s.tgt.x1 - s.x1) * k; s.y1 += (s.tgt.y1 - s.y1) * k; s.x2 += (s.tgt.x2 - s.x2) * k; s.y2 += (s.tgt.y2 - s.y2) * k;
@@ -690,7 +700,7 @@ function toast(t) { S.toasts.push({ t, a: 0 }); if (S.toasts.length > 2) S.toast
 function toolActive(d) {
   if (d.kind === 'inst' || d.kind === 'tool') return S.tool === d.id;
   if (d.kind === 'scene') return S.sceneI === +d.id && !!S.scenes[+d.id];
-  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'spin' ? S.spin : d.id === 'sauto' ? S.sauto : d.id === 'sover' ? S.sover : d.id === 'morph' ? S.morph : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
+  return d.id === 'pulse' ? S.pulse : d.id === 'play' ? S.playing : d.id === 'grav' ? S.grav > 0 : d.id === 'spin' ? S.spin : d.id === 'sauto' ? S.sauto : d.id === 'sover' ? S.sover : d.id === 'morph' ? S.morph > 0 : d.id === 'rec' ? !!S.rec && !S.rec.max : d.id === 'song' ? !!S.rec && !!S.rec.max : false;
 }
 function act(a) {
   if (a === 'pulse') { S.pulse = !S.pulse; toast(S.pulse ? 'Puls an' : 'Puls aus'); }
@@ -698,7 +708,7 @@ function act(a) {
   else if (a === 'grav') { S.grav = (S.grav + 1) % 3; toast(['Schwerkraft aus', 'Schwerkraft: nach unten', 'Schwerkraft: zur Mitte'][S.grav]); }
   else if (a === 'clear') { S.strings = []; S.portals = []; S.fields = []; S.mags = []; S.balls = []; toast('Leer'); }
   else if (a === 'dice') dice();
-  else if (a === 'morph') { S.morph = !S.morph; toast(S.morph ? 'Morph an – der Song verändert sich alle 2 Takte leicht' : 'Morph aus'); }
+  else if (a === 'morph') { S.morph = (S.morph + 1) % 3; toast(['Morph aus', 'Morph leicht – kleine Änderungen alle 2 Takte', 'Morph stark – jeden Takt deutliche Sprünge'][S.morph]); }
   else if (a === 'spin') { S.spin = !S.spin; toast(S.spin ? 'Dreher an – neue Saiten kreisen von selbst' : 'Dreher aus'); }
   else if (a === 'mic') recordMic();
   else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
@@ -837,11 +847,11 @@ function draw(dt) {
     const on = toolActive(d), full = d.kind === 'scene' ? !!S.scenes[+d.id] : false, hue = d.kind === 'inst' ? IM[d.id].h : d.kind === 'tool' ? TOOLS[d.id].h : d.kind === 'scene' ? 150 : 200, y0 = top + d.y;
     g.fillStyle = on ? hsl(hue, 80, 38, 0.9) : full ? 'rgba(30,90,70,0.65)' : 'rgba(40,48,72,0.7)'; rr(d.x + 3, y0 + 3, d.w - 6, d.h - 6, 12); g.fill(); if (on) { g.strokeStyle = hsl(hue, 100, 70); g.lineWidth = 2; g.stroke(); }
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = Math.round(d.w * 0.4) + 'px system-ui'; g.fillText(d.id === 'play' ? (S.playing ? '⏸' : '▶') : d.e, d.x + d.w / 2, y0 + d.h * 0.58);
-    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.n, d.x + d.w / 2, y0 + d.h - 7);
+    g.font = '600 ' + Math.max(8, Math.round(d.w * 0.17)) + 'px system-ui'; g.fillStyle = on ? '#fff' : '#9aa5bb'; g.fillText(d.id === 'voice' && !S.voice ? 'Stimme+' : d.id === 'morph' ? 'Morph ' + ['aus', 'leicht', 'stark'][S.morph] : d.n, d.x + d.w / 2, y0 + d.h - 7);
   });
   S.toasts.forEach(t => { t.a += dt; }); S.toasts = S.toasts.filter(t => t.a < 3.2);
-  S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 56 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 75 + i * 34, W - 30); });
-  if (S.hint < 3 && S.started && !S.toasts.length) { g.fillStyle = 'rgba(255,255,255,0.55)'; g.textAlign = 'center'; g.font = '600 13px system-ui'; if (W < 640) { g.fillText('Ziehen = Saite · Kreis = Portal · Tippen = Kugel', W / 2, ph - 30); g.fillText('Halten = Dirigent (zieht Kugeln an)', W / 2, ph - 12); } else g.fillText('Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent (zieht die Kugeln an)', W / 2, ph - 14); }
+  S.toasts.forEach((t, i) => { const al = Math.min(1, (3.2 - t.a) * 1.5); g.font = '700 14px system-ui'; g.textAlign = 'center'; const tw = Math.min(W - 16, g.measureText(t.t).width + 28); g.fillStyle = `rgba(0,0,0,${0.6 * al})`; rr(W / 2 - tw / 2, 78 + i * 34, tw, 28, 14); g.fill(); g.fillStyle = `rgba(255,255,255,${al})`; g.fillText(t.t, W / 2, 97 + i * 34, W - 30); });
+  if (S.started) { const tip = W < 640 ? 'Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent' : 'Ziehen = Saite · Kreis = Portal · Tippen = Kugel · Halten = Dirigent (zieht die Kugeln an)'; g.textAlign = 'center'; g.font = '600 12px system-ui'; const tw = Math.min(W - 16, g.measureText(tip).width + 22); g.fillStyle = 'rgba(0,0,0,0.35)'; rr(W / 2 - tw / 2, 46, tw, 22, 11); g.fill(); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText(tip, W / 2, 61, W - 30); }
   if (!S.started) { g.fillStyle = 'rgba(5,7,14,0.88)'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.fillStyle = hsl(w.hue, 95, 70); g.font = '800 ' + Math.min(44, W / 9) + 'px system-ui'; g.fillText(window.__SONG ? 'COSMOS-SONG' : 'MUSIFY COSMOS', W / 2, H / 2 - 50); g.fillStyle = '#e6ebf5'; g.font = '600 16px system-ui'; g.fillText(window.__SONG || S.shared ? 'Ein geteilter Kosmos wartet auf dich.' : 'Zeichne Saiten. Kugeln spielen sie.', W / 2, H / 2 - 14); g.fillStyle = '#8b95a8'; g.font = '14px system-ui'; g.fillText('Weltklänge: Oud, Sitar, Shehnai, Tuba, Tabla …', W / 2, H / 2 + 12); const p = 0.6 + 0.4 * Math.sin(now / 300); g.fillStyle = `rgba(0,230,118,${p})`; g.font = '800 20px system-ui'; g.fillText('▶ Tippen zum Starten', W / 2, H / 2 + 60); }
 }
 function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
