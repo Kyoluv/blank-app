@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 109</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 110</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -2941,14 +2941,16 @@ const SING = (function () {
   function analyze(x, sr) {
     const hop = Math.round(sr * 0.006), win = Math.round(sr * 0.026), lo = Math.floor(sr / 330), hi = Math.ceil(sr / 70), nf = Math.max(0, Math.floor((x.length - win - hi) / hop));
     let mx = 0; for (let i = 0; i < x.length; i++) mx = Math.max(mx, Math.abs(x[i]));
-    const vo = new Uint8Array(nf), per = new Float32Array(nf);
+    const vo = new Uint8Array(nf), per = new Float32Array(nf), rs = new Float32Array(hi - lo + 2), xs = new Float32Array(x.length); for (let i = 2; i < x.length - 2; i++) xs[i] = (x[i - 2] + x[i - 1] + x[i] + x[i + 1] + x[i + 2]) / 5;
     for (let f = 0; f < nf; f++) {
       const s0 = f * hop; let e0 = 0; for (let i = 0; i < win; i++) e0 += x[s0 + i] * x[s0 + i]; if (Math.sqrt(e0 / win) < 0.03 * mx) continue;
       let best = 0, bl = 0, e1 = 0; for (let i = 0; i < win; i++) e1 += x[s0 + lo + i] * x[s0 + lo + i];
-      for (let l = lo; l <= hi; l++) { let c = 0; for (let i = 0; i < win; i += 2) c += x[s0 + i] * x[s0 + i + l]; c *= 2; e1 += x[s0 + l + win - 1] * x[s0 + l + win - 1] - (l > lo ? x[s0 + l - 1] * x[s0 + l - 1] : 0); const r = c / Math.sqrt(Math.max(1e-9, e0 * Math.max(e1, 1e-9))); if (r > best) { best = r; bl = l; } }
+      for (let l = lo; l <= hi; l++) { let c = 0; for (let i = 0; i < win; i += 2) c += x[s0 + i] * x[s0 + i + l]; c *= 2; e1 += x[s0 + l + win - 1] * x[s0 + l + win - 1] - (l > lo ? x[s0 + l - 1] * x[s0 + l - 1] : 0); const r = c / Math.sqrt(Math.max(1e-9, e0 * Math.max(e1, 1e-9))); rs[l - lo] = r; if (r > best) { best = r; bl = l; } }
+      if (bl) for (let l = lo + 1; l < bl - 1; l++) { const q = rs[l - lo]; if (q >= 0.9 * best && q >= rs[l - lo - 1] && q >= rs[l - lo + 1]) { bl = l; break; } }
       if (best > 0.55 && bl) { vo[f] = 1; per[f] = bl; }
     }
     for (let f = 1; f < nf - 1; f++) { if (!vo[f] && vo[f - 1] && vo[f + 1]) { vo[f] = 1; per[f] = (per[f - 1] + per[f + 1]) / 2; } if (vo[f] && !vo[f - 1] && !vo[f + 1]) vo[f] = 0; }
+    { const p2 = per.slice(); for (let f = 2; f < nf - 2; f++) { if (!vo[f]) continue; const a = []; for (let k = -2; k <= 2; k++) if (vo[f + k]) a.push(p2[f + k]); a.sort((u, v) => u - v); per[f] = a[a.length >> 1]; } }
     const segs = []; let st = -1; for (let f = 0; f <= nf; f++) { const v = f < nf && vo[f]; if (v && st < 0) st = f; if (!v && st >= 0) { if (f - st >= 3) segs.push([st, f]); st = -1; } }
     // Abschnitte: stimmhaft/stimmlos
     const parts = []; let cur = 0;
@@ -2956,8 +2958,8 @@ const SING = (function () {
     if (cur < x.length) parts.push({ v: false, a: cur, b: x.length });
     parts.forEach(p => {
       if (!p.v) return; const P = fi => { fi = Math.max(0, Math.min(nf - 1, fi)); let k = fi; while (k > 0 && !per[k]) k--; return per[k] || per[Math.min(nf - 1, fi + 1)] || (sr / 120); };
-      const marks = []; let pos = p.a; { const P0 = P(p.f0); let bi = pos, bv = -9; for (let i = p.a; i < Math.min(p.b, p.a + P0); i++) if (x[i] > bv) { bv = x[i]; bi = i; } pos = bi; }
-      while (pos < p.b - 2) { marks.push(pos); const Pl = P(Math.round((pos - (win >> 1)) / hop)); const nx = pos + Pl, r = Math.round(Pl * 0.25); let bi = Math.min(x.length - 1, Math.round(nx)), bv = -9; for (let i = Math.round(nx) - r; i <= Math.round(nx) + r; i++) if (i > 0 && i < x.length && x[i] > bv) { bv = x[i]; bi = i; } pos = bi <= pos ? Math.round(nx) : bi; }
+      const marks = []; let pos = p.a; { const P0 = P(p.f0); let bi = pos, bv = -9; for (let i = p.a; i < Math.min(p.b, p.a + P0); i++) if (xs[i] > bv) { bv = x[i]; bi = i; } pos = bi; }
+      while (pos < p.b - 2) { marks.push(pos); const Pl = P(Math.round((pos - (win >> 1)) / hop)); const nx = pos + Pl, r = Math.round(Pl * 0.25); let bi = Math.min(x.length - 1, Math.round(nx)), bv = -9; for (let i = Math.round(nx) - r; i <= Math.round(nx) + r; i++) if (i > 0 && i < x.length && xs[i] > bv) { bv = x[i]; bi = i; } pos = bi <= pos ? Math.round(nx) : bi; }
       p.marks = marks; p.valid = marks.length >= 3;
     });
     parts.forEach(p => { if (p.v && !p.valid) p.v = false; });
@@ -3184,7 +3186,11 @@ const SING = (function () {
       'Sommer': { hook: 'Sommer, Sonne, wir sind frei', c: [['Die Sonne taucht ins Wasser ein', 'Der Sommer soll für immer sein'], ['Barfuß laufen wir durch den Sand', 'Dein Lachen hält mich an der Hand'], ['Der Himmel brennt in Rot und Gold', 'Genau so hab ich es gewollt'], ['Wir fahren los mit offenem Dach', 'Der ganze Tag ist hellwach'], ['Das Meer singt leise unser Lied', 'Und alles, was uns heute blieb']] },
       'Freiheit': { hook: 'Wir sind frei, wir sind frei', c: [['Ich werfe alle Sorgen fort', 'Wir fliegen an den fernen Ort'], ['Hoch am Himmel, weit und frei', 'Fliegen wir an allem vorbei'], ['Jeder Traum ist nur ein Schritt', 'Komm, ich nehm dich einfach mit'], ['Heute fang ich einfach an', 'Weil ich alles schaffen kann'], ['Kein Weg ist mir zu weit', 'Ich bin bereit, ich bin bereit']] },
       'Nacht': { hook: 'Heute Nacht, heute Nacht', c: [['Die Stadt schläft nie, sie leuchtet hell', 'Und wir sind unterwegs, ganz schnell'], ['Neonlicht auf nassem Stein', 'Heute Nacht bin ich nicht allein'], ['Sterne zählen wir zu zweit', 'Die Nacht hat heute alle Zeit'], ['Der Mond schaut still auf uns herab', 'Wir geben alles, was ich hab']] },
-      'Hoffnung': { hook: 'Ich geb nicht auf, ich geb nicht auf', c: [['Auch wenn der Regen fällt und fällt', 'Ich glaub an uns und diese Welt'], ['Nach jedem Sturm kommt wieder Licht', 'Und ich geb niemals auf, ich nicht'], ['Ich geh den Weg, auch wenn er weit', 'Ich hab für dich noch immer Zeit']] }
+      'Hoffnung': { hook: 'Ich geb nicht auf, ich geb nicht auf', c: [['Auch wenn der Regen fällt und fällt', 'Ich glaub an uns und diese Welt'], ['Nach jedem Sturm kommt wieder Licht', 'Und ich geb niemals auf, ich nicht'], ['Ich geh den Weg, auch wenn er weit', 'Ich hab für dich noch immer Zeit']] },
+      'Regen': { hook: 'Lass es regnen, lass es fließen', c: [['Tropfen tanzen auf dem Dach', 'Ich bleib heute lieber wach'], ['Pfützen glänzen im Laternenlicht', 'Regen wäscht das Grau vom Gesicht'], ['Donner rollt am Himmel her', 'Und das Herz wird nicht mehr schwer'], ['Barfuß tanzen wir im Nass', 'Heute macht der Regen Spaß'], ['Alles Alte wird gespült', 'Weil man es im Regen fühlt']] },
+      'Stadt': { hook: 'Die Stadt die schläft nie mehr', c: [['Neonlicht und laute Nacht', 'Alles ist für uns gemacht'], ['Auf dem Dach hoch über Stadt', 'Sehen wir was keiner hat'], ['Jede Straße spielt ein Lied', 'Das uns in die Zukunft zieht'], ['Bahnen rollen unterm Grund', 'Und die Stadt ist wach und bunt'], ['Skyline glüht im Morgenrot', 'Wir sind frei, wir sind nicht tot']] },
+      'Traum': { hook: 'Schließ die Augen, träum mit mir', c: [['Auf der Wolke fliegen wir', 'Alle Sorgen bleiben hier'], ['Sterne malen in die Nacht', 'Jeder Wunsch wird mitgebracht'], ['Farben die ich nie gekannt', 'Hab ich in die Luft gespannt'], ['Weck mich nicht, ich will noch bleiben', 'Wo die Träume Reigen treiben'], ['Fliegen wir ans andre Meer', 'Alles ist so leicht und leer']] },
+      'Reise': { hook: 'Nimm mich mit auf die Reise', c: [['Fenster auf und Wind im Haar', 'Heute ist der Himmel klar'], ['Weite Felder, Berge, Meer', 'Alles ist so groß und leer'], ['Karten liegen längst im Schrank', 'Ich folge nur dem Herzensklang'], ['Sonne malt die Straße rot', 'Hinter uns ist keine Not'], ['Radio spielt unser Lied', 'Und das Glück das mit uns zieht']] }
     },
     en: {
       'Love': { hook: 'Just you and me, only you and me', c: [['Your smile can light the darkest sky', 'With you I feel like I can fly'], ['Hold me close and don\'t let go', 'You are all I need to know'], ['Every moment feels so right', 'Dancing in the pale moonlight'], ['Take my hand and stay with me', 'Where you are is where I\'ll be']] },
@@ -3192,7 +3198,11 @@ const SING = (function () {
       'Summer': { hook: 'Summer sun, we are free', c: [['Sun is sinking in the sea', 'Summer\'s waiting just for me'], ['Barefoot running on the shore', 'Who could ask for something more'], ['Windows down, the road is long', 'Singing every single song'], ['Golden light and ocean air', 'Summer days beyond compare']] },
       'Freedom': { hook: 'We are free, we are free', c: [['I throw my worries to the wind', 'A brand new day is set to begin'], ['High above the clouds we ride', 'With the whole wide world inside'], ['Every dream is just a start', 'Follow me and trust your heart'], ['Today I rise, I\'m standing tall', 'Nothing\'s gonna make me fall']] },
       'Night': { hook: 'Tonight, tonight, tonight', c: [['The city never sleeps tonight', 'Neon signs and silver light'], ['Stars are counting out the time', 'Tonight the whole world is mine'], ['Moon above the quiet street', 'Every heart begins to beat']] },
-      'Hope': { hook: 'I won\'t give up, I won\'t give up', c: [['Even when the rain falls down', 'We will rise and turn around'], ['After every storm there\'s light', 'We will make it through the night'], ['I will walk the road with you', 'Whatever comes, we\'ll see it through']] }
+      'Hope': { hook: 'I won\'t give up, I won\'t give up', c: [['Even when the rain falls down', 'We will rise and turn around'], ['After every storm there\'s light', 'We will make it through the night'], ['I will walk the road with you', 'Whatever comes, we\'ll see it through']] },
+      'Rain': { hook: 'Let it rain, let it fall', c: [['Silver drops on window glass', 'Quiet moments slowly pass'], ['Puddles shine in streetlight gold', 'Stories that were never told'], ['Thunder rolls across the sky', 'Let the clouds go rolling by'], ['Dancing barefoot in the street', 'Rhythm of the rain is sweet'], ['Wash away the yesterday', 'Rain will show another way']] },
+      'City': { hook: 'City lights are calling me', c: [['Taxi horns and neon signs', 'Midnight crowds in endless lines'], ['Rooftops high above the town', 'We can see the sun go down'], ['Every corner holds a song', 'In this place we all belong'], ['Subway trains beneath our feet', 'Heartbeat of the busy street'], ['Skyline glowing in the haze', 'Live it up for all your days']] },
+      'Dream': { hook: 'Close your eyes and dream with me', c: [['Floating on a silver cloud', 'Singing soft and singing loud'], ['Stars are painting up the dark', 'Every wish begins a spark'], ['Colors that I never knew', 'Open up and carry through'], ['Wake me not, I want to stay', 'Where the dreams are here to play'], ['Fly with me beyond the sea', 'Everything is meant to be']] },
+      'Road': { hook: 'Take me down the open road', c: [['Windows down and engine hum', 'Wonder where the day will come'], ['Endless fields and mountain air', 'Freedom blowing in my hair'], ['Maps are folded, left behind', 'Only open skies to find'], ['Sunset paints the highway red', 'Good things waiting up ahead'], ['Radio plays our favorite song', 'Singing as we drive along']] }
     }
   };
   const pk = arr => arr[Math.floor(Math.random() * arr.length)], shuf = arr => arr.slice().sort(() => Math.random() - 0.5);
