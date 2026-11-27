@@ -353,7 +353,7 @@ V.stabK = function (ctx, out, t, freqs, cut, v, kind, len) {
 };
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 6';
+const VERSION = 'Cosmos 6.1';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -369,12 +369,14 @@ const WORLDS = [
   { n: 'Reggaeton', sc: 0, bpm: 96, bass: '808', prog: [0, 5, 3, 4], hue: 25, leads: ['brass', 'bell', 'oud'], pat: 'dembow' },
   { n: 'Lo-Fi', sc: 1, bpm: 84, bass: 'walk', prog: [0, 5, 3, 4], hue: 160, leads: ['bell', 'santoor', 'oud'], pat: 'lofi' }
 ];
+const WSW = { 'Bollywood': 0.1, 'Raga-Nacht': 0.07, 'Orient-Club': 0.06, 'Techno-Kern': 0.0, 'House': 0.06, 'Schlager-Techno': 0.03, 'Balkan-Party': 0.04 };
+WORLDS.forEach(w => { if (WSW[w.n] != null) w.sw = WSW[w.n]; });
 const PATS = {
-  four: { k: [0, 4, 8, 12], c: [4, 12], b: [2, 6, 10, 14], oh: [2, 6, 10, 14], h: 'odd' },
-  disco: { k: [0, 4, 8, 12], c: [4, 12], b: [2, 3, 6, 7, 10, 11, 14, 15], oh: [2, 6, 10, 14], h: 'odd' },
-  trap: { k: [0, 7, 10], c: [8], b: [0, 7, 10], oh: [], h: 'all' },
-  dembow: { k: [0, 4, 8, 12], c: [3, 6, 11, 14], b: [0, 6, 8, 14], oh: [], h: 'even' },
-  lofi: { k: [0, 10], c: [4, 12], b: [0, 8], oh: [], h: 'even' }
+  four: { sw: 0.03, g: [11, 15], k: [0, 4, 8, 12], c: [4, 12], b: [2, 6, 10, 14], oh: [2, 6, 10, 14], h: 'odd' },
+  disco: { sw: 0.07, g: [5, 13], k: [0, 4, 8, 12], c: [4, 12], b: [2, 3, 6, 7, 10, 11, 14, 15], oh: [2, 6, 10, 14], h: 'odd' },
+  trap: { sw: 0.05, g: [13], gs: [3, 14], k: [0, 7, 10], c: [8], b: [0, 7, 10], oh: [], h: 'all' },
+  dembow: { sw: 0.09, g: [2, 10], gs: [1, 9], k: [0, 4, 8, 12], c: [3, 6, 11, 14], b: [0, 6, 8, 14], oh: [], h: 'even' },
+  lofi: { sw: 0.24, g: [6, 14], gs: [7, 15], k: [0, 10], c: [4, 12], b: [0, 8], oh: [], h: 'even' }
 };
 const INST = [
   { id: 'oud', e: '🪕', n: 'Oud', k: 'lead', t: 'oud', o: 0, h: 28 },
@@ -456,13 +458,19 @@ function playInst(inst, deg, vel, t, root, oct) {
 }
 function runStep(s, t) {
   const w = WORLDS[S.world], dur = stepDur(), bar = S.bar, root = chordRoot(bar);
+  const P = PATS[w.pat] || PATS.four, swg = w.sw != null ? w.sw : (P.sw || 0), hz = () => (Math.random() - 0.5) * 0.008;
+  t += (s % 2 === 1 ? swg * dur : 0);
+  if (s === 0) S.fill = bar % 4 === 3 && Math.random() < 0.6;
   if (S.pulse) {
-    const P = PATS[w.pat] || PATS.four;
-    if (P.k.includes(s)) { V.kick(ctx, bus.d, t, 0.95); duck(t); }
-    if (P.oh.includes(s)) V.hat(ctx, bus.d, t, 0.32, true);
-    else if (P.h === 'odd' ? s % 2 === 1 : P.h === 'even' ? s % 2 === 0 : true) V.hat(ctx, bus.d, t, P.h === 'all' ? (s % 2 ? 0.12 : 0.2) : 0.1, false);
+    if (P.k.includes(s)) { V.kick(ctx, bus.d, t, s === 0 ? 1 : 0.85); duck(t); }
+    else if (S.fill && s === 15) { V.kick(ctx, bus.d, t, 0.7); }
+    if (P.oh.includes(s)) V.hat(ctx, bus.d, t + hz(), 0.32, true);
+    else if (P.h === 'odd' ? s % 2 === 1 : P.h === 'even' ? s % 2 === 0 : true) V.hat(ctx, bus.d, t + hz(), (P.h === 'all' ? (s % 2 ? 0.12 : 0.2) : 0.1) * [1.5, 0.6, 1.1, 0.6][s % 4] * (0.85 + Math.random() * 0.3), false);
     if (P.c.includes(s)) V.snare(ctx, bus.d, t, 0.45, true);
-    if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), w.bass, 0.5, 0.6);
+    else if ((P.gs || [7, 15]).includes(s) && !(S.fill && s > 11) && Math.random() < 0.4) V.snare(ctx, bus.d, t + hz(), 0.14, false);
+    if (S.fill && s >= 12 && s !== 15 && P.c.indexOf(s) < 0) V.snare(ctx, bus.d, t, 0.18 + (s - 12) * 0.07, false);
+    if (P.b.includes(s)) V.bass(ctx, bus.b, t, noteF(root, -1), dur * (w.pat === 'trap' ? 3 : 2), w.bass, s % 4 === 0 ? 0.55 : 0.46 + 0.06 * Math.random(), 0.6);
+    else if ((P.g || [15]).includes(s) && Math.random() < 0.55) V.bass(ctx, bus.b, t, noteF(root + (Math.random() < 0.4 ? 4 : 0), Math.random() < 0.35 ? 0 : -1), dur * 0.9, w.bass, 0.24, 0.4);
   }
   if (s % 4 === 0) S.beatFlash = 1;
   if (s === 0 && bar % 8 === 0 && S.sauto) nextScene();
