@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 107</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 108</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -2580,7 +2580,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const sticky = $('#sticky');
   // 2) Sprungmarken
   const jump = document.createElement('div'); jump.id = 'jump';
-  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🗣 Natürlich', 'c-talk'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🎭 Stimmung', 'c-mood'], ['🎹 Jam', 'c-jam'], ['🎙 Beatbox', 'c-bbox'], ['🧬 Evolution', 'c-evo'], ['🎚 Regler', 'c-sliders'], ['🎛 Live-FX', 'c-fx'], ['🎧 DJ', 'c-dj'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🗣 Natürlich', 'c-talk'], ['🎛 Remix', 'c-remix'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🎭 Stimmung', 'c-mood'], ['🎹 Jam', 'c-jam'], ['🎙 Beatbox', 'c-bbox'], ['🧬 Evolution', 'c-evo'], ['🎚 Regler', 'c-sliders'], ['🎛 Live-FX', 'c-fx'], ['🎧 DJ', 'c-dj'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
     const b = document.createElement('button'); b.textContent = t;
     b.addEventListener('click', () => {
       const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
@@ -2973,7 +2973,20 @@ const SING = (function () {
     return (wcache[key] = { x, sr, parts: analyze(x, sr) });
   }
   let aiMod = null; const AIV = { de: { male: 'de_DE-thorsten-medium', female: 'de_DE-ramona-low' }, en: { male: 'en_US-ryan-medium', female: 'en_US-hfc_female-medium' } };
+  let kokoro = null;
+  async function kokoroPrefetch(words, voice, prog) {
+    if (!kokoro) { const M = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/+esm'); kokoro = await M.KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm', progress_callback: p => { if (prog && p && p.status === 'progress' && p.progress != null) prog('Kokoro-Stimme wird einmalig geladen: ' + Math.round(p.progress) + ' % (ca. 90 MB)'); } }); }
+    const vid = voice === 'female' ? 'af_heart' : 'am_michael', id = 'kokoro-' + vid; let n = 0; const uniq = [...new Set(words.map(w => w.toLowerCase()))];
+    for (const w of uniq) {
+      const key = 'ai|' + id + '|' + w; if (wcache[key]) { n++; continue; }
+      const out = await kokoro.generate(w, { voice: vid }), au = out.audio || out.data || out, sr = out.sampling_rate || out.sampleRate || 24000; let x = Float32Array.from(au);
+      const th = Math.max(0.004, 0.02 * x.reduce((m, v) => Math.max(m, Math.abs(v)), 0)); let a0 = 0, b0 = x.length; while (a0 < b0 && Math.abs(x[a0]) < th) a0++; while (b0 > a0 && Math.abs(x[b0 - 1]) < th) b0--; x = x.slice(Math.max(0, a0 - 110), Math.min(x.length, b0 + 110));
+      wcache[key] = { x, sr, parts: analyze(x, sr) }; n++; if (prog) prog('Kokoro-Stimme übt Wort ' + n + ' von ' + uniq.length + ' …'); await new Promise(r => setTimeout(r, 0));
+    }
+    return id;
+  }
   async function aiPrefetch(words, lang, voice, prog) {
+    if (api.useKokoro && lang === 'en') return await kokoroPrefetch(words, voice, prog);
     aiMod = aiMod || await import('./vits-web.js?v=97'); const id = AIV[lang][voice === 'female' ? 'female' : 'male'];
     let have = []; try { have = await aiMod.stored(); } catch (e) {}
     if (!have.includes(id)) await aiMod.download(id, p => prog && prog('KI-Stimme wird einmalig geladen: ' + (p.total ? Math.round(p.loaded * 100 / p.total) : '…') + ' % (ca. 60 MB)'));
@@ -3154,7 +3167,7 @@ const SING = (function () {
   <label>🎛 Klangfarbe</label><select id="sing-timbre" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="normal">Natürlich (Sprachsynthese)</option><option value="voc">🤖 Vocoder (Roboter-Pop)</option><option value="choir">👥 Chor (Engel-Vocoder)</option><option value="organ">⛪ Orgel-Stimme</option><option value="whisper">🌬 Flüstern</option></select>
   <label>🌍 Sprache</label><select id="sing-lang" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="auto">Automatisch erkennen</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
   <label>📏 Länge</label><select id="sing-fit" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="song">Über den ganzen Song strecken</option><option value="once">Nur einmal singen</option></select>
-  <label>🔊 Klang</label><select id="sing-eng" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="ai">KI-Stimme (klingt wie ein Mensch, online, einmal ca. 60 MB)</option><option value="tts">Computerstimme (sofort, ohne Internet)</option><option value="old">Synthesizer (alt)</option></select>
+  <label>🔊 Klang</label><select id="sing-eng" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="kokoro">⭐ Kokoro (nur Englisch, sehr natürlich, online, einmal ca. 90 MB)</option><option value="ai">KI-Stimme (klingt wie ein Mensch, online, einmal ca. 60 MB)</option><option value="tts">Computerstimme (sofort, ohne Internet)</option><option value="old">Synthesizer (alt)</option></select>
   <label>🧑 Stimme</label><select id="sing-voice" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="male">Männlich (tief)</option><option value="female">Weiblich (hoch)</option></select></div>
   <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;">🎯 Auto-Tune (zieht den Gesang auf die Töne der Tonart)</div>
   <div class="grid-oct" id="sing-tune" style="grid-template-columns:repeat(4,1fr);"><button class="oct-btn" data-tune="off">Aus</button><button class="oct-btn" data-tune="soft">Sanft</button><button class="oct-btn" data-tune="mid">Normal</button><button class="oct-btn" data-tune="hard">Robo</button></div>
@@ -3215,11 +3228,11 @@ const SING = (function () {
   $('#sing-go').addEventListener('click', async () => {
     const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
     if (!txt) { msg('Schreibe zuerst einen Text.'); return; }
-    SING.fell = false; SING.progress = t => msg('🎤 ' + t); msg($('#sing-eng').value === 'ai' ? '🎤 KI-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 60 MB. Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'tts' ? '🎤 Ich lade die Sprache (beim ersten Mal ca. 5 MB) und übe den Text … das kann eine halbe Minute dauern.' : '🎤 Ich übe den Text …'); $('#sing-go').disabled = true; await new Promise(r => setTimeout(r, 30));
+    SING.useKokoro = $('#sing-eng').value === 'kokoro'; SING.fell = false; SING.progress = t => msg('🎤 ' + t); msg($('#sing-eng').value === 'kokoro' ? '🎤 Kokoro-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 90 MB (nur Englisch, danach geht es schnell). Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'ai' ? '🎤 KI-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 60 MB. Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'tts' ? '🎤 Ich lade die Sprache (beim ersten Mal ca. 5 MB) und übe den Text … das kann eine halbe Minute dauern.' : '🎤 Ich übe den Text …'); $('#sing-go').disabled = true; await new Promise(r => setTimeout(r, 30));
     try {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
       const lang = $('#sing-lang').value, fit = $('#sing-fit').value === 'song' ? (() => { const bar = 240 / st.bpm, P = FORMS[activeForm()].plan, a = P[0][2], z = P[P.length - 1][2]; return { lead: a * bar, target: Math.max(8, (SONG_BARS - a - z) * bar - 1), reps: 1 }; })() : null,
-        r = await SING.render(txt, lang, ($('#sing-style').value === 'robot' ? 'robot' : $('#sing-voice').value), notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', old: false })[$('#sing-eng').value], $('#sing-style').value === 'rap' ? 'rap' : 'sing', $('#sing-timbre').value);
+        r = await SING.render(txt, lang, ($('#sing-style').value === 'robot' ? 'robot' : $('#sing-voice').value), notes, SCALES[st.scaleIdx], st.bpm, fit, ({ tts: 'tts', ai: 'ai', kokoro: 'ai', old: false })[$('#sing-eng').value], $('#sing-style').value === 'rap' ? 'rap' : 'sing', $('#sing-timbre').value);
       if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; st.voiceOff = r.off || 0; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
       msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. ${SING.fell && $('#sing-eng').value === 'ai' ? ' ⚠️ Die KI-Stimme war nicht erreichbar (Internet oder Seite?). Ich habe die einfache Sprachsynthese genommen.' : ''} Du hörst ihn jetzt solo. Mit „🎵 Mit Song anhören“ hörst du ihn zur Musik. Er spielt auch bei „Ganzen Song spielen“ mit.`);
@@ -3772,6 +3785,121 @@ function setWorld(id, quiet, off) {
   $t('tk-off').addEventListener('click', () => { T.on = false; try { ss.cancel(); } catch (e) {} msg('Sprecher ist aus.'); });
   window.__talk = { T, parse, speakLine, fillVoices };
 })();
+/* ---------- v108: Remix-Labor (eigene Audiodateien zerlegen und neu zusammensetzen) ---------- */
+(function remixLab() {
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'c-remix'; card.style.padding = '10px';
+  const SEL = 'width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);';
+  card.innerHTML = `<div class="label"><span>🎛 Remix-Labor (eigene Audiodatei)</span></div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;line-height:1.45;">Lade eine Audiodatei hoch (MP3, WAV, M4A). Die App findet den Takt, schneidet sie in Schläge und setzt sie neu zusammen: andere Reihenfolge, Stotter-Effekte, rückwärts, Pausen. <b>Bitte nur Dateien nehmen, an denen du die Rechte hast</b> (selbst gemacht, lizenzfrei, CC0). Ein fremdes, geschütztes Lied wird durch Zerschneiden <b>nicht</b> frei von Rechten: Es bleibt rechtlich eine Bearbeitung davon.</div>
+  <label class="oct-btn" style="display:block;text-align:center;padding:12px;cursor:pointer;">📂 Audiodatei wählen<input type="file" id="rx-file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" style="display:none"></label>
+  <div id="rx-info" style="font-size:.78rem;margin:8px 0;line-height:1.4;color:var(--muted);">Noch keine Datei.</div>
+  <div class="mixgrid"><label>⏱ Tempo (BPM)</label><div style="display:flex;gap:6px;"><input type="number" id="rx-bpm" min="60" max="190" step="0.1" value="120" style="flex:1;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><button id="rx-half" class="oct-btn" style="padding:8px 12px;">÷2</button><button id="rx-dbl" class="oct-btn" style="padding:8px 12px;">×2</button></div>
+  <label>🥁 Taktbeginn</label><select id="rx-shift" style="${SEL}"><option value="0">auf dem 1. erkannten Schlag</option><option value="1">1 Schlag später</option><option value="2">2 Schläge später</option><option value="3">3 Schläge später</option></select>
+  <label>🔪 Zerhackt <b id="rx-iv">55</b>%</label><input type="range" id="rx-int" min="0" max="100" value="55">
+  <label>🔊 Lautstärke <b id="rx-vv">85</b></label><input type="range" id="rx-vol" min="10" max="100" value="85"></div>
+  <div style="display:flex;gap:6px;margin-top:8px;"><button id="rx-mix" class="oct-btn" style="flex:1;">🔀 Neu mischen</button><button id="rx-solo" class="oct-btn" style="flex:1;">🎧 Nur Remix hören</button></div>
+  <button id="rx-song" class="sunset-btn" style="width:100%;margin-top:8px;">▶ Remix zusammen mit der Begleitung</button>
+  <div style="display:flex;gap:6px;margin-top:6px;"><button id="rx-stop" class="oct-btn" style="flex:1;">⏹ Remix aus</button><button id="rx-wav" class="oct-btn" style="flex:1;">💾 Remix als WAV (16 Takte)</button></div>
+  <div id="rx-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
+  const anchor = document.getElementById('c-sing') || document.getElementById('c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  const $r = id => document.getElementById(id), msg = t => { $r('rx-msg').textContent = t; };
+  const R = { buf: null, rev: null, bpm: 120, t0base: 0, shift: 0, barE: [], pool: [], seed: 1, live: false, solo: null, nextBar: 0, lastT0: -1 };
+  const mul = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  // ---- Analyse: Tempo, erster Schlag, Energie je Takt ----
+  function analyze(buf) {
+    const sr = buf.sampleRate, ch0 = buf.getChannelData(0), ch1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : ch0, hop = 512, win = 1024, maxS = Math.min(buf.length, sr * 240), nF = Math.floor((maxS - win) / hop);
+    const v = new Float32Array(nF);
+    for (let i = 0; i < nF; i++) { let e = 0; const b = i * hop; for (let k = 0; k < win; k += 2) { const x = (ch0[b + k] + ch1[b + k]) * 0.5; e += x * x; } v[i] = Math.sqrt(e / (win / 2)); }
+    const o = new Float32Array(nF); for (let i = 1; i < nF; i++) { let m = 0, c = 0; for (let k = Math.max(0, i - 8); k < i; k++) { m += v[k]; c++; } o[i] = Math.max(0, v[i] - m / Math.max(1, c)); }
+    const fpS = sr / hop, at = f => { const i = Math.floor(f), fr = f - i; return i + 1 < nF && i >= 0 ? o[i] * (1 - fr) + o[i + 1] * fr : 0; };
+    const ac = lag => { let s = 0; for (let i = 0; i + lag < nF; i++) s += o[i] * at(i + lag); return s; };
+    let best = 0, bb = 110; for (let bp = 70; bp <= 175; bp += 0.5) { const lag = 60 / bp * fpS, w = Math.exp(-0.5 * Math.pow(Math.log2(bp / 110) / 0.5, 2)), sc = (ac(lag) + 0.5 * ac(lag * 2)) * w; if (sc > best) { best = sc; bb = bp; } }
+    let rb = bb, rs = 0; for (let bp = bb - 0.7; bp <= bb + 0.7; bp += 0.05) { const sc = ac(60 / bp * fpS); if (sc > rs) { rs = sc; rb = bp; } }
+    let P = 60 / rb * fpS; const seg = (a, z) => { let bf = a, bs = -1; for (let ph = a; ph < a + P; ph += 0.5) { let sm = 0; for (let f = ph; f < z; f += P) sm += at(f); if (sm > bs) { bs = sm; bf = ph; } } return bf; };
+    if (nF > P * 24) { const F1 = seg(0, Math.floor(nF / 3)), F2 = seg(Math.floor(nF * 2 / 3), nF), N = Math.round((F2 - F1) / P); if (N > 8) { const P2 = (F2 - F1) / N; if (Math.abs(P2 / P - 1) < 0.02) { P = P2; rb = 60 * fpS / P; } } }
+    let bph = 0, bs2 = -1; for (let ph = 0; ph < P; ph += 0.25) { let sm = 0; for (let f = ph; f < nF; f += P) sm += at(f); if (sm > bs2) { bs2 = sm; bph = ph; } }
+    return { bpm: Math.round(rb * 100) / 100, t0: Math.max(0, bph / fpS) };
+  }
+  function prep() {
+    const b = R.buf, beat = 60 / R.bpm, t0 = R.t0base + R.shift * beat, bars = Math.max(0, Math.floor((b.duration - t0) / (4 * beat) - 0.02)); R.t0 = t0; R.bars = bars; R.barE = [];
+    const ch = b.getChannelData(0), sr = b.sampleRate; let mx = 0;
+    for (let k = 0; k < bars; k++) { let e = 0, c = 0; const a = Math.floor((t0 + k * 4 * beat) * sr), z = Math.floor((t0 + (k + 1) * 4 * beat) * sr); for (let i = a; i < z && i < ch.length; i += 7) { e += ch[i] * ch[i]; c++; } const r = Math.sqrt(e / Math.max(1, c)); R.barE.push(r); mx = Math.max(mx, r); }
+    R.pool = []; R.barE.forEach((e, k) => { if (e >= mx * 0.45) R.pool.push(k); }); if (!R.pool.length) for (let k = 0; k < bars; k++) R.pool.push(k);
+  }
+  // ---- Plan für einen Takt ----
+  function planBar(barIdx, I) {
+    if (!R.pool.length) return [];
+    const ph = Math.floor(barIdx / 4), pos = barIdx % 4, pk = ph % 2 === 1 && mul(R.seed * 17 + ph)() < 0.6 ? ph - 1 : ph, rp = mul(R.seed * 31 + pk * 977), pick = () => R.pool[Math.floor(rp() * R.pool.length)];
+    const A = pick(), B = pick(), C = pick(), rb = mul(R.seed * 131 + barIdx * 7 + 3), base = pos < 2 ? A : pos === 2 ? (rp() < 0.5 ? A : B) : C, ev = [];
+    for (let q = 0; q < 4; q++) {
+      let src = base * 16 + q * 4; const r = rb(), fill = pos === 3 && q === 3 && rb() < 0.25 + 0.6 * I;
+      if (fill) { const s2 = base * 16 + 12; for (let j = 0; j < 4; j++) ev.push({ step: 12 + j, src: s2, len: 1, rev: false }); continue; }
+      if (q > 0 && r < I * 0.3) { src = R.pool[Math.floor(rb() * R.pool.length)] * 16 + Math.floor(rb() * 4) * 4; ev.push({ step: q * 4, src, len: 4, rev: false }); }
+      else if (r < I * 0.42) { const one = rb() < 0.3; if (one) for (let j = 0; j < 4; j++) ev.push({ step: q * 4 + j, src, len: 1, rev: false }); else { ev.push({ step: q * 4, src, len: 2, rev: false }); ev.push({ step: q * 4 + 2, src, len: 2, rev: false }); } }
+      else if (r < I * 0.52) ev.push({ step: q * 4, src, len: 4, rev: true });
+      else if (q > 0 && r < I * 0.6) { /* Pause */ }
+      else ev.push({ step: q * 4, src, len: 4, rev: false });
+    }
+    return ev;
+  }
+  function playBar(c, dest, tBar, barIdx, appBpm, volMul, I) {
+    const S16 = 60 / R.bpm / 4, rate = Math.max(0.8, Math.min(1.25, appBpm / R.bpm)), stepD = 60 / appBpm / 4, vol = +$r('rx-vol').value / 100 * 0.9 * volMul;
+    planBar(barIdx, I).forEach(e => {
+      const buf = e.rev ? R.rev : R.buf, off = e.rev ? R.buf.duration - (R.t0 + (e.src + e.len) * S16) : R.t0 + e.src * S16, dS = e.len * S16;
+      if (off < 0 || off + dS > R.buf.duration + 0.01) return;
+      const t = tBar + e.step * stepD, dur = dS / rate, s = c.createBufferSource(), g = c.createGain(); s.buffer = buf; s.playbackRate.value = rate;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.004); g.gain.setValueAtTime(vol, Math.max(t + 0.005, t + dur - 0.012)); g.gain.linearRampToValueAtTime(0, t + dur);
+      s.connect(g); g.connect(dest); s.start(t, off, dS);
+    });
+  }
+  // ---- Ablauf ----
+  let bus = null; const ensureBus = () => { initAudio(); try { ctx.resume(); } catch (e) {} if (!bus || bus.context !== ctx) { bus = ctx.createGain(); bus.gain.value = 1; } return bus; };
+  const tick = () => {
+    if (!R.buf || typeof ctx === 'undefined' || !ctx) return; const now = ctx.currentTime;
+    if (R.solo) { const Tb = 240 / R.bpm; while (R.solo.t0 + R.solo.next * Tb < now + 0.6) { const st0 = R.solo.t0 + R.solo.next * Tb; if (st0 >= now - 0.05) playBar(ctx, R.solo.bus, st0, R.solo.next, R.bpm, 1, +$r('rx-int').value / 100); R.solo.next++; } }
+    if (R.live) {
+      if (!st.playing) { R.nextBar = 0; R.lastT0 = -1; return; } const Tb = 240 / st.bpm;
+      if (R.lastT0 !== songT0) { R.lastT0 = songT0; R.nextBar = Math.max(0, Math.ceil((now - songT0) / Tb - 0.02)); }
+      while (songT0 + R.nextBar * Tb < now + 0.6) { const b = R.nextBar, st0 = songT0 + b * Tb; if (st0 >= now - 0.05) { const K = typeof sectionAt === 'function' ? sectionAt(b).kind : 'verse'; playBar(ctx, ensureBus(), st0, b, st.bpm, K === 'brk' ? 0.55 : K === 'intro' ? 0.7 : 1, Math.min(1, +$r('rx-int').value / 100 + (K === 'build' ? 0.3 : 0))); } R.nextBar++; }
+    }
+  };
+  setInterval(tick, 100);
+  const stopAll = () => { R.live = false; if (R.solo) { try { R.solo.bus.disconnect(); } catch (e) {} R.solo = null; } try { if (bus) bus.disconnect(); } catch (e) {} bus = null; };
+  const ready = () => { if (!R.buf) { msg('Wähle zuerst eine Audiodatei.'); return false; } if (R.bars < 2) { msg('Die Datei ist zu kurz oder der Takt wurde nicht erkannt (mindestens 2 Takte nötig).'); return false; } return true; };
+  const info = () => { $r('rx-info').textContent = R.buf ? '✔ ' + R.name + ' · ' + Math.round(R.buf.duration) + ' s · erkannt: ' + R.bpm + ' BPM · ' + R.bars + ' Takte zum Mischen' : 'Noch keine Datei.'; };
+  $r('rx-file').addEventListener('change', async ev => {
+    const f = ev.target.files && ev.target.files[0]; if (!f) return; stopAll(); msg('Datei wird gelesen und der Takt gesucht …'); $r('rx-info').textContent = f.name;
+    try {
+      initAudio(); const ab = await f.arrayBuffer(), buf = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)); if (buf.duration < 8) { msg('Die Datei ist zu kurz (mindestens 8 Sekunden).'); return; }
+      await new Promise(r => setTimeout(r, 30)); const a = analyze(buf); R.buf = buf; R.name = f.name; R.bpm = a.bpm; R.t0base = a.t0; R.shift = 0; $r('rx-shift').value = '0';
+      R.rev = ctx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate); for (let c = 0; c < buf.numberOfChannels; c++) { const s = buf.getChannelData(c), d = R.rev.getChannelData(c); for (let i = 0, n = s.length; i < n; i++) d[i] = s[n - 1 - i]; }
+      $r('rx-bpm').value = R.bpm; R.seed = 1 + Math.floor(Math.random() * 9999); prep(); info(); msg('Fertig. Tippe auf „Nur Remix hören“. Wenn der Takt nicht passt, ändere das Tempo (÷2 / ×2) oder den Taktbeginn.');
+    } catch (e) { msg('Diese Datei konnte nicht gelesen werden (' + (e && e.message ? e.message : 'Format') + '). Probiere MP3 oder WAV.'); }
+  });
+  const reprep = () => { if (R.buf) { prep(); info(); } };
+  $r('rx-bpm').addEventListener('change', () => { R.bpm = Math.max(60, Math.min(190, +$r('rx-bpm').value || 120)); $r('rx-bpm').value = R.bpm; reprep(); });
+  $r('rx-half').addEventListener('click', () => { $r('rx-bpm').value = Math.round($r('rx-bpm').value / 2 * 10) / 10; $r('rx-bpm').dispatchEvent(new Event('change')); });
+  $r('rx-dbl').addEventListener('click', () => { $r('rx-bpm').value = Math.round($r('rx-bpm').value * 2 * 10) / 10; $r('rx-bpm').dispatchEvent(new Event('change')); });
+  $r('rx-shift').addEventListener('change', () => { R.shift = +$r('rx-shift').value; reprep(); });
+  $r('rx-int').addEventListener('input', () => { $r('rx-iv').textContent = $r('rx-int').value; }); $r('rx-vol').addEventListener('input', () => { $r('rx-vv').textContent = $r('rx-vol').value; });
+  $r('rx-mix').addEventListener('click', () => { R.seed = 1 + Math.floor(Math.random() * 99999); R.nextBar = R.live && st.playing ? Math.ceil((ctx.currentTime - songT0) / (240 / st.bpm)) + 1 : 0; if (R.solo) R.solo.t0 = ctx.currentTime + 0.1, R.solo.next = 0; msg('🔀 Neue Mischung (Nr. ' + R.seed + ').'); });
+  $r('rx-solo').addEventListener('click', () => { if (!ready()) return; stopAll(); const b = ensureBus(); b.connect(ctx.destination); R.solo = { bus: b, t0: ctx.currentTime + 0.15, next: 0 }; msg('🎧 Nur Remix läuft im Tempo der Datei (' + R.bpm + ' BPM). „Neu mischen“ ändert die Reihenfolge.'); });
+  $r('rx-song').addEventListener('click', () => {
+    if (!ready()) return; stopAll(); const bp = Math.max(70, Math.min(175, R.bpm)); st.bpm = bp; $('#bpm-slider').value = bp; $('#bpm-val').textContent = Math.round(bp); try { updateStatus(); } catch (e) {}
+    const b = ensureBus(); try { b.connect(chain.lead); } catch (e) { b.connect(ctx.destination); } R.live = true; R.lastT0 = -1; if (st.playing) { stop(); setTimeout(() => document.getElementById('btn-play').click(), 120); } else document.getElementById('btn-play').click();
+    msg('▶ Der Song läuft jetzt im Tempo der Datei (' + Math.round(bp) + ' BPM) und der Remix spielt mit. Er ist in der Begleitung hörbar, aber nicht in der Song-WAV: Dafür gibt es „Remix als WAV“.');
+  });
+  $r('rx-stop').addEventListener('click', () => { stopAll(); msg('Remix ist aus.'); });
+  $r('rx-wav').addEventListener('click', async () => {
+    if (!ready()) return; msg('Remix wird berechnet …'); try {
+      const bars = 16, Tb = 240 / R.bpm, OA = window.OfflineAudioContext || window.webkitOfflineAudioContext, oc = new OA(2, Math.ceil(44100 * (bars * Tb + 0.6)), 44100), out = oc.createGain(); out.connect(oc.destination);
+      for (let b = 0; b < bars; b++) playBar(oc, out, 0.05 + b * Tb, b, R.bpm, 1, +$r('rx-int').value / 100);
+      const rb = await oc.startRendering(); let pk = 0; for (let c = 0; c < rb.numberOfChannels; c++) { const d = rb.getChannelData(c); for (let i = 0; i < d.length; i += 3) pk = Math.max(pk, Math.abs(d[i])); } if (pk > 0.9) { const k = 0.9 / pk; for (let c = 0; c < rb.numberOfChannels; c++) { const d = rb.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= k; } }
+      const blob = encodeWav(rb, wavMeta(false, false)), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'musify-remix.wav'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000); msg('✔ Remix als WAV gespeichert (16 Takte). Siehe Downloads.');
+    } catch (e) { msg('Das Speichern hat nicht geklappt: ' + (e && e.message ? e.message : e)); }
+  });
+  window.__remix = { R, analyze, planBar, prep };
+})();
 /* ---------- v95: Kompakt-Umbau (alle Funktionen bleiben) ---------- */
 (function compact() {
   const css = document.createElement('style');
@@ -3814,7 +3942,7 @@ function setWorld(id, quiet, off) {
     if (afterLast) { const all = [...document.querySelectorAll('.card[data-tab="' + tab + '"]')].filter(x => x !== c), last = all[all.length - 1]; if (last) last.after(c); }
   }
   ['c-mood', 'c-evo', 'c-world', 'c-jam', 'c-bbox'].forEach(id => foldify(id, 'play', true));
-  foldify('c-sing', 'voice', true); foldify('c-talk', 'voice', true); { const a = document.getElementById('c-talk'), b = document.getElementById('c-sing'); if (a && b) b.before(a); } foldify('c-cover', 'save', true);
+  foldify('c-sing', 'voice', true); foldify('c-talk', 'voice', true); foldify('c-remix', 'play', true); { const a = document.getElementById('c-talk'), b = document.getElementById('c-sing'); if (a && b) b.before(a); } foldify('c-cover', 'save', true);
   foldify('c-favs', 'play', true); foldify('c-ki', 'play', true); foldify('c-sliders', 'song', true);
   
   const onScroll = () => { mini.style.display = window.scrollY > 110 ? 'block' : 'none'; }; window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
