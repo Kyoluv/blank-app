@@ -235,7 +235,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 134</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 135</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3149,11 +3149,12 @@ const SING = (function () {
       });
       nw++;
     }
+    try { let bp = 0; for (let i = 0; i < out.length; i += 2) bp = Math.max(bp, Math.abs(out[i])); const sorted = ev.slice().sort((a, b) => a.t - b.t); for (let k = 0; k + 1 < sorted.length; k++) { const gap = sorted[k + 1].t - (sorted[k].t + sorted[k].d); if (gap > 0.32 && !rap) { const bl = Math.min(0.22, gap * 0.6), st0 = Math.floor((sorted[k + 1].t - bl - 0.04) * SR), n = Math.floor(bl * SR); let pv2 = 0, lp2 = 0; for (let i = 0; i < n; i++) { const j = st0 + i; if (j < 0 || j >= out.length) continue; const w = Math.random() * 2 - 1; lp2 += 0.35 * (w - lp2); const e = Math.sin(Math.PI * i / n); out[j] += (lp2 - pv2 * 0.3) * e * e * bp * 0.07; pv2 = lp2; } } } } catch (e) {}
     if (voice !== 'robot') { let env = 0, pv = 0; const ka = Math.exp(-1 / (SR * 0.02)); for (let i = 0; i < out.length; i++) { const a = Math.abs(out[i]); env = a > env ? a : env * ka; const n = Math.random() * 2 - 1, hpn = n - pv; pv = n; out[i] += hpn * env * 0.035; } }
     // Pegel + Klangformung (Wärme, Präsenz, Kompressor, Hall)
     let pk = 0; for (let i = 0; i < out.length; i += 2) pk = Math.max(pk, Math.abs(out[i])); if (pk > 0) { const kk = 0.8 / pk; for (let i = 0; i < out.length; i++) out[i] *= kk; }
     const OA = OAC_(), oc = new OA(1, Math.ceil((tEnd + 1) * 44100), 44100), buf = oc.createBuffer(1, out.length, SR); buf.copyToChannel(out, 0);
-    const src = oc.createBufferSource(); src.buffer = buf; const vocN = timbre && timbre !== 'normal' ? buildVoc(oc, buf, ev, timbre) : null; const dub = []; [[0, 0.017, 0.0], [0, 0.031, 0.0]].forEach(([dc, dl, dg]) => { const s2 = oc.createBufferSource(); s2.buffer = buf; s2.detune.value = dc; const dd = oc.createDelay(0.1); dd.delayTime.value = dl; const g2 = oc.createGain(); g2.gain.value = dg; s2.connect(dd); dd.connect(g2); dub.push([s2, g2]); }); const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
+    const src = oc.createBufferSource(); src.buffer = buf; const vocN = timbre && timbre !== 'normal' ? buildVoc(oc, buf, ev, timbre) : null; const dub = []; [[0, 0.019, 0.26, 0.41, 0.0021], [0, 0.029, 0.2, 0.57, 0.0026]].forEach(([dc, dl, dg, lf, la]) => { const s2 = oc.createBufferSource(); s2.buffer = buf; s2.detune.value = dc; const dd = oc.createDelay(0.1); dd.delayTime.value = dl; const lo = oc.createOscillator(), lg = oc.createGain(); lo.frequency.value = lf; lg.gain.value = la; lo.connect(lg); lg.connect(dd.delayTime); lo.start(0); const g2 = oc.createGain(); g2.gain.value = dg; s2.connect(dd); dd.connect(g2); dub.push([s2, g2]); }); { const vl = oc.createOscillator(), vg = oc.createGain(); vl.frequency.value = 5.4; vg.gain.value = 16; vl.connect(vg); vg.connect(src.detune); vl.start(0); } const hp = oc.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
     const pres = oc.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3000; pres.gain.value = 2; pres.Q.value = 0.8; const air = oc.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 5000; air.gain.value = 0.5; const warm = oc.createBiquadFilter(); warm.type = 'lowshelf'; warm.frequency.value = 250; warm.gain.value = 1; const sf = oc.createBiquadFilter(); sf.type = 'peaking'; sf.frequency.value = 2700; sf.Q.value = 1.2; sf.gain.value = 1;
     const cmp = oc.createDynamicsCompressor(); cmp.threshold.value = -24; cmp.ratio.value = 3; cmp.attack.value = 0.004; cmp.release.value = 0.12;
     const fin = oc.createGain(), cv = oc.createConvolver(), irl = Math.floor(44100 * 0.4), ir = oc.createBuffer(1, irl, 44100), ird = ir.getChannelData(0); for (let i = 0; i < irl; i++) ird[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irl, 2.6); cv.buffer = ir;
@@ -4466,6 +4467,9 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   const box = document.getElementById('c-five'); if (!box) return;
   const btn = [...box.querySelectorAll('[data-step]')], msg = box.querySelector('#five-msg'); let step = 0, busy = false;
   const say = t => { msg.textContent = t; };
+  const lock = [false, false, false, false, false]; const lrow = document.createElement('div'); lrow.className = 'five-row'; lrow.style.marginTop = '4px';
+  [0, 1, 2, 3, 4].forEach(i => { const l = document.createElement('button'); l.className = 'five-lock'; l.textContent = i === 4 ? '' : '🔓'; l.disabled = i === 4; l.style.cssText = 'min-height:30px;padding:2px;font-size:.8rem;opacity:' + (i === 4 ? 0 : 0.8); l.addEventListener('click', () => { lock[i] = !lock[i]; l.textContent = lock[i] ? '🔒' : '🔓'; say(lock[i] ? 'Schritt ' + (i + 1) + ' ist gesperrt und bleibt beim Würfeln erhalten.' : 'Schritt ' + (i + 1) + ' ist wieder frei.'); }); lrow.appendChild(l); });
+  box.querySelector('.five-row').after(lrow);
   const dn = new Set(); const paint = () => { const nx = [0, 1, 2, 3, 4].find(i => !dn.has(i)); btn.forEach((b, i) => { b.disabled = busy; b.classList.toggle('done', dn.has(i)); b.classList.toggle('next', i === nx && !busy); }); };
   const pickK = a => a[Math.floor(Math.random() * a.length)];
   const ACT = [
@@ -4485,8 +4489,10 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     async () => { st.form = 'stream'; $('#song-form').value = 'stream'; setForm('stream'); setMix('vox', 1); if (st.playing) stop(); document.getElementById('btn-song').click(); say('5/5 Dein neuer Song läuft! Drück ■ zum Stoppen oder starte wieder bei Schritt 1.'); }
   ];
   btn.forEach((b, i) => b.addEventListener('click', async () => {
-    if (busy) return; busy = true; paint();
-    try { await ACT[i](); dn.add(i); if (i === 0) { dn.delete(3); } if (i === 4 && dn.size === 5) { /* alles fertig, weiter würfeln erlaubt */ } } catch (e) { say('Das hat nicht geklappt: ' + e.message); }
+    if (busy) return; if (lock[i]) { say('Schritt ' + (i + 1) + ' ist gesperrt. Tipp aufs Schloss darunter, dann ist er wieder frei.'); return; }
+    busy = true; paint();
+    const keep = { sc: st.scaleIdx, seed: st.seed, beat: st.beat, style: st.style, bpm: st.bpm };
+    try { await ACT[i](); if (i === 0 && (lock[1])) { st.scaleIdx = keep.sc; st.scaleLock = true; st.seed = keep.seed; regen(); } if (i < 3 && lock[2] && keep.beat) { st.beat = keep.beat; renderBeat(); } if (i >= 1 && i <= 2 && lock[0]) { /* Stil bleibt */ } if (i < 3 && lock[3] && st.voiceRaw === null) {} try { const sl = document.getElementById('dens'); if (sl) { sl.value = 50; sl.__base = null; } } catch (e) {} dn.add(i); if (i === 0) { dn.delete(3); } if (i === 4 && dn.size === 5) { /* alles fertig, weiter würfeln erlaubt */ } } catch (e) { say('Das hat nicht geklappt: ' + e.message); }
     busy = false; paint();
   }));
   paint();
@@ -4501,8 +4507,6 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     try { document.querySelectorAll('.vox-stop').forEach(b => { const o = b.textContent; b.textContent = '✔ Gesang gestoppt'; setTimeout(() => { b.textContent = o; }, 1200); }); } catch (e) {}
   };
   const tb = document.getElementById('topbar'); if (tb) { const b = mk(); b.style.cssText = 'width:100%;margin:6px 0 0;padding:10px;font-size:.95rem;'; b.addEventListener('click', act); tb.after(b); }
-  const five = document.getElementById('c-five'); if (five) { const b = mk(); b.addEventListener('click', act); five.appendChild(b); }
-  const so = document.getElementById('sing-solo'); if (so && so.parentNode) { const b = mk(); b.style.marginTop = '0'; b.addEventListener('click', act); so.parentNode.after(b); }
 })();
 
 /* ---------- v134: Klang-Check (Misstöne sichtbar machen) ---------- */
@@ -4560,6 +4564,21 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
     btn.disabled = false;
   }
   document.getElementById("kc-go").addEventListener("click", run); window.__klangRun = run; window.__kcAn = analyze;
+})();
+
+/* ---------- v135: Regler Wenig / Viel los ---------- */
+(function density() {
+  const box = document.getElementById('c-five'); if (!box) return;
+  const w = document.createElement('div'); w.style.cssText = 'margin-top:10px';
+  w.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:.85rem;opacity:.85"><span>🌙 Wenig los</span><span>🎆 Viel los</span></div><input id="dens" type="range" min="0" max="100" value="50" style="width:100%">';
+  box.appendChild(w);
+  const K = ['hat', 'open', 'cl', 'tom', 'lead', 'gtr', 'horn', 'tuba', 'bone', 'vary'], sl = document.getElementById('dens');
+  sl.addEventListener('input', () => {
+    if (!sl.__base) sl.__base = { ...st.mix, __v: sl.value };
+    const f = 0.2 + sl.value / 100 * 1.6, B = sl.__base; sl.__base.__v = sl.value;
+    K.forEach(k => { if (k in B) setMix(k, Math.max(0, Math.min(1, B[k] * (k === 'vary' ? 0.4 + f * 0.6 : f)))); });
+    setMix('pad', Math.max(0, Math.min(0.6, B.pad * (2 - f * 0.8))));
+  });
 })();
 
 </script>
