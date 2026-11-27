@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 110</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 111</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -3238,6 +3238,7 @@ const SING = (function () {
   $('#sing-go').addEventListener('click', async () => {
     const txt = $('#sing-txt').value.trim(), msg = t => { $('#sing-msg').textContent = t; };
     if (!txt) { msg('Schreibe zuerst einen Text.'); return; }
+    try { soloCtx = soloCtx || new (window.AudioContext || window.webkitAudioContext)(); soloCtx.resume(); } catch (e) {}
     SING.useKokoro = $('#sing-eng').value === 'kokoro'; SING.fell = false; SING.progress = t => msg('🎤 ' + t); msg($('#sing-eng').value === 'kokoro' ? '🎤 Kokoro-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 90 MB (nur Englisch, danach geht es schnell). Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'ai' ? '🎤 KI-Stimme wird vorbereitet. Beim ersten Mal lädt sie ca. 60 MB. Bitte warten und die App offen lassen.' : $('#sing-eng').value === 'tts' ? '🎤 Ich lade die Sprache (beim ersten Mal ca. 5 MB) und übe den Text … das kann eine halbe Minute dauern.' : '🎤 Ich übe den Text …'); $('#sing-go').disabled = true; await new Promise(r => setTimeout(r, 30));
     try {
       let notes = st.melody.filter(d => d !== REST); if (notes.length < 4) notes = smartMelody(MAX_NOTES, 0, -3, 10).filter(d => d !== REST);
@@ -3246,7 +3247,7 @@ const SING = (function () {
       if (st.playing) stop(); st.voiceRaw = { data: r.data, sr: r.sr }; st.voiceOff = r.off || 0; await renderVoice(); refreshVoiceUI();
       const l = lang === 'auto' ? SING.detect(txt) : lang;
       msg(`✔ Fertig: ${r.syl} Silben auf ${SCALES[st.scaleIdx].name}, ${Math.round(st.bpm)} BPM, Sprache: ${l === 'de' ? 'Deutsch' : 'Englisch'}.${fit ? ' Der Text ist über den ganzen Song verteilt' + (fit.reps > 1 ? ' und wird ' + fit.reps + '-mal gesungen.' : '.') : ''} Der Gesang ist jetzt deine Stimmaufnahme. Unter „Stimme“ kannst du Effekte und Auto-Tune dazugeben. ${SING.fell && $('#sing-eng').value === 'ai' ? ' ⚠️ Die KI-Stimme war nicht erreichbar (Internet oder Seite?). Ich habe die einfache Sprachsynthese genommen.' : ''} Du hörst ihn jetzt solo. Mit „🎵 Mit Song anhören“ hörst du ihn zur Musik. Er spielt auch bei „Ganzen Song spielen“ mit.`);
-      soloStop(); soloPlay();
+      soloStop(); if (soloCtx && soloCtx.state === 'running') soloPlay(); else $('#sing-msg').textContent += ' 👉 Tippe jetzt auf „▶ Nur Gesang anhören“ oder „🎵 Mit Song anhören“.';
     } catch (e) { try { console.warn('SING ' + e.stack); } catch (x) {} msg('Das hat nicht geklappt: ' + e.message); }
     $('#sing-go').disabled = false;
   });
