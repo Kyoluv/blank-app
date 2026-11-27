@@ -860,12 +860,12 @@ function exportJson() { saveFile(APP.id + '.json', new Blob([JSON.stringify({ ap
 
 
 /* ===== SCHWARM – Ein Schwarm spielt die Steine ===== */
-const SW = { n: 24, b: [], stones: [], tx: 0.5, ty: 0.4, hold: false };
+const SW = { n: 24, b: [], stones: [], tx: 0.5, ty: 0.4, hold: false, auto: true, wt: 0 };
 const swDeg = y => clamp(Math.round(13 * (1 - y / playH())), 0, 13);
 function swAdd(x, y, inst) { if (SW.stones.length >= 40) SW.stones.shift(); SW.stones.push({ x, y, r: 26, inst, deg: swDeg(y), fl: 0, cd: 0 }); }
 function swNear(x, y) { return SW.stones.find(s => Math.hypot(s.x - x, s.y - y) < s.r + 10); }
 const SCHWARM = {
-  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.3', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
+  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.4', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
   claim: 'Ein Schwarm folgt dir. Wo er Steine berührt, klingt es.',
   tip: 'Kurz tippen = Stein setzen (Klang unten wählen) · Ziehen = Schwarm führen',
   tools: [
@@ -873,9 +873,9 @@ const SCHWARM = {
     { id: 'stone', e: '🪨', n: 'Stein', h: 40, hint: 'Stein – tippe, er spielt den gewählten Klang' },
     { id: 'erase', e: '🧽', n: 'Radierer', h: 200, hint: 'Radierer – tippe einen Stein an' }
   ],
-  acts: [{ id: 'count', e: '🐝', n: 'Anzahl' }, { id: 'scatter', e: '💫', n: 'Streuen' }],
-  label(id) { return id === 'count' ? SW.n + ' Vögel' : null; },
-  act(a) { if (a === 'count') { SW.n = SW.n === 12 ? 24 : SW.n === 24 ? 48 : 12; toast(SW.n + ' Vögel'); } else if (a === 'scatter') { SW.b.forEach(b => { b.vx = rnd(-250, 250); b.vy = rnd(-250, 250); }); } },
+  acts: [{ id: 'count', e: '🐝', n: 'Anzahl' }, { id: 'scatter', e: '💫', n: 'Streuen' }, { id: 'auto', e: '🧭', n: 'Auto-Flug' }, { id: 'zs', e: '🎲', n: 'Zufalls-Stein' }],
+  label(id) { return id === 'count' ? SW.n + ' Vögel' : id === 'auto' ? 'Auto-Flug ' + (SW.auto ? 'an' : 'aus') : null; },
+  act(a) { if (a === 'auto') { SW.auto = !SW.auto; toast('Auto-Flug ' + (SW.auto ? 'an – der Schwarm fliegt selbst' : 'aus')); } else if (a === 'zs') { const w = WORLDS[S.world], ph = playH(), pool = [...w.leads, ...w.leads, 'hat', 'snare', 'tabla', 'dhol', 'bell']; const n = 1 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) { const I = pick(pool.filter(k => IM[k])); swAdd(rnd(0.08, 0.92) * W, rnd(0.1, 0.9) * ph, I); } toast('Zufall: ' + n + ' neue Steine'); } else if (a === 'count') { SW.n = SW.n === 12 ? 24 : SW.n === 24 ? 48 : 12; toast(SW.n + ' Vögel'); } else if (a === 'scatter') { SW.b.forEach(b => { b.vx = rnd(-250, 250); b.vy = rnd(-250, 250); }); } },
   down(x, y) { if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); SW.hold = true; SW.d0 = [x, y, performance.now()]; SW.mv = 0; } else if (S.tool === 'stone') { const s = swNear(x, y); if (!s) swAdd(x, y, S.inst); else SW.stones.splice(SW.stones.indexOf(s), 1); } else { const s = swNear(x, y); if (s) SW.stones.splice(SW.stones.indexOf(s), 1); } },
   move(x, y) { if (SW.d0) SW.mv = Math.max(SW.mv, Math.hypot(x - SW.d0[0], y - SW.d0[1])); if (S.tool === 'leader') { SW.tx = x / W; SW.ty = y / playH(); } },
   up(x, y) { SW.hold = false; const d = SW.d0; SW.d0 = null; if (d && S.tool === 'leader' && SW.mv < 14 && performance.now() - d[2] < 350 && !swNear(d[0], d[1])) { swAdd(d[0], d[1], S.inst); toast('Stein gesetzt – Klang: ' + (IM[S.inst] ? IM[S.inst].n : '')); } },
@@ -883,6 +883,7 @@ const SCHWARM = {
     const ph = playH(), tx = SW.tx * W, ty = SW.ty * ph, B = SW.b;
     while (B.length < SW.n) B.push({ x: tx + rnd(-40, 40), y: ty + rnd(-40, 40), vx: rnd(-60, 60), vy: rnd(-60, 60) }); B.length = SW.n;
     let cx = 0, cy = 0, avx = 0, avy = 0; B.forEach(b => { cx += b.x; cy += b.y; avx += b.vx; avy += b.vy; }); cx /= B.length; cy /= B.length; avx /= B.length; avy /= B.length;
+    if (SW.auto && !SW.hold) { SW.wt -= dt; if (SW.wt <= 0) { SW.wt = rnd(1.5, 3.5); const st = SW.stones.length && Math.random() < 0.6 ? pick(SW.stones) : null; SW.tx = st ? clamp(st.x / W + rnd(-0.08, 0.08), 0.05, 0.95) : rnd(0.1, 0.9); SW.ty = st ? clamp(st.y / ph + rnd(-0.08, 0.08), 0.05, 0.95) : rnd(0.1, 0.9); } }
     SW.stones.forEach(s => { s.cd -= dt; s.fl *= 0.9; });
     B.forEach(b => {
       let ax = (tx - b.x) * 1.1 + (cx - b.x) * 0.35 + (avx - b.vx) * 0.5 + rnd(-60, 60), ay = (ty - b.y) * 1.1 + (cy - b.y) * 0.35 + (avy - b.vy) * 0.5 + rnd(-60, 60);
@@ -897,8 +898,8 @@ const SCHWARM = {
     SW.stones.forEach(s => { const I = IM[s.inst]; const gg = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 1.4); gg.addColorStop(0, hsl(I.h, 60, 60 + 25 * s.fl)); gg.addColorStop(0.7, hsl(I.h, 70, 35 + 20 * s.fl)); gg.addColorStop(1, hsl(I.h, 70, 30, 0)); g.fillStyle = gg; g.beginPath(); g.arc(s.x, s.y, s.r * 1.4, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = '16px system-ui'; g.textAlign = 'center'; g.fillText(I.e, s.x, s.y + 6); });
     SW.b.forEach(b => { const a = Math.atan2(b.vy, b.vx); g.fillStyle = hsl(160, 85, 68, 0.9); g.beginPath(); g.moveTo(b.x + Math.cos(a) * 7, b.y + Math.sin(a) * 7); g.lineTo(b.x + Math.cos(a + 2.5) * 5, b.y + Math.sin(a + 2.5) * 5); g.lineTo(b.x + Math.cos(a - 2.5) * 5, b.y + Math.sin(a - 2.5) * 5); g.closePath(); g.fill(); });
   },
-  getState() { return { n: SW.n, s: SW.stones.map(s => [r3(s.x / W), r3(s.y / playH()), s.inst]) }; },
-  setState(d) { SW.n = d.n || 24; SW.stones = (d.s || []).filter(a => IM[a[2]]).map(a => ({ x: a[0] * W, y: a[1] * playH(), r: 26, inst: a[2], deg: swDeg(a[1] * playH()), fl: 0, cd: 0 })); },
+  getState() { return { au: SW.auto ? 1 : 0, n: SW.n, s: SW.stones.map(s => [r3(s.x / W), r3(s.y / playH()), s.inst]) }; },
+  setState(d) { SW.n = d.n || 24; SW.auto = d.au == null ? true : !!d.au; SW.stones = (d.s || []).filter(a => IM[a[2]]).map(a => ({ x: a[0] * W, y: a[1] * playH(), r: 26, inst: a[2], deg: swDeg(a[1] * playH()), fl: 0, cd: 0 })); },
   clear() { SW.stones = []; },
   dice() { SW.stones = []; const w = WORLDS[S.world], ph = playH(), I = [...w.leads, ...w.leads, w.bass === 'tuba' ? 'tuba' : 'bass', pick(['tabla', 'dhol']), 'hat', 'snare']; I.forEach((inst, i) => swAdd(rnd(0.1, 0.9) * W, rnd(0.12, 0.88) * ph, inst)); SW.n = 24; },
   morph(lv) {
