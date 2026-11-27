@@ -400,7 +400,7 @@ function undo() {
 async function hardReload() { toast('Lädt neu …'); try { if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.unregister(); } if (window.caches) { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } } catch (e) {} location.reload(); }
 
 /* ===== MUSIFY COSMOS 6 – Musik zeichnen auf einer einzigen Fläche ===== */
-const VERSION = 'Cosmos 8.1';
+const VERSION = 'Cosmos 8.2';
 const APP_CSS = 'html,body{margin:0;height:100%;background:#080a12;overflow:hidden}canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}';
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B', 'H'];
 const WORLDS = [
@@ -453,7 +453,7 @@ const ITEMS = [
   { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Kosmos' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'grav', e: '🌐', n: 'Schwere' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
   { tab: 3, kind: 'scene', id: '0', e: 'A', n: 'Szene A' }, { tab: 3, kind: 'scene', id: '1', e: 'B', n: 'Szene B' }, { tab: 3, kind: 'scene', id: '2', e: 'C', n: 'Szene C' }, { tab: 3, kind: 'scene', id: '3', e: 'D', n: 'Szene D' },
   { tab: 3, kind: 'act', id: 'sover', e: '✏️', n: 'Überschr.' }, { tab: 3, kind: 'act', id: 'sauto', e: '⏩', n: 'Auto' },
-  { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
+  { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
 ];
 const S = {
   world: 0, bpm: 130, tool: 'oud', pulse: true, playing: true, grav: 0, spin: false, tab: 0, strings: [], portals: [], fields: [], mags: [], balls: [], ripples: [], toasts: [], scenes: [null, null, null, null],
@@ -788,7 +788,7 @@ function act(a) {
   else if (a === 'sover') { S.sover = !S.sover; toast(S.sover ? 'Tippe eine Szene zum Überschreiben' : 'Überschreiben aus'); return; }
   else if (a === 'sauto') { S.sauto = !S.sauto; toast(S.sauto ? 'Szenen-Auto: wechselt alle 8 Takte' : 'Szenen-Auto aus'); return; }
   else if (a === 'rec') record(0);
-  else if (a === 'song') record(60);
+  else if (a === 'song') record(180);
   else if (a === 'page') songPage();
   else if (a === 'json') exportJson();
   else if (a === 'link') shareLink();
@@ -915,7 +915,7 @@ function draw(dt) {
   g.textAlign = 'left'; g.fillStyle = hsl(w.hue, 90, 75); g.font = '800 15px system-ui'; g.fillText('MUSIFY COSMOS', 12, 46);
   g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM`, 12, 64);
   g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(VERSION, W - 12, 44); g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', W - 12, 64); S.bpmBox = { x: W - 82, y: 50, w: 82, h: 20 };
-  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / 1:00' : ''), W - 98, 44); }
+  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / ' + Math.floor(S.rec.max / 60) + ':' + String(S.rec.max % 60).padStart(2, '0') : ''), W - 98, 44); }
   if (S.micOn) { g.fillStyle = '#ff2a55'; g.font = '800 18px system-ui'; g.textAlign = 'center'; g.fillText('🎙 JETZT SINGEN …', W / 2, ph / 2); }
   // Dock
   const dh = dockH(), top = H - dh; g.fillStyle = 'rgba(14,18,30,0.94)'; g.fillRect(0, top, W, dh); g.strokeStyle = '#232a3d'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, top); g.lineTo(W, top); g.stroke();

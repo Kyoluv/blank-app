@@ -614,7 +614,7 @@ function buildItems() {
     ...(APP.acts || []).map(a => ({ tab: 1, kind: 'act', id: a.id, e: a.e, n: a.n })),
     { tab: 1, kind: 'act', id: 'mic', e: '🎙', n: 'Stimme neu' },
     { tab: 2, kind: 'act', id: 'pulse', e: '💗', n: 'Puls' }, { tab: 2, kind: 'act', id: 'play', e: '⏯', n: 'Pause' }, { tab: 2, kind: 'act', id: 'dice', e: '🎲', n: 'Würfeln' }, { tab: 2, kind: 'act', id: 'morph', e: '🧬', n: 'Morph' }, { tab: 2, kind: 'act', id: 'gm', e: '🥁', n: 'Grund-Morph' }, { tab: 2, kind: 'act', id: 'undo', e: '↩️', n: 'Zurück' }, { tab: 2, kind: 'act', id: 'reload', e: '🔄', n: 'Neu laden' }, { tab: 2, kind: 'act', id: 'clear', e: '🗑', n: 'Leeren' },
-    { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 60s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
+    { tab: 4, kind: 'act', id: 'rec', e: '🔴', n: 'Aufnahme' }, { tab: 4, kind: 'act', id: 'song', e: '💾', n: 'Song 180s' }, { tab: 4, kind: 'act', id: 'page', e: '📄', n: 'Song-Seite' }, { tab: 4, kind: 'act', id: 'json', e: '🧾', n: 'Datei' }, { tab: 4, kind: 'act', id: 'link', e: '🔗', n: 'Link' }
   ];
 }
 function layoutDock() {
@@ -643,7 +643,7 @@ function act(a) {
   else if (a === 'gm') gmCycle();
   else if (a === 'mic') recordMic();
   else if (a === 'rec') record(0);
-  else if (a === 'song') record(60);
+  else if (a === 'song') record(180);
   else if (a === 'page') songPage();
   else if (a === 'json') exportJson();
   else if (a === 'link') shareLink();
@@ -686,7 +686,7 @@ function draw(dt) {
   g.textAlign = 'left'; g.fillStyle = hsl(APP.hue, 90, 75); g.font = '800 15px system-ui'; g.fillText(APP.name.toUpperCase(), 12, 46);
   g.fillStyle = '#cfd6e6'; g.font = '600 12px system-ui'; g.fillText(`${sc().name} · ${Math.round(S.bpm)} BPM` + (S.morph ? ' · 🧬 ' + S.morph + '/8' : ''), 12, 64);
   g.textAlign = 'right'; g.fillStyle = '#8b95a8'; g.fillText(APP.version, W - 12, 44); g.font = '800 13px system-ui'; g.fillStyle = '#cfd6e6'; g.fillText('− BPM +', W - 12, 64); S.bpmBox = { x: W - 82, y: 50, w: 82, h: 20 };
-  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / 1:00' : ''), W - 98, 44); }
+  if (S.rec) { const sec = Math.floor((now - S.rec.t0) / 1000); g.fillStyle = '#ff2a55'; g.beginPath(); g.arc(W - 90, 40, 5, 0, 7); g.fill(); g.font = '700 12px system-ui'; g.textAlign = 'right'; g.fillText(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.rec.max ? ' / ' + Math.floor(S.rec.max / 60) + ':' + String(S.rec.max % 60).padStart(2, '0') : ''), W - 98, 44); }
   if (S.micOn) { g.fillStyle = '#ff2a55'; g.font = '800 18px system-ui'; g.textAlign = 'center'; g.fillText('🎙 JETZT SINGEN …', W / 2, ph / 2); }
   // Tipp oben im Musikfeld (immer sichtbar)
   if (S.started && APP.tip) { g.textAlign = 'center'; g.font = '600 12px system-ui'; const tw = Math.min(W - 16, g.measureText(APP.tip).width + 22); g.fillStyle = 'rgba(0,0,0,0.35)'; rr(W / 2 - tw / 2, 4, tw, 22, 11); g.fill(); g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillText(APP.tip, W / 2, 19, W - 30); }
@@ -793,7 +793,7 @@ function pAdd(f, inst) {
 }
 function pNear(x, y, ph, d) { let b = null, bd = d; PEN.pl.forEach(p => { const q = pXY(p, ph), dd = Math.hypot(q.x - x, q.y - y); if (dd < bd) { bd = dd; b = p; } }); return b; }
 const PENDEL = {
-  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 2.1', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
+  id: 'pendel', name: 'Musify Pendel', version: 'Pendel 2.2', hue: 28, world: 2, inst: 'sitar', defaultTool: 'add',
   claim: 'Pendel in verschiedenen Längen – sie laufen auseinander und finden wieder zusammen.',
   tip: 'Tippen = Pendel (links langsam, rechts schnell) · Pendel nach oben/unten ziehen = Länge',
   tools: [
