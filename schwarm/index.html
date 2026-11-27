@@ -428,7 +428,7 @@ const INST = [
 const IM = {}; INST.forEach(i => IM[i.id] = i);
 
 /* ===== MIXER (Lautstärke je Klang, Gruppen, Hall, Tonart) + Rückgängig ===== */
-const MIX = { m: 0.75, g: 0.75, l: 0.75, j: 0.75, r: 0.5, t: 0.5, iv: {}, last: 'oud' };
+const MIX = { m: 0.75, g: 0.75, l: 0.75, j: 0.75, r: 0.5, t: 0.5, h: 0.6, iv: {}, last: 'oud' };
 const mixTab = () => TABS.indexOf('Mixer');
 function selInst() { if (typeof S.inst === 'string' && IM[S.inst]) return S.inst; if (IM[S.tool]) MIX.last = S.tool; return MIX.last; }
 const mixVal = k => k === 'iv' ? (MIX.iv[selInst()] != null ? MIX.iv[selInst()] : 0.5) : MIX[k];
@@ -440,14 +440,14 @@ function ig(inst) {
   return S.ign[inst.id];
 }
 function applyMix() {
-  S.trans = Math.round((MIX.t - 0.5) * 12); if (!bus) return; const t = ctx.currentTime, f = v => v / 0.75;
+  S.trans = Math.round((MIX.t - 0.5) * 12); if (!bus) return; const t = ctx.currentTime; if (bus.hs) bus.hs.gain.setTargetAtTime((MIX.h - 1) * 20, t, 0.03); const f = v => v / 0.75;
   bus.master.gain.setTargetAtTime(0.9 * f(MIX.m), t, 0.02); bus.T.d.gain.setTargetAtTime(S.solo ? 0 : f(MIX.g), t, 0.02); bus.T.b.gain.setTargetAtTime(S.solo ? 0 : f(MIX.g), t, 0.02); bus.T.l.gain.setTargetAtTime(f(MIX.l), t, 0.02); bus.T.j.gain.setTargetAtTime(f(MIX.j), t, 0.02);
   bus.rvg.gain.setTargetAtTime(0.32 * MIX.r / 0.5, t, 0.02); if (S.ign) for (const id in S.ign) S.ign[id].gain.setTargetAtTime(ivGain(id), t, 0.02);
 }
-function mixOut() { const iv = {}; for (const k in MIX.iv) if (Math.abs(MIX.iv[k] - 0.5) > 0.01) iv[k] = Math.round(MIX.iv[k] * 100) / 100; return { m: MIX.m, g: MIX.g, l: MIX.l, j: MIX.j, r: MIX.r, t: MIX.t, iv }; }
-function mixIn(d) { if (!d) return; ['m', 'g', 'l', 'j', 'r', 't'].forEach(k => { if (typeof d[k] === 'number') MIX[k] = d[k]; }); MIX.iv = d.iv || {}; applyMix(); }
+function mixOut() { const iv = {}; for (const k in MIX.iv) if (Math.abs(MIX.iv[k] - 0.5) > 0.01) iv[k] = Math.round(MIX.iv[k] * 100) / 100; return { m: MIX.m, g: MIX.g, l: MIX.l, j: MIX.j, r: MIX.r, t: MIX.t, h: MIX.h, iv }; }
+function mixIn(d) { if (!d) return; ['m', 'g', 'l', 'j', 'r', 't', 'h'].forEach(k => { if (typeof d[k] === 'number') MIX[k] = d[k]; }); MIX.iv = d.iv || {}; applyMix(); }
 function mixSliders(top) {
-  const y0 = top + styH + TABH + 6, col = (W - 24) / 2, rows = 4, h = Math.min(36, (dockH() - styH - TABH - 8) / rows), L = [['m', 'Gesamt'], ['g', 'Groove'], ['l', 'Melodie'], ['j', 'Jam-Pad'], ['r', 'Hall'], ['iv', 'Klang: ' + (IM[selInst()] ? IM[selInst()].n : '')], ['t', 'Tonart']];
+  const y0 = top + styH + TABH + 6, col = (W - 24) / 2, rows = 4, h = Math.min(36, (dockH() - styH - TABH - 8) / rows), L = [['m', 'Gesamt'], ['g', 'Groove'], ['l', 'Melodie'], ['j', 'Jam-Pad'], ['r', 'Hall'], ['iv', 'Klang: ' + (IM[selInst()] ? IM[selInst()].n : '')], ['t', 'Tonart'], ['h', 'Höhen']];
   return L.map(([k, n], i) => ({ k, n, x: 8 + Math.floor(i / 4) * (col + 8), y: y0 + (i % 4) * h, w: col, h: h - 2 }));
 }
 function mixDraw(top) {
@@ -519,13 +519,13 @@ function initAudio() {
   const mk = (v) => { const n = ctx.createGain(); n.gain.value = v; return n; };
   const master = mk(0.9), comp = ctx.createDynamicsCompressor(), clip = ctx.createWaveShaper(), an = ctx.createAnalyser();
   comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = 0.004; comp.release.value = 0.14; clip.curve = SAFE_CLIP; an.fftSize = 512;
-  master.connect(comp); comp.connect(clip); clip.connect(ctx.destination); clip.connect(an);
+  const hs = ctx.createBiquadFilter(); hs.type = 'highshelf'; hs.frequency.value = 2500; hs.gain.value = -8; master.connect(hs); hs.connect(comp); comp.connect(clip); clip.connect(ctx.destination); clip.connect(an);
   const rv = ctx.createConvolver(), len = ctx.sampleRate * 2.3, ib = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let c = 0; c < 2; c++) { const d = ib.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
   rv.buffer = ib; const rvg = mk(0.32); rv.connect(rvg); rvg.connect(master);
   const B = { d: mk(0.95), b: mk(0.85), l: mk(0.8), p: mk(0.5) };
   const T = { d: mk(1), b: mk(1), l: mk(1), j: mk(1) }; T.j.connect(master); B.d.connect(T.d); T.d.connect(master); B.b.connect(T.b); T.b.connect(master); B.l.connect(T.l); T.l.connect(master); B.p.connect(master); const ls = mk(0.35), ps = mk(0.45); T.l.connect(ls); T.j.connect(ls); ls.connect(rv); B.p.connect(ps); ps.connect(rv);
-  bus = { ...B, master, an, comp, clip, dest: null, T, rvg }; applyMix();
+  bus = { ...B, master, an, comp, clip, hs, dest: null, T, rvg }; applyMix();
   S.nextT = ctx.currentTime + 0.1; S.step = 0; S.bar = 0;
   setInterval(tick, 25);
 }
@@ -861,11 +861,11 @@ function exportJson() { saveFile(APP.id + '.json', new Blob([JSON.stringify({ ap
 
 /* ===== SCHWARM – Ein Schwarm spielt die Steine ===== */
 const SW = { n: 24, b: [], stones: [], tx: 0.5, ty: 0.4, hold: false, auto: true, wt: 0 };
-const swDeg = y => clamp(Math.round(13 * (1 - y / playH())), 0, 13);
+const swDeg = y => clamp(Math.round(10 * (1 - y / playH())), 0, 10);
 function swAdd(x, y, inst) { if (SW.stones.length >= 40) SW.stones.shift(); SW.stones.push({ x, y, r: 26, inst, deg: swDeg(y), fl: 0, cd: 0 }); }
 function swNear(x, y) { return SW.stones.find(s => Math.hypot(s.x - x, s.y - y) < s.r + 10); }
 const SCHWARM = {
-  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.5', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
+  id: 'schwarm', name: 'Musify Schwarm', version: 'Schwarm 1.6', hue: 160, world: 3, inst: 'bansuri', defaultTool: 'leader',
   claim: 'Ein Schwarm folgt dir. Wo er Steine berührt, klingt es.',
   tip: 'Kurz tippen = Stein setzen (Klang unten wählen) · Ziehen = Schwarm führen',
   tools: [
