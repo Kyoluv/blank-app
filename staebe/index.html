@@ -875,9 +875,9 @@ function stAddPt(x, y, inst) { if (ST.pts.length >= 24) ST.pts.shift(); ST.pts.p
 function stNearRod(x, y) { let b = null, bd = 36; ST.rods.forEach(r => { const a = stAng(r), c = Math.cos(a), sn = Math.sin(a), u = clamp((x - r.x) * c + (y - r.y) * sn, -r.back, r.len), d = Math.hypot(x - (r.x + c * u), y - (r.y + sn * u)); if (d < bd) { bd = d; b = r; } }); return b; }
 function stNearPt(x, y) { return ST.pts.find(p => Math.hypot(p.x - x, p.y - y) < 22); }
 const STAEBE = {
-  id: 'staebe', name: 'Musify Stäbe', version: 'Stäbe 1.6', hue: 270, world: 0, inst: 'oud', defaultTool: 'stab',
+  id: 'staebe', name: 'Musify Stäbe', version: 'Stäbe 1.7', hue: 270, world: 0, inst: 'oud', defaultTool: 'stab',
   claim: 'Stäbe drehen sich. Wo sie über einen Punkt streichen, klingt er.',
-  tip: 'Stab: vom Drehpunkt ziehen (kurz = schnell) · Punkt: tippen · Propeller = Stab dreht um die Mitte',
+  tip: 'Kurz tippen = Punkt mit gewähltem Klang · Ziehen = Stab · Propeller dreht um die Mitte',
   tools: [
     { id: 'stab', e: '🪃', n: 'Stab', h: 270, hint: 'Stab – zieh vom Drehpunkt nach außen, kurze Stäbe drehen schneller' },
     { id: 'prop', e: '🌀', n: 'Propeller', h: 300, hint: 'Propeller – zieh vom Mittelpunkt nach außen, der Stab dreht sich um seine Mitte' },
@@ -900,7 +900,7 @@ const STAEBE = {
   move(x, y) { ST.cur = [x, y]; if (ST.pv) { const r = ST.pv, a = stAng(r), c = Math.cos(a), sn = Math.sin(a), u = clamp((x - r.x) * c + (y - r.y) * sn, -r.back, r.len - 24); r.x += c * u; r.y += sn * u; r.len -= u; r.back += u; } if (ST.grab) stSetP(ST.grab.r, ST.grab.P0 * Math.pow(2, (y - ST.grab.y0) / 110)); if (S.tool === 'erase') { const p = stNearPt(x, y); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); } },
   up(x, y) {
     const t = S.tool, d = ST.d0; ST.grab = null; ST.pv = null; if (!d) return;
-    if (t === 'stab') { const L = Math.hypot(x - d[0], y - d[1]); if (L < 36) toast('Zu kurz – zieh vom Drehpunkt nach außen'); else stAddRod(d[0], d[1], Math.min(L, Math.min(W, playH()) * 0.7), Math.atan2(y - d[1], x - d[0]), 1); }
+    if (t === 'stab') { const L = Math.hypot(x - d[0], y - d[1]); if (L < 36) { if (L < 14) { const p = stNearPt(d[0], d[1]); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); else { stAddPt(d[0], d[1], S.inst); toast('Punkt gesetzt – Klang: ' + (IM[S.inst] ? IM[S.inst].n : '') + ' (Ziehen = Stab)'); } } else toast('Zu kurz – zieh vom Drehpunkt nach außen'); } else stAddRod(d[0], d[1], Math.min(L, Math.min(W, playH()) * 0.7), Math.atan2(y - d[1], x - d[0]), 1); }
     else if (t === 'punkt') { const p = stNearPt(d[0], d[1]); if (p) ST.pts.splice(ST.pts.indexOf(p), 1); else stAddPt(d[0], d[1], S.inst); }
     else if (t === 'prop') { const L = Math.hypot(x - d[0], y - d[1]); if (L < 36) toast('Zu kurz – zieh vom Mittelpunkt nach außen'); else { const l = Math.min(L, Math.min(W, playH()) * 0.45); stAddRod(d[0], d[1], l, Math.atan2(y - d[1], x - d[0]), 1, l); } }
     ST.d0 = null; ST.cur = null;
