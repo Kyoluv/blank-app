@@ -234,7 +234,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
   </div>
   <div class="viz" id="viz"></div>
 </header>
-<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 104</span></div>
+<div id="topbar" style="display:flex;gap:8px;align-items:center;margin:0 0 6px;"><button id="btn-reload" style="flex:1;padding:8px;border-radius:12px;font-weight:700;font-size:.85rem;">🔄 Neueste Version laden</button><span style="font-size:.7rem;color:var(--muted);white-space:nowrap;">Version 105</span></div>
 <div class="tr">
   <button id="btn-play" class="play-btn">▶ PLAY</button>
   <button id="btn-newhit">🎲 Shuffle</button>
@@ -1238,6 +1238,15 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   const extraKick = vary > 0.15 && !S.fx.straight && !S.fx.half && rr(grp, 41) < vary * 0.5 ? [10, 14, 7][Math.floor(rr(grp, 42) * 3)] : -1;
   if (s === 0 && bar > 0 && bar % 8 === 0 && vary > 0.3 && kickOn && (!song || K === 'verse' || (K === 'chorus' && sec.barIn > 0)) && rr(bar, 33) < 0.7) V.crash(ctx, ch.fx, tt);
 
+  // v105: mehr Abwechslung im Song (zweiter Refrain größer, zweite Strophe anders, Stopps, bewegter Filter)
+  const prior = k => song && SONG_SECS.slice(0, sec.i).some(x => x.kind === k);
+  const rep = song && K === 'chorus' && prior('chorus'), repV = song && K === 'verse' && prior('verse');
+  const stopT = song && vary > 0.3 && !B && (K === 'verse' || K === 'chorus') && bar % 8 === 7 && s >= 12 && !fillOn && sec.barIn > 0 && rr(bar, 91) < 0.55;
+  if (stopT) { kickOn = false; snareOn = false; bassOn = false; if (s === 15) V.snare(ctx, ch.dk.snare, tt, 0.9, false); }
+  if (song && vary > 0.3 && !B && K === 'verse' && bar % 4 === 3 && s >= 8) leadOn = false;
+  if (song && vary > 0.25 && !B && s === 0 && bar % 4 === 0 && (K === 'verse' || K === 'chorus')) ch.filt.frequency.setTargetAtTime(baseCut(S) * (K === 'chorus' ? 1 + 0.2 * rr(bar, 95) : 0.7 + 0.45 * rr(bar, 95)), tt, 0.5);
+  if (rep && hatOn && !inBuild && !B && s % 2 === 1) V.hat(ctx, ch.dk.hat, tt, 0.07 + 0.03 * rr(n, 96), false);
+  if (rep && !B && s === 0 && bar % 4 === 0 && sec.barIn > 0) V.crash(ctx, ch.fx, tt);
   // Akkorde
   const inv = rr(bar, 5) < vary * 0.45;
   const triad = (inv ? [2, 4, 7] : [0, 2, 4]).map(k => nf(chordDeg + k, 0));
@@ -1290,7 +1299,7 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
   if (T.bass && bassOn && !S.fx.acid) playTrack(ctx, ch, 'bass', T.bass, s, tt, dur, nf, chordDeg);
   else if (bassOn && !S.fx.acid && hit(pat.bass, s)) {
     let bdeg = chordDeg, boct = -1; const q = rr(n, 71);
-    if (q < vary * 0.18) boct = 0; else if (q < vary * 0.32) bdeg += 4; else if (s >= 14 && q < vary * 0.5) bdeg = nextDeg;
+    if (repV && rr(n, 97) < 0.3) boct = 0; else if (q < vary * 0.18) boct = 0; else if (q < vary * 0.32) bdeg += 4; else if (s >= 14 && q < vary * 0.5) bdeg = nextDeg;
     if (sty.bassType === 'walk') bdeg += [0, 2, 4, 2][(s >> 2) % 4];
     V.bass(ctx, ch.bass, tt, nf(bdeg, boct), sty.bassType === '808' ? dur * 3 : dur * 1.6, sty.bassType, 0.5 * (sty.bassMul || 1), sty.sub || 0);
   }
@@ -1309,9 +1318,10 @@ function scheduleStep(ctx, ch, S, n, t, dur, live) {
     else d0 = M[idx % M.length];
     const deg = S.melodyLock ? d0 : mutDeg(S, d0, idx, bar);
     if (deg !== REST) V.lead(ctx, ch.lead, tt, nf(deg, 1 + octFor(S, s, bar, n)), dur, leadT, chill ? cut * 0.4 : cut, (chill ? 0.1 : leadSoft ? 0.11 : 0.17) * (sty.quiet || 1));
+    if (rep && !chill && deg !== REST) V.lead(ctx, ch.lead, tt, nf(deg, 2 + octFor(S, s, bar, n)), dur, leadT, cut, 0.07 * (sty.quiet || 1));
   }
   // Gegenmelodie
-  if (vary > 0.2 && (song ? K === 'chorus' : (e > 0.65 && !chill && !inBuild)) && !hit(pat.lead, s) && s % 4 === 2 && rr(n, 21) < vary * 0.55)
+  if (vary > 0.2 && (song ? (K === 'chorus' || repV) : (e > 0.65 && !chill && !inBuild)) && !hit(pat.lead, s) && s % 4 === 2 && rr(n, 21) < vary * 0.55)
     V.lead(ctx, ch.lead, tt, nf(chordDeg + [2, 4, 7][Math.floor(rr(n, 22) * 3)], 2), dur, 'pluck', cut, 0.06 * (sty.quiet || 1));
   if (S.fx.stutter && !chill && e > 0.3) {
     const deg0 = S.melody[Math.floor(n / 4) % S.melody.length], deg = deg0 === REST ? 0 : deg0, f = nf(deg, 1 + octFor(S, s, bar, n));
@@ -2571,7 +2581,7 @@ $('#ce-off').addEventListener('click', () => setChordsOff(!st.chordsOff));
   const sticky = $('#sticky');
   // 2) Sprungmarken
   const jump = document.createElement('div'); jump.id = 'jump';
-  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🎭 Stimmung', 'c-mood'], ['🎹 Jam', 'c-jam'], ['🎙 Beatbox', 'c-bbox'], ['🧬 Evolution', 'c-evo'], ['🎚 Regler', 'c-sliders'], ['🎛 Live-FX', 'c-fx'], ['🎧 DJ', 'c-dj'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
+  [['⭐ Favoriten', 'c-favs'], ['🤖 KI', 'c-ki'], ['🗣 Natürlich', 'c-talk'], ['🎤 Gesang', 'c-sing'], ['🌍 Klangwelt', 'c-world'], ['🎭 Stimmung', 'c-mood'], ['🎹 Jam', 'c-jam'], ['🎙 Beatbox', 'c-bbox'], ['🧬 Evolution', 'c-evo'], ['🎚 Regler', 'c-sliders'], ['🎛 Live-FX', 'c-fx'], ['🎧 DJ', 'c-dj'], ['🥁 Editoren', 'c-notes'], ['🎤 Stimme', 'c-voice'], ['💾 Speichern', 'c-save'], ['🗑 Löschen', 'c-clear']].forEach(([t, id]) => {
     const b = document.createElement('button'); b.textContent = t;
     b.addEventListener('click', () => {
       const el = document.getElementById(id); if (!el) return; el.classList.remove('shut');
@@ -3139,7 +3149,7 @@ const SING = (function () {
 (function singCard() {
   const card = document.createElement('div'); card.className = 'card'; card.id = 'c-sing'; card.style.padding = '10px';
   card.innerHTML = `<div class="label"><span>🎤 Gesang &amp; Stimme</span></div>
-  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;"><b>Schritt 1:</b> Text schreiben (oder Autotext). <b>Schritt 2:</b> Stil wählen. <b>Schritt 3:</b> Gesang erzeugen. Es bleibt eine Computerstimme.</div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:6px;"><b>Schritt 1:</b> Text schreiben (oder Autotext). <b>Schritt 2:</b> Stil wählen. <b>Schritt 3:</b> Gesang erzeugen. Das ist eine Computerstimme. Für eine <b>natürliche Stimme</b> nimm die Karte „🗣 Natürliche Stimme“ direkt darüber.</div>
   <textarea id="sing-txt" rows="4" maxlength="400" placeholder="Zum Beispiel: Heute Nacht tanzen wir bis zum Morgen&#10;Oder: We dance all night under the stars" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;"></textarea>
   <div class="mixgrid" style="margin-top:8px;"><label>🎭 Stil</label><select id="sing-style" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="sing">🎶 Singen (wie vorher, am besten verständlich)</option><option value="rap">🗣 Rap / Sprechgesang (neu, Test)</option><option value="robot">🤖 Roboter</option></select>
   <label>🎛 Klangfarbe</label><select id="sing-timbre" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);"><option value="normal">Natürlich (Sprachsynthese)</option><option value="voc">🤖 Vocoder (Roboter-Pop)</option><option value="choir">👥 Chor (Engel-Vocoder)</option><option value="organ">⛪ Orgel-Stimme</option><option value="whisper">🌬 Flüstern</option></select>
@@ -3693,6 +3703,76 @@ function setWorld(id, quiet, off) {
 })();
 
 
+/* ---------- v105: Natürliche Stimme (Gerätestimme, spricht im Takt) ---------- */
+(function talkCard() {
+  const ss = window.speechSynthesis, card = document.createElement('div'); card.className = 'card'; card.id = 'c-talk'; card.style.padding = '10px';
+  const SEL = 'width:100%;padding:8px;border-radius:8px;border:1px solid #333a50;background:var(--panel2);color:var(--text);';
+  card.innerHTML = `<div class="label"><span>🗣 Natürliche Stimme (Tablet-Stimme, im Takt)</span></div>
+  <div style="font-size:.74rem;color:var(--muted);margin-bottom:6px;line-height:1.45;">Diese Stimme kommt aus deinem Tablet (z. B. Google-Stimmen) und klingt viel menschlicher als die Computerstimme. Sie spricht oder rappt jede Zeile <b>im Takt</b> zum Song. Hinweis: Sie hört man nur live, sie ist <b>nicht</b> in der WAV/MP3-Datei.</div>
+  <textarea id="tk-txt" rows="4" maxlength="500" placeholder="Eine Zeile pro Takt-Paar, z. B.:&#10;Heute Nacht tanzen wir&#10;Die Sterne leuchten für uns&#10;Wir gehen nie mehr nach Haus" style="width:100%;padding:10px;border-radius:10px;border:1px solid #333a50;background:var(--panel2);color:var(--text);font-size:.95rem;user-select:text;"></textarea>
+  <div style="display:flex;gap:6px;margin-top:6px;"><button id="tk-auto" class="oct-btn" style="flex:1;">✍️ Autotext</button><button id="tk-copy" class="oct-btn" style="flex:1;">⬇ Text von der Gesangskarte</button></div>
+  <div class="mixgrid" style="margin-top:8px;"><label>🎭 Stil</label><select id="tk-style" style="${SEL}"><option value="rap">🎤 Rap (schnell, im Takt)</option><option value="spoken">📖 Sprechgesang (ruhig)</option><option value="chant">🎵 Melodisch (Tonhöhe folgt den Akkorden)</option></select>
+  <label>🌍 Sprache</label><select id="tk-lang" style="${SEL}"><option value="auto">Automatisch</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
+  <label>🧑 Stimme</label><select id="tk-voice" style="${SEL}"></select>
+  <label>🔊 Lautstärke <b id="tk-vv">100</b></label><input type="range" id="tk-vol" min="20" max="100" value="100"></div>
+  <div style="display:flex;gap:6px;margin-top:8px;"><button id="tk-test" class="oct-btn" style="flex:1;">🔊 Stimme testen</button><button id="tk-next" class="oct-btn" style="flex:1;">🎲 Andere Stimme</button></div>
+  <button id="tk-go" class="sunset-btn" style="width:100%;margin-top:8px;">▶ Song starten &amp; im Takt sprechen</button>
+  <button id="tk-off" class="oct-btn" style="width:100%;margin-top:6px;">⏹ Sprecher aus</button>
+  <div id="tk-msg" style="font-size:.8rem;margin-top:8px;line-height:1.4;"></div>`;
+  const anchor = document.getElementById('c-sing') || document.getElementById('c-sliders'); anchor.parentNode.insertBefore(card, anchor);
+  const $t = id => document.getElementById(id), msg = t => { $t('tk-msg').textContent = t; };
+  if (!ss) { msg('Dieses Gerät hat keine Sprachausgabe im Browser.'); return; }
+  let vs = []; const T = { on: false, idx: 0, nextBar: 0, sched: -1, lastNb: 0, d1: {}, lines: [] };
+  const guessLang = txt => { const en = (txt.toLowerCase().match(/\b(the|and|you|we|night|love|dance|all|under|my|your|stars|is|are|to)\b/g) || []).length, de = (txt.toLowerCase().match(/\b(der|die|das|und|wir|ich|du|nicht|heute|nacht|mit|für|ist|sind|zu)\b|[äöüß]/g) || []).length; return en > de ? 'en' : 'de'; };
+  const curLang = () => { const l = $t('tk-lang').value; return l === 'auto' ? guessLang($t('tk-txt').value || (document.getElementById('sing-txt') || {}).value || '') : l; };
+  const fillVoices = () => {
+    vs = ss.getVoices() || []; const l = curLang(), keep = $t('tk-voice').value; const list = vs.map((v, i) => ({ v, i })).filter(x => x.v.lang && x.v.lang.toLowerCase().startsWith(l));
+    list.sort((a, b) => (b.v.name.includes('Google') ? 2 : 0) + (b.v.localService ? 0 : 1) - ((a.v.name.includes('Google') ? 2 : 0) + (a.v.localService ? 0 : 1)));
+    $t('tk-voice').innerHTML = list.length ? list.map((x, n) => '<option value="' + x.i + '">' + (n + 1) + '. ' + x.v.name + ' (' + x.v.lang + (x.v.localService ? ', offline' : ', online') + ')</option>').join('') : '<option value="-1">Keine passende Stimme gefunden (Standardstimme)</option>';
+    if (keep && [...$t('tk-voice').options].some(o => o.value === keep)) $t('tk-voice').value = keep;
+  };
+  fillVoices(); ss.addEventListener && ss.addEventListener('voiceschanged', fillVoices); setTimeout(fillVoices, 800); setTimeout(fillVoices, 2500);
+  $t('tk-lang').addEventListener('change', fillVoices); $t('tk-txt').addEventListener('change', () => { if ($t('tk-lang').value === 'auto') fillVoices(); });
+  $t('tk-vol').addEventListener('input', () => { $t('tk-vv').textContent = $t('tk-vol').value; });
+  const mkU = (text, rate, pitch) => { const u = new SpeechSynthesisUtterance(text), i = +$t('tk-voice').value; if (i >= 0 && vs[i]) { u.voice = vs[i]; u.lang = vs[i].lang; } else u.lang = curLang() === 'en' ? 'en-US' : 'de-DE'; u.rate = rate; u.pitch = pitch; u.volume = +$t('tk-vol').value / 100; return u; };
+  const parse = () => {
+    const raw = ($t('tk-txt').value.trim() || (document.getElementById('sing-txt') || {}).value || '').trim(), out = [];
+    raw.split(/\n+/).forEach(l => { l.split(/(?<=[.!?;])\s+/).forEach(s => { s = s.replace(/[“”"„]/g, '').trim(); if (!s) return; const w = s.split(/\s+/); for (let i = 0; i < w.length; i += 9) { const part = w.slice(i, i + 9).join(' '); if (part.length > 1) out.push({ text: part, words: Math.min(9, w.length - i) }); } }); });
+    out.forEach(o => { o.bars = o.words <= 5 ? 1 : 2; }); return out;
+  };
+  const speakLine = (ln, nb) => {
+    const Tb = 240 / st.bpm, style = $t('tk-style').value, target = ln.bars * Tb * 0.9, est1 = T.d1[ln.text] || (ln.words * 0.4 + 0.3);
+    let rate = est1 / target; rate = style === 'spoken' ? Math.max(0.65, Math.min(1.0, rate)) : Math.max(0.7, Math.min(2.0, rate));
+    let pitch = style === 'chant' ? 0.85 + 0.07 * (typeof chordAt === 'function' ? (((chordAt(nb) % 7) + 7) % 7) : 0) : style === 'spoken' ? 0.92 : 1;
+    try { ss.cancel(); } catch (e) {} const u = mkU(ln.text, rate, pitch); let t0 = 0; u.onstart = () => { t0 = performance.now(); }; u.onend = () => { if (t0) T.d1[ln.text] = (performance.now() - t0) / 1000 * rate; };
+    try { ss.speak(u); } catch (e) {} T.nextBar = nb + ln.bars; T.idx++;
+    msg('🗣 „' + ln.text + '“ (' + ln.bars + ' Takt' + (ln.bars > 1 ? 'e' : '') + ')');
+  };
+  const tick = () => {
+    if (!T.on) return;
+    if (!st.playing || typeof ctx === 'undefined' || !ctx) { T.idx = 0; T.nextBar = 0; T.sched = -1; T.lastNb = 0; try { if (ss.speaking) ss.cancel(); } catch (e) {} return; }
+    const Tb = 240 / st.bpm, pos = (ctx.currentTime - songT0) / Tb, nb = Math.floor(pos) + 1, toB = (nb - pos) * Tb;
+    if (nb < T.lastNb - 1) { T.idx = 0; T.nextBar = 0; T.sched = -1; } T.lastNb = nb;
+    if (toB < 0.3 && T.sched !== nb && nb >= T.nextBar) {
+      T.sched = nb; const k = (typeof sectionAt === 'function' ? sectionAt(nb).kind : 'verse'); if (k !== 'verse' && k !== 'chorus') return;
+      if (!T.lines.length) T.lines = parse(); if (!T.lines.length) return; const ln = T.lines[T.idx % T.lines.length];
+      setTimeout(() => { if (T.on && st.playing) speakLine(ln, nb); }, Math.max(0, (toB - 0.12) * 1000));
+    }
+  };
+  setInterval(tick, 60);
+  $t('tk-test').addEventListener('click', () => { try { ss.cancel(); ss.speak(mkU(curLang() === 'en' ? 'Hello, this is how this voice sounds.' : 'Hallo, so klingt diese Stimme.', 1, 1)); msg('🔊 Teste die Stimme …'); } catch (e) { msg('Das Sprechen hat nicht geklappt.'); } });
+  $t('tk-next').addEventListener('click', () => { const o = $t('tk-voice').options; if (!o.length) return; $t('tk-voice').selectedIndex = ($t('tk-voice').selectedIndex + 1) % o.length; $t('tk-test').click(); });
+  $t('tk-auto').addEventListener('click', () => { const b = document.getElementById('sing-auto'); if (b) { const l = $t('tk-lang').value; if (l !== 'auto' && document.getElementById('sing-lang')) document.getElementById('sing-lang').value = l; b.click(); $t('tk-txt').value = document.getElementById('sing-txt').value; T.lines = []; T.d1 = {}; fillVoices(); msg('✍️ Neuer Text steht oben. Tippe auf „Song starten“.'); } });
+  $t('tk-copy').addEventListener('click', () => { const s = document.getElementById('sing-txt'); if (s && s.value.trim()) { $t('tk-txt').value = s.value; T.lines = []; msg('Text übernommen.'); } else msg('Auf der Gesangskarte steht noch kein Text.'); });
+  $t('tk-txt').addEventListener('input', () => { T.lines = []; });
+  $t('tk-go').addEventListener('click', () => {
+    if (!parse().length) { msg('Schreibe zuerst einen Text oder tippe auf Autotext.'); return; }
+    T.lines = []; T.idx = 0; T.nextBar = 0; T.sched = -1; T.on = true; try { ss.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    if (!st.playing) document.getElementById('btn-play').click(); msg('🗣 Sprecher ist an. Die Stimme setzt in Strophe und Refrain im Takt ein (das Intro bleibt instrumental).');
+  });
+  $t('tk-off').addEventListener('click', () => { T.on = false; try { ss.cancel(); } catch (e) {} msg('Sprecher ist aus.'); });
+  window.__talk = { T, parse, speakLine, fillVoices };
+})();
 /* ---------- v95: Kompakt-Umbau (alle Funktionen bleiben) ---------- */
 (function compact() {
   const css = document.createElement('style');
@@ -3735,7 +3815,7 @@ function setWorld(id, quiet, off) {
     if (afterLast) { const all = [...document.querySelectorAll('.card[data-tab="' + tab + '"]')].filter(x => x !== c), last = all[all.length - 1]; if (last) last.after(c); }
   }
   ['c-mood', 'c-evo', 'c-world', 'c-jam', 'c-bbox'].forEach(id => foldify(id, 'play', true));
-  foldify('c-sing', 'voice', true); foldify('c-cover', 'save', true);
+  foldify('c-sing', 'voice', true); foldify('c-talk', 'voice', true); { const a = document.getElementById('c-talk'), b = document.getElementById('c-sing'); if (a && b) b.before(a); } foldify('c-cover', 'save', true);
   foldify('c-favs', 'play', true); foldify('c-ki', 'play', true); foldify('c-sliders', 'song', true);
   
   const onScroll = () => { mini.style.display = window.scrollY > 110 ? 'block' : 'none'; }; window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
