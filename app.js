@@ -3800,6 +3800,9 @@ window.__qrcode = (function () { var define, exports, module; var qrcode=functio
   const sm = t => { try { document.getElementById('sing-msg').textContent = t; } catch (e) {} };
   const _s = stop; stop = function () { if (busy) cancel = true; const r = _s.apply(this, arguments); delete b.dataset.on; lab(); return r; };
   const SAFE = [0, 0, 1, 2, 7];
+  setInterval(() => { if (!st.playing && b.dataset.on) { delete b.dataset.on; lab(); } }, 400);
+  const pb = document.getElementById('btn-play');
+  if (pb) pb.addEventListener('click', e => { if (busy) { e.stopImmediatePropagation(); e.preventDefault(); cancel = true; busy = false; sm('Voll-Hit abgebrochen.'); lab(); } }, true);
   b.addEventListener('click', async () => {
     if (busy || (b.dataset.on && st.playing)) { cancel = true; busy = false; stop(); sm('Gestoppt.'); lab(); return; }
     busy = true; cancel = false; lab(); const my = ++tok; const dead = () => cancel || my !== tok;
